@@ -6,6 +6,7 @@ from datetime import timezone
 import json
 import asyncio
 from flask import Flask, jsonify
+import threading
 
 print("🚀 Starting Discord CS2 Bot...")
 
@@ -13,6 +14,10 @@ print("🚀 Starting Discord CS2 Bot...")
 # FLASK APP - ZUERST STARTEN
 # =========================
 app = Flask(__name__)
+
+# Globale Variable für Bot-Status
+bot_ready = False
+teams_count = 0
 
 @app.route('/')
 def home():
@@ -38,7 +43,9 @@ def health():
 def status():
     return jsonify({
         "status": "online", 
-        "bot_ready": False
+        "bot_ready": bot_ready,
+        "teams_count": teams_count,
+        "timestamp": datetime.datetime.now(timezone.utc).isoformat()
     })
 
 # Flask sofort starten
@@ -48,7 +55,6 @@ def start_flask():
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
 # Flask in separatem Thread starten
-import threading
 flask_thread = threading.Thread(target=start_flask, daemon=True)
 flask_thread.start()
 print("✅ Flask server started")
@@ -66,19 +72,11 @@ ALERT_TIME = 5
 
 @bot.event
 async def on_ready():
+    global bot_ready, teams_count
     print(f'✅ {bot.user} ist online!')
-    
-    # Update status route
-    @app.route('/status')
-    def status():
-        return jsonify({
-            "status": "online",
-            "bot_ready": True,
-            "teams_count": sum(len(teams) for teams in TEAMS.values()),
-            "timestamp": datetime.datetime.now(timezone.utc).isoformat()
-        })
-    
-    print("🤖 Bot ready and routes updated")
+    bot_ready = True
+    teams_count = sum(len(teams) for teams in TEAMS.values())
+    print("🤖 Bot ready and status updated")
 
 @bot.command()
 async def ping(ctx):
