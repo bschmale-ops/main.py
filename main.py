@@ -15,8 +15,34 @@ print("🚀 Starting Discord CS2 Bot...")
 app = Flask(__name__)
 
 bot_ready = False
-TEAMS = {}
-CHANNELS = {}
+DATA_FILE = "bot_data.json"
+
+# =========================
+# DATEN MANAGEMENT
+# =========================
+def load_data():
+    try:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        return {"TEAMS": {}, "CHANNELS": {}}
+    except:
+        return {"TEAMS": {}, "CHANNELS": {}}
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+# Daten laden
+data = load_data()
+TEAMS = data.get("TEAMS", {})
+CHANNELS = data.get("CHANNELS", {})
+
+# Guild IDs von String zu Integer konvertieren
+TEAMS = {int(k): v for k, v in TEAMS.items()}
+CHANNELS = {int(k): v for k, v in CHANNELS.items()}
+
+print(f"📊 Geladene Daten: {len(TEAMS)} Server, {sum(len(t) for t in TEAMS.values())} Teams")
 
 @app.route('/')
 def home():
@@ -58,7 +84,7 @@ async def on_ready():
     bot_ready = True
 
 # =========================
-# COMMANDS WIEDER HINZUFÜGEN
+# COMMANDS MIT DATENSPEICHERUNG
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -67,6 +93,7 @@ async def subscribe(ctx, *, team):
     TEAMS.setdefault(guild_id, [])
     if team not in TEAMS[guild_id]:
         TEAMS[guild_id].append(team)
+        save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS})
         await ctx.send(f"✅ Team '{team}' hinzugefügt!")
     else:
         await ctx.send(f"⚠️ '{team}' ist bereits abonniert.")
@@ -75,8 +102,9 @@ async def subscribe(ctx, *, team):
 async def unsubscribe(ctx, *, team):
     """Entferne ein Team von Alerts"""
     guild_id = ctx.guild.id
-    if team in TEAMS.get(guild_id, []):
+    if guild_id in TEAMS and team in TEAMS[guild_id]:
         TEAMS[guild_id].remove(team)
+        save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS})
         await ctx.send(f"❌ Team '{team}' entfernt!")
     else:
         await ctx.send("Team nicht gefunden.")
@@ -96,6 +124,7 @@ async def list_teams(ctx):
 async def setchannel(ctx, channel: discord.TextChannel):
     """Setze den Alert-Channel"""
     CHANNELS[ctx.guild.id] = channel.id
+    save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS})
     await ctx.send(f"📡 Channel auf {channel.mention} gesetzt!")
 
 @bot.command()
