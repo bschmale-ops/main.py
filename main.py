@@ -23,9 +23,9 @@ print("🚀 Starting Discord CS2 Bot...")
 # FLASK STATUS SERVER
 # =========================
 app = Flask(__name__)
-start_time = datetime.datetime.utcnow()
-last_check_time = datetime.datetime.utcnow()
-last_data_check = datetime.datetime.utcnow()
+start_time = datetime.datetime.now(timezone.utc)
+last_check_time = datetime.datetime.now(timezone.utc)
+last_data_check = datetime.datetime.now(timezone.utc)
 status_history = []
 response_times = []
 
@@ -111,12 +111,12 @@ def create_backup():
 
     try:
         if os.path.exists(DATA_FILE):
-            backup_file = f"bot_data_backup_{datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+            backup_file = f"bot_data_backup_{datetime.datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
             with open(DATA_FILE, "r", encoding='utf-8') as source:
                 with open(backup_file, "w", encoding='utf-8') as target:
                     target.write(source.read())
 
-            data_last_backup = datetime.datetime.utcnow()
+            data_last_backup = datetime.datetime.now(timezone.utc)
 
             # Clean up old backups (keep last 5)
             backup_files = [f for f in os.listdir('.') if f.startswith('bot_data_backup_') and f.endswith('.json')]
@@ -163,7 +163,7 @@ def repair_data_file():
 @app.route('/ping')
 def ping():
     """Health check endpoint for monitoring"""
-    current_time = datetime.datetime.utcnow()
+    current_time = datetime.datetime.now(timezone.utc)
     uptime = current_time - start_time
 
     # Calculate uptime in minutes
@@ -207,7 +207,7 @@ def status():
 def metrics():
     """Metrics for dashboard"""
     # Calculate uptime details
-    current_time = datetime.datetime.utcnow()
+    current_time = datetime.datetime.now(timezone.utc)
     uptime = current_time - start_time
 
     # Get recent status (last 24 hours)
@@ -265,7 +265,7 @@ def health():
     """Simple health check"""
     return jsonify({
         "status": "online",
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "timestamp": datetime.datetime.now(timezone.utc).isoformat()
     })
 
 @app.route('/data/health')
@@ -390,7 +390,7 @@ async def get_upcoming_matches():
                      ('MOUZ', 'Spirit'), ('FURIA', 'Falcons')]
 
         for i, (team1, team2) in enumerate(demo_teams):
-            match_time = datetime.datetime.utcnow() + datetime.timedelta(hours=i + 1)
+            match_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=i + 1)
             matches.append({
                 'team1': team1,
                 'team2': team2,
@@ -421,7 +421,7 @@ async def send_alerts():
     """Send match alerts with status tracking"""
     global last_check_time
     try:
-        last_check_time = datetime.datetime.utcnow()
+        last_check_time = datetime.datetime.now(timezone.utc)
         matches, response_time = await get_upcoming_matches()
 
         for guild_id, teams in TEAMS.items():
@@ -474,7 +474,7 @@ async def send_alerts():
     except Exception as e:
         print(f"❌ Alert error: {e}")
         status_history.append({
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(timezone.utc).isoformat(),
             "status": "error",
             "error": str(e)
         })
@@ -487,7 +487,7 @@ async def data_health_check():
     """Regelmäßige Überprüfung der Daten-Gesundheit"""
     global last_data_check
     try:
-        last_data_check = datetime.datetime.utcnow()
+        last_data_check = datetime.datetime.now(timezone.utc)
         health_info = check_data_health()
 
         if health_info["status"] != "healthy":
@@ -495,7 +495,7 @@ async def data_health_check():
 
         # Create backup every 6 hours if healthy
         if health_info["status"] == "healthy":
-            current_time = datetime.datetime.utcnow()
+            current_time = datetime.datetime.now(timezone.utc)
             if not data_last_backup or (current_time - data_last_backup).total_seconds() > 6 * 3600:
                 backup_result = create_backup()
                 if backup_result["status"] == "success":
@@ -614,7 +614,7 @@ async def test_alert(ctx):
 @bot.command()
 async def status(ctx):
     """Zeigt Bot-Status"""
-    uptime = datetime.datetime.utcnow() - start_time
+    uptime = datetime.datetime.now(timezone.utc) - start_time
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
 
