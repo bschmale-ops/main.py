@@ -38,20 +38,20 @@ AUTO_SUBSCRIBE_TEAMS = [
 
 # Team Display Names mit Emojis (für Ausgabe in /list und Alerts)
 TEAM_DISPLAY_NAMES = {
-    'Falcons': ':falcons: Falcons',
-    'MOUZ': ':mouz: MOUZ',
-    'Team Spirit': ':spirit: Team Spirit', 
-    'Team Vitality': ':vitality: Team Vitality',
-    'The Mongolz': ':themongolz: The Mongolz',
-    'FURIA': ':furia: FURIA',
-    'Natus Vincere': ':navi: Natus Vincere',
-    'FaZe': ':faze: FaZe',
-    '3DMAX': ':3dmax: 3DMAX',
-    'Astralis': ':astralls: Astralis',
-    'G2': ':g2: G2',
-    'Aurora': ':aurora: Aurora',
-    'Liquid': ':liquid: Liquid',
-    'M80': ':m80: M80'
+    'Falcons': ':falcons: **FALCONS**',
+    'MOUZ': ':mouz: **MOUZ**',
+    'Team Spirit': ':spirit: **TEAM SPIRIT**', 
+    'Team Vitality': ':vitality: **TEAM VITALITY**',
+    'The Mongolz': ':themongolz: **THE MONGOLZ**',
+    'FURIA': ':furia: **FURIA**',
+    'Natus Vincere': ':navi: **NATUS VINCERE**',
+    'FaZe': ':faze: **FAZE**',
+    '3DMAX': ':3dmax: **3DMAX**',
+    'Astralis': ':astralls: **ASTRALIS**',
+    'G2': ':g2: **G2**',
+    'Aurora': ':aurora: **AURORA**',
+    'Liquid': ':liquid: **LIQUID**',
+    'M80': ':m80: **M80**'
 }
 
 # =========================
@@ -96,28 +96,6 @@ TEAM_SYNONYMS = {
     'M80': ['m80']
 }
 
-TEAM_LOGOS = {
-    'Natus Vincere': 'https://liquipedia.net/commons/images/thumb/6/60/Natus_Vincere_2022.png/150px-Natus_Vincere_2022.png',
-    'FaZe Clan': 'https://liquipedia.net/commons/images/thumb/5/5e/FaZe_Clan_2021.png/150px-FaZe_Clan_2021.png',
-    'Team Vitality': 'https://liquipedia.net/commons/images/thumb/5/5e/Team_Vitality_2020.png/150px-Team_Vitality_2020.png',
-    'G2 Esports': 'https://liquipedia.net/commons/images/thumb/5/5e/G2_Esports_2020.png/150px-G2_Esports_2020.png',
-    'FURIA': 'https://liquipedia.net/commons/images/thumb/3/3c/FURIA_Esports_2020.png/150px-FURIA_Esports_2020.png',
-    'MOUZ': 'https://liquipedia.net/commons/images/thumb/8/83/MOUZ_2023.png/150px-MOUZ_2023.png',
-    'Team Spirit': 'https://liquipedia.net/commons/images/thumb/6/6c/Team_Spirit_2020.png/150px-Team_Spirit_2020.png',
-    'Cloud9': 'https://liquipedia.net/commons/images/thumb/5/5e/Cloud9_2021.png/150px-Cloud9_2021.png',
-    'Virtus.pro': 'https://liquipedia.net/commons/images/thumb/6/60/Virtus.pro_2022.png/150px-Virtus.pro_2022.png',
-    'The Mongolz': 'https://liquipedia.net/commons/images/thumb/4/47/TheMongolz_allmode.png/150px-TheMongolz_allmode.png',
-    '9z Team': 'https://liquipedia.net/commons/images/thumb/f/f2/9z_Team_2021.png/150px-9z_Team_2021.png',
-    '3DMAX': 'https://liquipedia.net/commons/images/thumb/4/4a/3DMAX_2024.png/150px-3DMAX_2024.png',
-    'Betera Esports': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
-    'SPARTA': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
-    'Falcons': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
-    'Astralis': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
-    'Aurora': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
-    'Liquid': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
-    'M80': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
-}
-
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
     for correct_name, variants in TEAM_SYNONYMS.items():
@@ -125,47 +103,25 @@ def find_team_match(input_team):
             return correct_name, True
     return input_team, False
 
-def get_team_logo(team_name):
-    """Find logo with better team name matching"""
-    if team_name in TEAM_LOGOS:
-        return TEAM_LOGOS[team_name]
-    
-    team_lower = team_name.lower()
-    for logo_team, logo_url in TEAM_LOGOS.items():
-        if (team_lower in logo_team.lower() or 
-            logo_team.lower() in team_lower or
-            any(word in team_lower for word in logo_team.lower().split())):
-            return logo_url
-    
-    return 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
-
 def get_display_name(team_name):
     """Get team name with emoji for display"""
-    return TEAM_DISPLAY_NAMES.get(team_name, team_name)
-
-def create_team_display(team_name):
-    """Erstelle Team-Anzeige als Code-Block (wie Button)"""
-    display_name = get_display_name(team_name)
-    # Code-Block erstellen (sieht aus wie ein Button)
-    return f"`{display_name}`"
+    return TEAM_DISPLAY_NAMES.get(team_name, f"**{team_name.upper()}**")
 
 def create_centered_teams_display(team1, team2):
-    """Erstelle perfekt zentrierte Team-Anzeige mit Code-Blöcken"""
-    # Teams als Code-Blöcke
-    team1_block = create_team_display(team1)
-    team2_block = create_team_display(team2)
+    """Erstelle Team-Anzeige mit Custom Emojis und großen Teamnamen"""
+    team1_display = get_display_name(team1)
+    team2_display = get_display_name(team2)
     
-    # Zentrierte Anzeige erstellen
     centered_display = (
-        f"{team1_block}\n"
+        f"{team1_display}\n"
         f"**🆚**\n"
-        f"{team2_block}"
+        f"{team2_display}"
     )
     
     return centered_display
 
 def create_frame(title, content):
-    """Erstelle einen Rahmen nach Option 3 für Textnachrichten"""
+    """Erstelle einen Rahmen für Textnachrichten"""
     separator = "─────────────────────────────"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
@@ -325,9 +281,9 @@ async def send_alerts():
                             
                             match_content = (
                                 f"{centered_display}\n\n"
-                                f"🏆 **{match['event']}**\n"
-                                f"⏰ **Starts in {int(time_until)} minutes**\n"
-                                f"🕐 **{match['time_string']}**"
+                                f"*🏆 {match['event']}*\n"
+                                f"*⏰ Starts in {int(time_until)} minutes*\n"
+                                f"*🕐 {match['time_string']}*"
                             )
                             
                             framed_message = create_frame(
@@ -400,7 +356,7 @@ async def list(ctx):
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        team_list = "\n".join([f"• {create_team_display(team)}" for team in teams])
+        team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
         framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
         await ctx.send(framed_message)
     else:
@@ -429,10 +385,10 @@ async def matches(ctx):
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                match_list += f"{i}. {create_team_display(match['team1'])} 🆚 {create_team_display(match['team2'])}\n"
-                match_list += f"   ⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
+                match_list += f"{i}. {get_display_name(match['team1'])} 🆚 {get_display_name(match['team2'])}\n"
+                match_list += f"   *⏰ {int(time_until)}min | 🏆 {match['event']}*\n\n"
             
-            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
+            footer = f"*🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min*"
             framed_message = create_frame("🎯 **AVAILABLE CS2 MATCHES**", f"{match_list}{footer}")
             await ctx.send(framed_message)
         else:
@@ -467,7 +423,7 @@ async def autosetup(ctx):
     
     if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
         if added_teams:
-            team_names = "\n".join([f"• {create_team_display(team)}" for team in added_teams])
+            team_names = "\n".join([f"• {get_display_name(team)}" for team in added_teams])
             await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**\n{team_names}")
         else:
             await ctx.send("✅ **Teams already subscribed!**")
@@ -498,15 +454,15 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with code blocks (Button-Look)"""
+    """Test alert"""
     # ✅ TEST ALS NORMALE TEXTNACHRICHT
     centered_display = create_centered_teams_display("Falcons", "M80")
     
     test_content = (
         f"{centered_display}\n\n"
-        f"🏆 **NODWIN Clutch Series**\n"
-        f"⏰ **Starts in 15 minutes**\n"
-        f"🕐 **16:00**"
+        f"*🏆 NODWIN Clutch Series*\n"
+        f"*⏰ Starts in 15 minutes*\n"
+        f"*🕐 16:00*"
     )
     
     framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
