@@ -95,7 +95,7 @@ TEAM_SYNONYMS = {
     'Astralis': ['astralis'],
     'Aurora': ['aurora'],
     'Liquid': ['liquid'],
-    'M80': ['m80']
+    'M80': ['m80'
 }
 
 # Temporäre Teams (nur während Laufzeit)
@@ -139,13 +139,8 @@ def get_team_name(team_name):
     return display
 
 def center_vs(team1, team2, separator="<:VS:1428106772312227984>", emoji_visual_width=2):
-    """Zentriere Teams und VS-Symbol perfekt, berücksichtige visuelle Breite von Emojis"""
-    def get_visual_length(text):
-        emoji_pattern = r'<a?:[a-zA-Z0-9_]+:\d+>'
-        cleaned_text = re.sub(emoji_pattern, ' ' * emoji_visual_width, text)
-        return len(cleaned_text)
-
-    max_len = max(get_visual_length(team1), get_visual_length(team2), get_visual_length(separator) if separator else emoji_visual_width)
+    # Maximale Länge: Teamnamen oder Separator (berücksichtigt visuelle Breite)
+    max_len = max(len(team1), len(team2), emoji_visual_width if separator == "🆚" else len(separator))
     line1 = team1.center(max_len)
     line2 = separator.center(max_len)
     line3 = team2.center(max_len)
@@ -298,7 +293,7 @@ async def send_alerts():
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
                             embed = discord.Embed(
                                 title=f"🎮 **MATCH ALERT** • {int(time_until)} MINUTES",
-                                description=f"{centered_display}\n\n*🏆 {match['event']}*\n*⏰ Starts in {int(time_until)} minutes*\n*🕐 {match['time_string']}*",
+                                description=f"\n\n{centered_display}\n\n\n*🏆 {match['event']}*\n*⏰ Starts in {int(time_until)} minutes*\n*🕐 {match['time_string']}*",
                                 color=0x00ff00,
                                 timestamp=datetime.datetime.now(timezone.utc)
                             )
@@ -472,15 +467,17 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with Embed, bold and larger team names"""
+    """Test alert with Embed, better spacing and centering"""
     centered_display = create_centered_teams_display("Falcons", "Team Vitality")
+    
     embed = discord.Embed(
         title="🎮 **TEST ALERT** • 15 MINUTES",
-        description=f"\n{centered_display}\n\n*🏆 NODWIN Clutch Series*\n*⏰ Starts in 15 minutes*\n*🕐 16:00*",
+        description=f"\n\n{centered_display}\n\n\n*🏆 NODWIN Clutch Series*\n*⏰ Starts in 15 minutes*\n*🕐 16:00*",
         color=0x00ff00,
         timestamp=datetime.datetime.now(timezone.utc)
     )
     embed.set_footer(text="Test Alert | Powered by xAI")
+    
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
         await ctx.send(f"🔔 {role.mention}", embed=embed)
