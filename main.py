@@ -138,9 +138,16 @@ def get_team_name(team_name):
     return display
 
 def center_vs(team1, team2, separator="<:VS:1428106772312227984>"):
-    """Perfekte Zentrierung für Teams mit Custom Emojis"""
-    # Verwende Discord Formatting für Zentrierung
-    return f"**{team1}**\n{separator}\n**{team2}**"
+    """Perfekte Zentrierung für Teams mit Custom Emojis - FIXED VERSION"""
+    # Feste Breite für konsistente Zentrierung
+    fixed_width = 35
+    
+    # Jede Zeile separat zentrieren
+    line1 = f"**{team1}**".center(fixed_width)
+    line2 = separator.center(fixed_width)
+    line3 = f"**{team2}**".center(fixed_width)
+    
+    return f"{line1}\n{line2}\n{line3}"
 
 def create_centered_teams_display(team1, team2):
     """Erstelle perfekt zentrierte Team-Anzeige"""
