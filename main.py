@@ -88,67 +88,124 @@ print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in T
 # HLTV SCRAPING FUNCTIONS
 # =========================
 async def fetch_hltv_matches():
-    """Holt aktuelle Matches von HLTV"""
+    """Holt aktuelle Matches von HLTV mit verbessertem Parsing"""
     matches = []
     
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://www.hltv.org/matches"
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Cache-Control': 'max-age=0'
             }
             
-            async with session.get(url, headers=headers) as response:
+            print("🔍 Fetching HLTV matches...")
+            async with session.get(url, headers=headers, timeout=30) as response:
+                print(f"📡 HLTV Response Status: {response.status}")
+                
                 if response.status == 200:
                     html = await response.text()
                     soup = BeautifulSoup(html, 'html.parser')
                     
-                    # Finde Match-Container
-                    match_containers = soup.find_all('div', class_='upcomingMatch')
+                    # Debug: Save HTML for analysis
+                    # with open("hltv_debug.html", "w", encoding="utf-8") as f:
+                    #     f.write(html)
                     
-                    for container in match_containers[:25]:  # Erste 25 Matches
+                    # Verschiedene mögliche Container ausprobieren
+                    match_containers = []
+                    
+                    # Versuche verschiedene CSS-Klassen
+                    containers = soup.find_all('div', class_=['upcomingMatch', 'match', 'liveMatch', 'match-container'])
+                    match_containers.extend(containers)
+                    
+                    # Falls keine Matches gefunden, suche nach Tabellen oder anderen Strukturen
+                    if not match_containers:
+                        # Suche nach allen divs die Matches enthalten könnten
+                        all_divs = soup.find_all('div')
+                        for div in all_divs:
+                            text = div.get_text(strip=True)
+                            if 'vs' in text and any(team_keyword in text.lower() for team_keyword in ['navi', 'faze', 'vitality', 'g2', 'heroic']):
+                                match_containers.append(div)
+                    
+                    print(f"🔍 Found {len(match_containers)} potential match containers")
+                    
+                    for i, container in enumerate(match_containers[:20]):  # Erste 20 Matches
                         try:
-                            # Team Namen extrahieren
-                            team_elements = container.find_all('div', class_='matchTeamName')
+                            # Extrahiere Teamnamen - verschiedene Methoden ausprobieren
+                            team1, team2 = None, None
+                            event = "CS2 Event"
+                            match_time = "Soon"
+                            match_link = "https://www.hltv.org/matches"
+                            
+                            # Methode 1: Standard HLTV Struktur
+                            team_elements = container.find_all('div', class_=['matchTeamName', 'team', 'team-name'])
                             if len(team_elements) >= 2:
                                 team1 = team_elements[0].get_text(strip=True)
                                 team2 = team_elements[1].get_text(strip=True)
-                                
-                                # Match Zeit extrahieren
-                                time_element = container.find('div', class_='matchTime')
-                                if time_element:
-                                    match_time = time_element.get_text(strip=True)
-                                    
-                                    # Event Name
-                                    event_element = container.find('div', class_='matchEventName')
-                                    event = event_element.get_text(strip=True) if event_element else "CS2 Event"
-                                    
-                                    # Match Link
-                                    match_link = container.get('data-z-url')
-                                    if match_link and not match_link.startswith('http'):
-                                        match_link = f"https://www.hltv.org{match_link}"
-                                    else:
-                                        match_link = "https://www.hltv.org/matches"
-                                    
-                                    # Zeit in Unix Timestamp umwandeln
-                                    unix_time = parse_match_time(match_time)
-                                    
-                                    if team1 and team2 and team1 != 'TBD' and team2 != 'TBD':
-                                        matches.append({
-                                            'team1': team1,
-                                            'team2': team2,
-                                            'unix_time': unix_time,
-                                            'event': event,
-                                            'link': match_link,
-                                            'time_string': match_time
-                                        })
-                                        
-                        except Exception as e:
-                            continue
+                            else:
+                                # Methode 2: Suche nach Team-Namen in Text
+                                text = container.get_text(strip=True)
+                                if 'vs' in text:
+                                    parts = text.split('vs')
+                                    if len(parts) >= 2:
+                                        team1 = parts[0].strip()
+                                        team2 = parts[1].strip()
+                                        # Entferne Zeit/Datum aus Teamnamen
+                                        for time_indicator in ['Today', 'Tomorrow', 'in', 'START']:
+                                            if time_indicator in team2:
+                                                team2 = team2.split(time_indicator)[0].strip()
                             
-                else:
-                    print(f"❌ HLTV Request failed: {response.status}")
+                            # Event Name
+                            event_elements = container.find_all('div', class_=['matchEventName', 'event', 'tournament'])
+                            if event_elements:
+                                event = event_elements[0].get_text(strip=True)
+                            
+                            # Match Zeit
+                            time_elements = container.find_all('div', class_=['matchTime', 'time', 'start-time'])
+                            if time_elements:
+                                match_time = time_elements[0].get_text(strip=True)
+                            
+                            # Match Link
+                            link_element = container.find('a')
+                            if link_element and link_element.get('href'):
+                                href = link_element.get('href')
+                                if href.startswith('/matches/'):
+                                    match_link = f"https://www.hltv.org{href}"
+                            
+                            # Validiere Teams
+                            if team1 and team2 and len(team1) > 1 and len(team2) > 1 and team1 != 'TBD' and team2 != 'TBD':
+                                unix_time = parse_match_time(match_time)
+                                
+                                matches.append({
+                                    'team1': team1,
+                                    'team2': team2,
+                                    'unix_time': unix_time,
+                                    'event': event,
+                                    'link': match_link,
+                                    'time_string': match_time
+                                })
+                                print(f"✅ Match {i+1}: {team1} vs {team2} - {match_time}")
+                                
+                        except Exception as e:
+                            print(f"❌ Error parsing match {i+1}: {e}")
+                            continue
                     
+                    print(f"🎯 Successfully parsed {len(matches)} matches")
+                    
+                else:
+                    print(f"❌ HLTV Request failed with status: {response.status}")
+                    
+    except asyncio.TimeoutError:
+        print("❌ HLTV request timeout")
     except Exception as e:
         print(f"❌ HLTV Scraping error: {e}")
     
