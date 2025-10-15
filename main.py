@@ -36,22 +36,22 @@ AUTO_SUBSCRIBE_TEAMS = [
     'G2', 'Aurora', 'Liquid', 'M80'
 ]
 
-# Team Display Names mit ECHTEN Emoji-IDs
+# Team Display Names mit Emojis (für Ausgabe in /list und Alerts)
 TEAM_DISPLAY_NAMES = {
-    'Falcons': '<:falcons:1428089350217793616> **FALCONS**',
-    'MOUZ': '<:mouz:1428089555340361799> **MOUZ**',
-    'Team Spirit': '<:spirit:1428089687905402950> **TEAM SPIRIT**', 
-    'Team Vitality': '<:vitality:1428089770554298600> **TEAM VITALITY**',
-    'The Mongolz': '<:themongolz:1428089834467229821> **THE MONGOLZ**',
-    'FURIA': '<:Furia:1428089888686870699> **FURIA**',
-    'Natus Vincere': '<:NAVI:1428089945041666160> **NATUS VINCERE**',
-    'FaZe': '<:faze:1428089989392109711> **FAZE**',
-    '3DMAX': '<:3dmax:1428090044345749515> **3DMAX**',
-    'Astralis': '<:astralis:1428090097349165066> **ASTRALIS**',
-    'G2': '<:g2:1428090150835064875> **G2**',
-    'Aurora': '<:aurora:1428090193705173022> **AURORA**',
-    'Liquid': '<:liquid:1428090244997189663> **LIQUID**',
-    'M80': '<:m80:1428090295341420664> **M80**'
+    'Falcons': ':falcons: **FALCONS**',
+    'MOUZ': ':mouz: **MOUZ**',
+    'Team Spirit': ':spirit: **TEAM SPIRIT**', 
+    'Team Vitality': ':vitality: **TEAM VITALITY**',
+    'The Mongolz': ':themongolz: **THE MONGOLZ**',
+    'FURIA': ':furia: **FURIA**',
+    'Natus Vincere': ':navi: **NATUS VINCERE**',
+    'FaZe': ':faze: **FAZE**',
+    '3DMAX': ':3dmax: **3DMAX**',
+    'Astralis': ':astralis: **ASTRALIS**',
+    'G2': ':g2: **G2**',
+    'Aurora': ':aurora: **AURORA**',
+    'Liquid': ':liquid: **LIQUID**',
+    'M80': ':m80: **M80**'
 }
 
 # =========================
@@ -107,16 +107,21 @@ def get_display_name(team_name):
     """Get team name with emoji for display"""
     return TEAM_DISPLAY_NAMES.get(team_name, f"**{team_name.upper()}**")
 
+def center_vs(team1, team2, separator="🆚", emoji_visual_width=2):
+    """Zentriere Teams und VS-Symbol perfekt"""
+    max_len = max(len(team1), len(team2), emoji_visual_width if separator == "🆚" else len(separator))
+    line1 = team1.center(max_len)
+    line2 = separator.center(max_len)
+    line3 = team2.center(max_len)
+    return f"{line1}\n{line2}\n{line3}"
+
 def create_centered_teams_display(team1, team2):
-    """Erstelle Team-Anzeige mit Custom Emojis und großen Teamnamen"""
+    """Erstelle perfekt zentrierte Team-Anzeige"""
     team1_display = get_display_name(team1)
     team2_display = get_display_name(team2)
     
-    centered_display = (
-        f"{team1_display}\n"
-        f"**🆚**\n"
-        f"{team2_display}"
-    )
+    # Zentriere alles automatisch
+    centered_display = center_vs(team1_display, team2_display, "🆚", emoji_visual_width=2)
     
     return centered_display
 
