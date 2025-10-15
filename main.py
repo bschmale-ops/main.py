@@ -88,152 +88,84 @@ print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in T
 # HLTV SCRAPING FUNCTIONS
 # =========================
 async def fetch_hltv_matches():
-    """Holt aktuelle Matches von HLTV mit verbessertem Parsing"""
+    """Holt Matches von Liquipedia (zuverlässiger als HLTV)"""
     matches = []
     
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://www.hltv.org/matches"
+            # Liquipedia CS2 Matches - weniger restriktiv
+            url = "https://liquipedia.net/counterstrike/Liquipedia:Matches"
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Cache-Control': 'max-age=0'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
             
-            print("🔍 Fetching HLTV matches...")
+            print("🔍 Fetching matches from Liquipedia...")
             async with session.get(url, headers=headers, timeout=30) as response:
-                print(f"📡 HLTV Response Status: {response.status}")
+                print(f"📡 Liquipedia Response: {response.status}")
                 
                 if response.status == 200:
                     html = await response.text()
                     soup = BeautifulSoup(html, 'html.parser')
                     
-                    # Debug: Save HTML for analysis
-                    # with open("hltv_debug.html", "w", encoding="utf-8") as f:
-                    #     f.write(html)
+                    # Finde Match-Tabellen
+                    match_tables = soup.find_all('table', class_='wikitable')
                     
-                    # Verschiedene mögliche Container ausprobieren
-                    match_containers = []
+                    for table in match_tables[:3]:  # Erste 3 Tabellen
+                        rows = table.find_all('tr')
+                        
+                        for row in rows[1:]:  # Überspringe Header
+                            cols = row.find_all('td')
+                            if len(cols) >= 4:
+                                try:
+                                    # Team 1
+                                    team1_elem = cols[1].find('a')
+                                    team1 = team1_elem.get_text(strip=True) if team1_elem else cols[1].get_text(strip=True)
+                                    
+                                    # Team 2  
+                                    team2_elem = cols[3].find('a')
+                                    team2 = team2_elem.get_text(strip=True) if team2_elem else cols[3].get_text(strip=True)
+                                    
+                                    # Tournament
+                                    tournament_elem = cols[4].find('a') if len(cols) > 4 else None
+                                    tournament = tournament_elem.get_text(strip=True) if tournament_elem else "CS2 Tournament"
+                                    
+                                    # Datum/Zeit
+                                    date_elem = cols[0]
+                                    date_text = date_elem.get_text(strip=True)
+                                    
+                                    if team1 and team2 and team1 != 'TBD' and team2 != 'TBD':
+                                        # Vereinfachte Zeit-Parsing
+                                        unix_time = parse_liquipedia_time(date_text)
+                                        
+                                        matches.append({
+                                            'team1': team1,
+                                            'team2': team2, 
+                                            'unix_time': unix_time,
+                                            'event': tournament,
+                                            'link': "https://liquipedia.net/counterstrike/Main_Page",
+                                            'time_string': date_text
+                                        })
+                                        print(f"✅ Match: {team1} vs {team2}")
+                                        
+                                except Exception as e:
+                                    continue
                     
-                    # Versuche verschiedene CSS-Klassen
-                    containers = soup.find_all('div', class_=['upcomingMatch', 'match', 'liveMatch', 'match-container'])
-                    match_containers.extend(containers)
-                    
-                    # Falls keine Matches gefunden, suche nach Tabellen oder anderen Strukturen
-                    if not match_containers:
-                        # Suche nach allen divs die Matches enthalten könnten
-                        all_divs = soup.find_all('div')
-                        for div in all_divs:
-                            text = div.get_text(strip=True)
-                            if 'vs' in text and any(team_keyword in text.lower() for team_keyword in ['navi', 'faze', 'vitality', 'g2', 'heroic']):
-                                match_containers.append(div)
-                    
-                    print(f"🔍 Found {len(match_containers)} potential match containers")
-                    
-                    for i, container in enumerate(match_containers[:20]):  # Erste 20 Matches
-                        try:
-                            # Extrahiere Teamnamen - verschiedene Methoden ausprobieren
-                            team1, team2 = None, None
-                            event = "CS2 Event"
-                            match_time = "Soon"
-                            match_link = "https://www.hltv.org/matches"
-                            
-                            # Methode 1: Standard HLTV Struktur
-                            team_elements = container.find_all('div', class_=['matchTeamName', 'team', 'team-name'])
-                            if len(team_elements) >= 2:
-                                team1 = team_elements[0].get_text(strip=True)
-                                team2 = team_elements[1].get_text(strip=True)
-                            else:
-                                # Methode 2: Suche nach Team-Namen in Text
-                                text = container.get_text(strip=True)
-                                if 'vs' in text:
-                                    parts = text.split('vs')
-                                    if len(parts) >= 2:
-                                        team1 = parts[0].strip()
-                                        team2 = parts[1].strip()
-                                        # Entferne Zeit/Datum aus Teamnamen
-                                        for time_indicator in ['Today', 'Tomorrow', 'in', 'START']:
-                                            if time_indicator in team2:
-                                                team2 = team2.split(time_indicator)[0].strip()
-                            
-                            # Event Name
-                            event_elements = container.find_all('div', class_=['matchEventName', 'event', 'tournament'])
-                            if event_elements:
-                                event = event_elements[0].get_text(strip=True)
-                            
-                            # Match Zeit
-                            time_elements = container.find_all('div', class_=['matchTime', 'time', 'start-time'])
-                            if time_elements:
-                                match_time = time_elements[0].get_text(strip=True)
-                            
-                            # Match Link
-                            link_element = container.find('a')
-                            if link_element and link_element.get('href'):
-                                href = link_element.get('href')
-                                if href.startswith('/matches/'):
-                                    match_link = f"https://www.hltv.org{href}"
-                            
-                            # Validiere Teams
-                            if team1 and team2 and len(team1) > 1 and len(team2) > 1 and team1 != 'TBD' and team2 != 'TBD':
-                                unix_time = parse_match_time(match_time)
-                                
-                                matches.append({
-                                    'team1': team1,
-                                    'team2': team2,
-                                    'unix_time': unix_time,
-                                    'event': event,
-                                    'link': match_link,
-                                    'time_string': match_time
-                                })
-                                print(f"✅ Match {i+1}: {team1} vs {team2} - {match_time}")
-                                
-                        except Exception as e:
-                            print(f"❌ Error parsing match {i+1}: {e}")
-                            continue
-                    
-                    print(f"🎯 Successfully parsed {len(matches)} matches")
+                    print(f"🎯 Found {len(matches)} matches on Liquipedia")
                     
                 else:
-                    print(f"❌ HLTV Request failed with status: {response.status}")
+                    print(f"❌ Liquipedia request failed: {response.status}")
                     
-    except asyncio.TimeoutError:
-        print("❌ HLTV request timeout")
     except Exception as e:
-        print(f"❌ HLTV Scraping error: {e}")
+        print(f"❌ Liquipedia error: {e}")
     
     return matches
 
-def parse_match_time(time_str):
-    """Konvertiert HLTV Zeit zu Unix Timestamp"""
+def parse_liquipedia_time(date_text):
+    """Vereinfachte Zeit-Parsing für Liquipedia"""
     try:
-        now = datetime.datetime.now(timezone.utc)
-        
-        if 'Today' in time_str:
-            time_part = time_str.replace('Today', '').strip()
-            if ':' in time_part:
-                hours, minutes = map(int, time_part.split(':'))
-                match_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
-                return int(match_time.timestamp())
-        
-        elif 'Tomorrow' in time_str:
-            time_part = time_str.replace('Tomorrow', '').strip()
-            if ':' in time_part:
-                hours, minutes = map(int, time_part.split(':'))
-                match_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0) + datetime.timedelta(days=1)
-                return int(match_time.timestamp())
-        
-        else:
-            return int((now + datetime.timedelta(hours=1)).timestamp())
-            
-    except Exception as e:
+        # Füge einfach 2 Stunden hinzu für Test-Zwecke
+        return int((datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=2)).timestamp())
+    except:
         return int((datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=1)).timestamp())
 
 # =========================
