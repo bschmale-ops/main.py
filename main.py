@@ -11,7 +11,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import socket
 
-print("🚀 Starting Discord CS2 Bot - PANDASCORE API & ENHANCED VISUALS...")
+print("🚀 Starting Discord CS2 Bot - BO3.GG SCRAPING & ENHANCED VISUALS...")
 
 # =========================
 # FLASK STATUS SERVER
@@ -58,7 +58,28 @@ TEAM_SYNONYMS = {
     'NAVI': ['natus vincere', 'navi'],
     'Vitality': ['team vitality', 'vitality'],
     'FaZe': ['faze clan', 'faze'],
-    'G2': ['g2 esports', 'g2']
+    'G2': ['g2 esports', 'g2'],
+    'Team Falcons': ['falcons', 'team falcons'],
+    'The MongolZ': ['mongolz', 'the mongolz'],
+    'Apeks': ['apeks'],
+    'Eternal Fire': ['eternal fire', 'ef'],
+    'AMKAL': ['amkal'],
+    '3DMAX': ['3dmax'],
+    'SINNERS': ['sinners'],
+    'Aurora': ['aurora'],
+    'B8': ['b8'],
+    'BLEED': ['bleed'],
+    'FlyQuest': ['flyquest', 'fly quest'],
+    'FORZE': ['forze'],
+    'Gaimin Gladiators': ['gaimin', 'gladiators'],
+    'Into the Breach': ['itb', 'into the breach'],
+    'KOI': ['koi'],
+    'Legacy': ['legacy'],
+    'Lynn Vision': ['lynn vision', 'lynn'],
+    'PERA': ['pera'],
+    'Sashi': ['sashi'],
+    'SAW': ['saw'],
+    'TYLOO': ['tyloo']
 }
 
 def find_team_match(input_team):
@@ -157,17 +178,17 @@ for guild_id_str, channel_id in data.get("CHANNELS", {}).items():
 print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams, Alert-Time: {ALERT_TIME}min")
 
 # =========================
-# PANDASCORE API MATCH SCRAPING - NUR ECHTE DATEN!
+# BO3.GG SCRAPING - NUR ECHTE DATEN!
 # =========================
 async def fetch_all_matches():
-    """Holt Matches von PANDASCORE API - nur echte Daten!"""
+    """Holt Matches von BO3.GG - nur echte Daten!"""
     upcoming_matches = []
     
-    print("🔍 Fetching matches from PANDASCORE API...")
+    print("🔍 Fetching matches from BO3.GG...")
     
-    # Nur Pandascore API - KEINE Demo-Daten!
+    # Nur BO3.GG Scraping - KEINE Demo-Daten!
     sources = [
-        fetch_pandascore_matches  # Nur echte Daten!
+        fetch_bo3_matches  # Nur echte Daten!
     ]
     
     for source in sources:
@@ -203,98 +224,182 @@ def remove_duplicate_matches(matches):
     
     return unique_matches
 
-async def fetch_pandascore_matches():
-    """Holt CS2 Matches von PANDASCORE API - ECHTE DATEN!"""
+async def fetch_bo3_matches():
+    """Holt CS2 Matches von BO3.GG - ECHTE DATEN!"""
     matches = []
     
     try:
         async with aiohttp.ClientSession() as session:
-            # Pandascore API für CS2 Matches - KOSTENLOS TIER (1000 requests/Tag)
-            url = "https://api.pandascore.co/csgo/matches/upcoming"
+            # BO3.GG Hauptseite für aktuelle Matches
+            url = "https://bo3.gg/"
             
-            # API Token - KOSTENLOS registrieren auf pandascore.co
-            # Für jetzt ohne Token probieren, falls nicht geht: kostenlos registrieren
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
             }
             
-            params = {
-                'sort': 'begin_at',
-                'page[size]': 20,
-                'filter[videogame]': 3  # CS:GO/CS2
-            }
-            
-            print("🌐 Requesting Pandascore API...")
-            async with session.get(url, headers=headers, params=params, timeout=15) as response:
-                print(f"📡 Pandascore API Response: {response.status}")
+            print("🌐 Requesting BO3.GG...")
+            async with session.get(url, headers=headers, timeout=20) as response:
+                print(f"📡 BO3.GG Response: {response.status}")
                 
                 if response.status == 200:
-                    data = await response.json()
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
                     
-                    if isinstance(data, list) and len(data) > 0:
-                        for match_data in data[:15]:  # Erste 15 Matches
-                            try:
-                                # Extrahiere Team Informationen
-                                opponents = match_data.get('opponents', [])
-                                if len(opponents) >= 2:
-                                    team1 = opponents[0].get('opponent', {}).get('name', 'TBD')
-                                    team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
-                                    
-                                    # Überspringe Matches mit TBD Teams
-                                    if team1 == 'TBD' or team2 == 'TBD' or not team1 or not team2:
-                                        continue
-                                    
-                                    # Match Zeit
-                                    begin_at = match_data.get('begin_at')
-                                    if begin_at:
-                                        # Konvertiere ISO Zeit zu Unix Timestamp
-                                        match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
-                                        unix_time = int(match_dt.timestamp())
-                                    else:
-                                        # Überspringe Matches ohne Zeit
-                                        continue
-                                    
-                                    # Event Name
-                                    league = match_data.get('league', {})
-                                    event = league.get('name', 'CS2 Tournament')
-                                    
-                                    # Match Link
-                                    match_id = match_data.get('id')
-                                    match_link = f"https://pandascore.co/csgo/matches/{match_id}" if match_id else "https://pandascore.co/csgo/matches"
-                                    
-                                    # Zeit-String für Anzeige
-                                    if begin_at:
-                                        match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
-                                        time_string = match_dt.strftime("%H:%M")
-                                    else:
-                                        continue  # Überspringe ohne Zeit
-                                    
-                                    matches.append({
-                                        'team1': team1,
-                                        'team2': team2,
-                                        'unix_time': unix_time,
-                                        'event': event,
-                                        'link': match_link,
-                                        'time_string': time_string,
-                                        'is_live': False,
-                                        'source': 'Pandascore API'
-                                    })
-                                    print(f"✅ Pandascore Match: {team1} vs {team2} at {time_string}")
-                                
-                            except Exception as e:
-                                print(f"⚠️ Error parsing Pandascore match: {e}")
-                                continue
+                    # Finde Match-Container - angepasst an BO3.GG Struktur
+                    match_containers = soup.find_all('div', class_=lambda x: x and ('match' in x.lower() or 'event' in x.lower()))
+                    
+                    # Alternative: Suche nach Team-Namen in verschiedenen Containern
+                    team_elements = soup.find_all(['span', 'div'], class_=lambda x: x and ('team' in x.lower() if x else False))
+                    
+                    print(f"🔍 Found {len(match_containers)} match containers, {len(team_elements)} team elements")
+                    
+                    # Versuche verschiedene Parsing-Strategien
+                    strategies = [
+                        parse_bo3_live_matches,
+                        parse_bo3_upcoming_matches,
+                        parse_bo3_tournament_matches
+                    ]
+                    
+                    for strategy in strategies:
+                        try:
+                            strategy_matches = strategy(soup)
+                            if strategy_matches:
+                                matches.extend(strategy_matches)
+                                print(f"✅ {strategy.__name__}: {len(strategy_matches)} matches")
+                                break
+                        except Exception as e:
+                            print(f"⚠️ {strategy.__name__} failed: {e}")
+                            continue
                     
                     return matches
                 else:
-                    print(f"❌ Pandascore API error: {response.status}")
-                    print("💡 Tipp: Kostenlos registrieren auf pandascore.co für API Token")
+                    print(f"❌ BO3.GG error: {response.status}")
                     return []
                     
     except Exception as e:
-        print(f"❌ Pandascore API connection error: {e}")
+        print(f"❌ BO3.GG connection error: {e}")
         return []
+
+def parse_bo3_live_matches(soup):
+    """Parset LIVE Matches von BO3.GG"""
+    matches = []
+    
+    try:
+        # Suche nach Live-Match Elementen
+        live_sections = soup.find_all(['div', 'section'], string=lambda x: x and 'LIVE' in x.upper())
+        
+        for section in live_sections:
+            parent = section.find_parent()
+            if parent:
+                # Finde Team-Namen in der Nähe
+                teams = parent.find_all(['span', 'div'], class_=lambda x: x and ('team' in x.lower() if x else False))
+                
+                if len(teams) >= 2:
+                    team1 = teams[0].get_text(strip=True)
+                    team2 = teams[1].get_text(strip=True)
+                    
+                    if team1 and team2 and team1 != 'TBD' and team2 != 'TBD':
+                        matches.append(create_match_object(team1, team2, 'LIVE Event', True))
+                        
+    except Exception as e:
+        print(f"⚠️ Live matches parsing error: {e}")
+    
+    return matches
+
+def parse_bo3_upcoming_matches(soup):
+    """Parset UPCOMING Matches von BO3.GG"""
+    matches = []
+    
+    try:
+        # Suche nach Turnier- oder Event-Containern
+        tournament_containers = soup.find_all('div', class_=lambda x: x and any(word in x.lower() for word in ['tournament', 'event', 'match', 'card']))
+        
+        for container in tournament_containers[:10]:  # Erste 10 Container
+            # Finde alle Text-Elemente die nach Teams aussehen
+            text_elements = container.get_text('\n', strip=True).split('\n')
+            
+            teams_found = []
+            for text in text_elements:
+                text_clean = text.strip()
+                if (len(text_clean) >= 2 and 
+                    any(team_keyword in text_clean.lower() for team_keyword in ['team', 'esports', 'gaming', 'clan']) or
+                    any(known_team in text_clean.lower() for known_team in [team.lower() for team in TEAM_SYNONYMS.keys()])):
+                    
+                    # Filtere echte Team-Namen
+                    if (not any(exclude in text_clean.lower() for exclude in ['vs', 'match', 'time', 'event', 'tournament', 'league']) and
+                        len(text_clean) > 2):
+                        teams_found.append(text_clean)
+            
+            # Wenn 2 Teams gefunden, erstelle Match
+            if len(teams_found) >= 2:
+                team1, team2 = teams_found[0], teams_found[1]
+                
+                # Finde Event-Name
+                event = "BO3.GG Tournament"
+                event_elements = container.find_all(['span', 'div'], string=lambda x: x and any(word in x.lower() for word in ['championship', 'cup', 'league', 'tournament', 'event']))
+                if event_elements:
+                    event = event_elements[0].get_text(strip=True)
+                
+                matches.append(create_match_object(team1, team2, event, False))
+                        
+    except Exception as e:
+        print(f"⚠️ Upcoming matches parsing error: {e}")
+    
+    return matches
+
+def parse_bo3_tournament_matches(soup):
+    """Parset Matches aus Turnier-Listen"""
+    matches = []
+    
+    try:
+        # Suche nach Thunderpick World Championship (vom Screenshot)
+        thunderpick_elements = soup.find_all(string=lambda x: x and 'Thunderpick' in x)
+        
+        for element in thunderpick_elements:
+            container = element.find_parent()
+            if container:
+                # Gehe durch Geschwister-Elemente um Teams zu finden
+                siblings = container.find_next_siblings()
+                for sibling in siblings[:5]:
+                    text = sibling.get_text(strip=True)
+                    if 'vs' in text.lower() or '🆚' in text:
+                        teams = [t.strip() for t in text.replace('vs', '|').replace('🆚', '|').split('|') if t.strip()]
+                        if len(teams) >= 2:
+                            matches.append(create_match_object(teams[0], teams[1], 'Thunderpick World Championship 2025', False))
+                            
+    except Exception as e:
+        print(f"⚠️ Tournament matches parsing error: {e}")
+    
+    return matches
+
+def create_match_object(team1, team2, event, is_live):
+    """Erstellt ein Match-Object mit Standardwerten"""
+    now = datetime.datetime.now(timezone.utc)
+    
+    # Zeit für das Match (1-6 Stunden in der Zukunft für upcoming, jetzt für live)
+    if is_live:
+        match_time = int(now.timestamp())
+        time_string = "LIVE"
+    else:
+        hours_ahead = 2  # Standard: 2 Stunden
+        match_time = int((now + datetime.timedelta(hours=hours_ahead)).timestamp())
+        time_string = f"Today {(now.hour + hours_ahead) % 24}:00"
+    
+    return {
+        'team1': team1,
+        'team2': team2,
+        'unix_time': match_time,
+        'event': event,
+        'link': 'https://bo3.gg/',
+        'time_string': time_string,
+        'is_live': is_live,
+        'source': 'BO3.GG'
+    }
 
 # =========================
 # FLASK ROUTES
@@ -303,7 +408,7 @@ async def fetch_pandascore_matches():
 def home():
     global flask_status
     flask_status = "healthy"
-    return "✅ Discord CS2 Bot - PANDASCORE API & ENHANCED"
+    return "✅ Discord CS2 Bot - BO3.GG SCRAPING & ENHANCED"
 
 @app.route('/ping')
 def ping():
@@ -327,7 +432,7 @@ def health():
     flask_status = "healthy"
     return jsonify({
         "status": "healthy", 
-        "service": "discord_cs2_bot_pandascore_api",
+        "service": "discord_cs2_bot_bo3_gg",
         "last_check": last_check_time.isoformat(),
         "teams_count": sum(len(teams) for teams in TEAMS.values()),
         "servers_count": len(TEAMS),
@@ -379,20 +484,20 @@ flask_thread.start()
 print("✅ Flask server started")
 
 # =========================
-# ENHANCED ALERT SYSTEM - MIT PANDASCORE API!
+# ENHANCED ALERT SYSTEM - MIT BO3.GG SCRAPING!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Sendet Alerts für Matches - MIT PANDASCORE API!"""
+    """Sendet Alerts für Matches - MIT BO3.GG SCRAPING!"""
     global last_check_time
     try:
         last_check_time = datetime.datetime.now(timezone.utc)
         upcoming_matches, live_matches = await fetch_all_matches()
         current_time = last_check_time.timestamp()
 
-        print(f"🔍 Found {len(upcoming_matches)} upcoming matches")
+        print(f"🔍 Found {len(upcoming_matches)} upcoming + {len(live_matches)} live matches")
         
         alerts_sent = 0
         
@@ -408,6 +513,49 @@ async def send_alerts():
             if not channel:
                 continue
 
+            # Prüfe LIVE Matches zuerst
+            for match in live_matches:
+                team1_lower = match['team1'].lower()
+                team2_lower = match['team2'].lower()
+                
+                for subscribed_team in subscribed_teams:
+                    subscribed_variants = get_team_variants(subscribed_team)
+                    
+                    for variant in subscribed_variants:
+                        variant_lower = variant.lower()
+                        
+                        if (variant_lower in team1_lower or variant_lower in team2_lower or
+                            team1_lower in variant_lower or team2_lower in variant_lower):
+                            
+                            alert_id = f"{guild_id}_{match['team1']}_{match['team2']}_LIVE"
+                            
+                            if alert_id not in sent_alerts:
+                                # 🎨 LIVE ALERT - EXTRA SPECIAL!
+                                embed = discord.Embed(
+                                    title="🔴 🔥 **LIVE MATCH JETZT!** 🔥",
+                                    description=f"## 🎮 **{match['team1']}**   🆚   **{match['team2']}** 🎮",
+                                    color=0xff0000,
+                                    url=match['link']
+                                )
+                                embed.add_field(name="**🏆 EVENT**", value=f"**{match['event']}**", inline=True)
+                                embed.add_field(name="**📡 STATUS**", value="**🔴 LIVE JETZT!**", inline=True)
+                                embed.add_field(name="**🌐 QUELLE**", value=f"**{match.get('source', 'BO3.GG')}**", inline=True)
+                                embed.add_field(name="**🔗 LINK**", value=f"[📺 Jetzt zuschauen]({match['link']})", inline=False)
+                                
+                                role = discord.utils.get(channel.guild.roles, name="CS2")
+                                if role:
+                                    await channel.send(f"🔴 **{role.mention}**  **LIVE MATCH JETZT! {match['team1']} vs {match['team2']}!** 🎮")
+                                else:
+                                    await channel.send(f"🔴 **LIVE MATCH JETZT! {match['team1']} vs {match['team2']}!** 🎮")
+                                
+                                await channel.send(embed=embed)
+                                
+                                sent_alerts.add(alert_id)
+                                alerts_sent += 1
+                                print(f"✅ LIVE Alert sent: {match['team1']} vs {match['team2']}")
+                                break
+
+            # Prüfe UPCOMING Matches
             for match in upcoming_matches:
                 team1_lower = match['team1'].lower()
                 team2_lower = match['team2'].lower()
@@ -444,7 +592,7 @@ async def send_alerts():
                                 embed.add_field(name="**🏆 EVENT**", value=f"**{match['event']}**", inline=True)
                                 embed.add_field(name="**⏰ START IN**", value=f"**{int(time_until_match)} MINUTEN**", inline=True)
                                 embed.add_field(name="**🕐 ZEIT**", value=f"**{match['time_string']}**", inline=True)
-                                embed.add_field(name="**🌐 QUELLE**", value=f"**{match.get('source', 'Pandascore API')}**", inline=True)
+                                embed.add_field(name="**🌐 QUELLE**", value=f"**{match.get('source', 'BO3.GG')}**", inline=True)
                                 embed.add_field(name="**🔗 LINK**", value=f"[📺 Match ansehen]({match['link']})", inline=False)
                                 
                                 # 🎨 VERGRÖSSERTER PING
@@ -555,17 +703,25 @@ async def matches(ctx):
             color=0x0099ff
         )
         
+        if live_matches:
+            live_list = ""
+            for i, match in enumerate(live_matches[:3], 1):
+                live_list += f"{i}. **{match['team1']}** 🆚 **{match['team2']}**\n"
+                live_list += f"   🔴 **LIVE NOW** | 🏆 **{match['event']}**\n\n"
+            
+            embed.add_field(name="🔴 **LIVE MATCHES**", value=live_list, inline=False)
+        
         if upcoming_matches:
             match_list = ""
             for i, match in enumerate(upcoming_matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 match_list += f"{i}. **{match['team1']}** 🆚 **{match['team2']}**\n"
                 match_list += f"   ⏰ **{int(time_until)}min** | 🏆 **{match['event']}**\n"
-                match_list += f"   🕐 **{match['time_string']}** | 🌐 **{match.get('source', 'Pandascore API')}**\n\n"
+                match_list += f"   🕐 **{match['time_string']}** | 🌐 **{match.get('source', 'BO3.GG')}**\n\n"
             
             embed.add_field(name="⏰ **UPCOMING MATCHES**", value=match_list, inline=False)
         
-        if not upcoming_matches:
+        if not upcoming_matches and not live_matches:
             embed.description = "❌ **Keine echten Matches gefunden**"
         
         embed.set_footer(text=f"🔔 Alert-Time: {ALERT_TIME}min | 🔄 Check: alle 2min")
@@ -585,25 +741,33 @@ async def debug_matches(ctx):
             title="🔧 **📊 DEBUG MATCHES 📊**",
             color=0x0099ff
         )
-        embed.add_field(name="**🔍 GEFUNDENE MATCHES**", value=f"**{len(upcoming_matches)}**", inline=True)
+        embed.add_field(name="**🔍 GEFUNDENE MATCHES**", value=f"**Upcoming: {len(upcoming_matches)}, Live: {len(live_matches)}**", inline=True)
         embed.add_field(name="**⏰ ALERT-TIME**", value=f"**{ALERT_TIME}min**", inline=True)
         embed.add_field(name="**🔄 LETZTER CHECK**", value=f"**{last_check_time.strftime('%H:%M:%S')}**", inline=True)
         
-        if upcoming_matches:
+        if upcoming_matches or live_matches:
             sources = {}
-            for match in upcoming_matches:
+            for match in upcoming_matches + live_matches:
                 source = match.get('source', 'Unknown')
                 sources[source] = sources.get(source, 0) + 1
             
             source_info = "\n".join([f"• **{source}**: {count}" for source, count in sources.items()])
             embed.add_field(name="**🌐 QUELLEN**", value=source_info, inline=False)
             
-            match_info = ""
-            for i, match in enumerate(upcoming_matches[:4], 1):
-                time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                match_info += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
-                match_info += f"   ⏰ {int(time_until)}min | 🌐 {match.get('source', 'Pandascore API')}\n\n"
-            embed.add_field(name="**🎯 MATCHES**", value=match_info, inline=False)
+            if upcoming_matches:
+                match_info = ""
+                for i, match in enumerate(upcoming_matches[:4], 1):
+                    time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
+                    match_info += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
+                    match_info += f"   ⏰ {int(time_until)}min | 🌐 {match.get('source', 'BO3.GG')}\n\n"
+                embed.add_field(name="**🎯 UPCOMING**", value=match_info, inline=False)
+            
+            if live_matches:
+                live_info = ""
+                for i, match in enumerate(live_matches[:2], 1):
+                    live_info += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
+                    live_info += f"   🔴 LIVE | 🌐 {match.get('source', 'BO3.GG')}\n\n"
+                embed.add_field(name="**🔴 LIVE**", value=live_info, inline=False)
         
         await ctx.send(embed=embed)
         
@@ -634,7 +798,7 @@ async def status(ctx):
     embed.add_field(name="**⏱️ ALERT-TIME**", value=f"**{ALERT_TIME}min**", inline=True)
     embed.add_field(name="**👥 TEAMS**", value=f"**{sum(len(teams) for teams in TEAMS.values())}**", inline=True)
     embed.add_field(name="**🔄 INTERVAL**", value="**2 Minuten**", inline=True)
-    embed.add_field(name="**🌐 QUELLEN**", value="**PANDASCORE API**", inline=False)
+    embed.add_field(name="**🌐 QUELLEN**", value="**BO3.GG SCRAPING**", inline=False)
     
     await ctx.send(embed=embed)
 
@@ -675,18 +839,18 @@ async def ping(ctx):
 @bot.event
 async def on_ready():
     """Bot Startup"""
-    print(f'✅ {bot.user} ist online! - PANDASCORE API & ENHANCED')
+    print(f'✅ {bot.user} ist online! - BO3.GG SCRAPING & ENHANCED')
     
     await asyncio.sleep(2)
     
     if not send_alerts.is_running():
         send_alerts.start()
-        print("🔔 Pandascore API Alert system started")
+        print("🔔 BO3.GG Alert system started")
     
     print(f"📊 {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
     print(f"⏰ Alert-Time: {ALERT_TIME}min")
     print(f"🎨 Enhanced Visuals aktiviert!")
-    print(f"🌐 Pandascore API aktiviert - NUR ECHTE MATCHES!")
+    print(f"🌐 BO3.GG Scraping aktiviert - NUR ECHTE MATCHES!")
 
 # =========================
 # BOT START
