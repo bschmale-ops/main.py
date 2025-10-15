@@ -58,7 +58,8 @@ TEAM_SYNONYMS = {
     'ARCRED': ['arcred'],
     '500': ['500'],
     'AM Gaming': ['am gaming'],
-    'Dynamo Eclot': ['dynamo eclot']
+    'Dynamo Eclot': ['dynamo eclot'],
+    'm0nesy team': ['m0nesy']
 }
 
 TEAM_LOGOS = {
@@ -206,13 +207,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - SICHER IM LIMIT!
+# ALERT SYSTEM - FIXED CHANNEL PING!
 # =========================
 sent_alerts = set()
 
-@tasks.loop(minutes=2)  # ✅ SICHER: 2min = 720 Requests/Tag (im Limit!)
+@tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - SICHER IM API LIMIT"""
+    """Send match alerts - FIXED CHANNEL PING!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -225,16 +226,23 @@ async def send_alerts():
                 
             channel_id = CHANNELS.get(guild_id)
             if not channel_id:
+                print(f"❌ No channel set for guild {guild_id}")
                 continue
 
             channel = bot.get_channel(channel_id)
             if not channel:
+                print(f"❌ Channel {channel_id} not found for guild {guild_id}")
                 continue
+
+            print(f"✅ Channel found: #{channel.name} in {channel.guild.name}")
 
             for match in matches:
                 for subscribed_team in subscribed_teams:
                     correct_name, found = find_team_match(subscribed_team)
                     team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
+                    
+                    # DEBUG: Print matching attempt
+                    print(f"🔍 Checking {subscribed_team} vs {match['team1']} / {match['team2']}")
                     
                     if (match['team1'].lower() in team_variants or 
                         match['team2'].lower() in team_variants or
@@ -244,9 +252,13 @@ async def send_alerts():
                         time_until = (match['unix_time'] - current_time) / 60
                         alert_id = f"{guild_id}_{match['team1']}_{match['team2']}"
                         
-                        # ✅ ROBUSTERE LOGIK: Prüfe Time-Window genauer
+                        print(f"🎯 Match found! {match['team1']} vs {match['team2']} in {time_until:.1f}min (Alert: {ALERT_TIME}min)")
+                        
+                        # ✅ FIXED: Bessere Time-Window Prüfung
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
-                            # Create LARGER alert embed with better spacing - NO TITLE LINK
+                            print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
+                            
+                            # Create alert embed
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
@@ -258,22 +270,31 @@ async def send_alerts():
                             embed.set_author(name=f"\n{match['team1']} vs {match['team2']}\n", icon_url=team1_logo)
                             embed.set_thumbnail(url=team1_logo)
                             
-                            # More spacing in fields - NO WATCH FIELD
                             embed.add_field(name="\n**🏆 TOURNAMENT**", value=f"\n**{match['event']}**\n", inline=True)
                             embed.add_field(name="\n**⏰ STARTS IN**", value=f"\n**{int(time_until)} MINUTES**\n", inline=True)
                             embed.add_field(name="\n**🕐 TIME**", value=f"\n**{match['time_string']}**\n", inline=True)
                             
-                            # Send ping and embed
-                            role = discord.utils.get(channel.guild.roles, name="CS2")
-                            if role:
-                                await channel.send(f"\n🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n")
-                            await channel.send(embed=embed)
+                            # ✅ FIXED: SICHERER CHANNEL PING!
+                            try:
+                                role = discord.utils.get(channel.guild.roles, name="CS2")
+                                if role:
+                                    ping_msg = await channel.send(f"\n🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n")
+                                    print(f"✅ Role ping sent: {ping_msg.id}")
+                                else:
+                                    ping_msg = await channel.send(f"\n🔔 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n")
+                                    print(f"✅ Ping sent: {ping_msg.id}")
+                                
+                                embed_msg = await channel.send(embed=embed)
+                                print(f"✅ Embed sent: {embed_msg.id}")
+                                
+                            except Exception as e:
+                                print(f"❌ Failed to send message: {e}")
+                                continue
                             
                             sent_alerts.add(alert_id)
-                            print(f"✅ Alert sent: {match['team1']} vs {match['team2']} in {int(time_until)}min")
+                            print(f"✅ Alert sent and tracked: {match['team1']} vs {match['team2']} in {int(time_until)}min")
                             
-                            # ✅ BESSERER CACHE: Nur 30min behalten
-                            if len(sent_alerts) > 100:
+                            if len(sent_alerts) > 50:
                                 sent_alerts.clear()
                                 
                             break
@@ -289,7 +310,7 @@ async def subscribe(ctx, *, team):
     """Subscribe to a team for alerts"""
     guild_id = str(ctx.guild.id)
     if guild_id not in TEAMS:
-        TEAMS[guild_id] = []
+        TEAMS[guild.id] = []
     
     correct_name, found = find_team_match(team)
     
@@ -454,7 +475,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 SAFE Alert system started (2min intervals - 720 requests/day)")
+    print("🔔 FIXED Alert system started - DEBUG MODE ACTIVE!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
