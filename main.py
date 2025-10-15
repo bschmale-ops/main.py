@@ -36,6 +36,24 @@ AUTO_SUBSCRIBE_TEAMS = [
     'G2', 'Aurora', 'Liquid', 'M80'
 ]
 
+# Team Display Names mit Emojis (für Ausgabe in /list und Alerts)
+TEAM_DISPLAY_NAMES = {
+    'Falcons': ':falcons: Falcons',
+    'MOUZ': ':mouz: MOUZ',
+    'Team Spirit': ':spirit: Team Spirit', 
+    'Team Vitality': ':vitality: Team Vitality',
+    'The Mongolz': ':themongolz: The Mongolz',
+    'FURIA': ':furia: FURIA',
+    'Natus Vincere': ':navi: Natus Vincere',
+    'FaZe': ':faze: FaZe',
+    '3DMAX': ':3dmax: 3DMAX',
+    'Astralis': ':astralls: Astralis',
+    'G2': ':g2: G2',
+    'Aurora': ':aurora: Aurora',
+    'Liquid': ':liquid: Liquid',
+    'M80': ':m80: M80'
+}
+
 # =========================
 # TEAM DATA
 # =========================
@@ -121,48 +139,30 @@ def get_team_logo(team_name):
     
     return 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 
-def create_team_with_frame(team_name):
-    """Erstelle Teamnamen mit Rahmen drumherum"""
-    # Rahmen basierend auf Teamnamen-Länge
-    name_length = len(team_name)
-    frame_width = name_length + 4  # Extra Platz für Rahmen
-    
-    top_frame = "┌" + "─" * (frame_width - 2) + "┐"
-    middle_frame = "│ " + team_name + " │"
-    bottom_frame = "└" + "─" * (frame_width - 2) + "┘"
-    
-    return f"```\n{top_frame}\n{middle_frame}\n{bottom_frame}\n```"
+def get_display_name(team_name):
+    """Get team name with emoji for display"""
+    return TEAM_DISPLAY_NAMES.get(team_name, team_name)
+
+def create_team_display(team_name):
+    """Erstelle Team-Anzeige als Code-Block (wie Button)"""
+    display_name = get_display_name(team_name)
+    # Code-Block erstellen (sieht aus wie ein Button)
+    return f"`{display_name}`"
 
 def create_centered_teams_display(team1, team2):
-    """Erstelle perfekt zentrierte Team-Anzeige mit Rahmen"""
-    # Teams mit Rahmen
-    team1_framed = create_team_with_frame(team1)
-    team2_framed = create_team_with_frame(team2)
+    """Erstelle perfekt zentrierte Team-Anzeige mit Code-Blöcken"""
+    # Teams als Code-Blöcke
+    team1_block = create_team_display(team1)
+    team2_block = create_team_display(team2)
     
-    display_parts = []
+    # Zentrierte Anzeige erstellen
+    centered_display = (
+        f"{team1_block}\n"
+        f"**🆚**\n"
+        f"{team2_block}"
+    )
     
-    # Team 1 mit Rahmen
-    display_parts.append({
-        "name": "\u200b",
-        "value": team1_framed,
-        "inline": False
-    })
-    
-    # VS in der Mitte
-    display_parts.append({
-        "name": "\u200b", 
-        "value": "**🆚**",
-        "inline": False
-    })
-    
-    # Team 2 mit Rahmen
-    display_parts.append({
-        "name": "\u200b",
-        "value": team2_framed, 
-        "inline": False
-    })
-    
-    return display_parts
+    return centered_display
 
 # =========================
 # DATA MANAGEMENT
@@ -270,13 +270,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - MIT RAHMEN UM TEAMNAMEN!
+# ALERT SYSTEM - MIT ZENTRIERTEN CODE-BLOCKS!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT RAHMEN UM TEAMNAMEN!"""
+    """Send match alerts - MIT ZENTRIERTEN CODE-BLOCKS!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -315,7 +315,7 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ EMBED MIT RAHMEN UM TEAMNAMEN!
+                            # ✅ EMBED MIT ZENTRIERTEN CODE-BLOCKS!
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
@@ -323,14 +323,13 @@ async def send_alerts():
                                 color=0x00ff00
                             )
                             
-                            # Teams mit Rahmen zentriert
-                            centered_parts = create_centered_teams_display(match['team1'], match['team2'])
-                            for part in centered_parts:
-                                embed.add_field(
-                                    name=part["name"],
-                                    value=part["value"],
-                                    inline=part["inline"]
-                                )
+                            # Teams zentriert anzeigen
+                            centered_display = create_centered_teams_display(match['team1'], match['team2'])
+                            embed.add_field(
+                                name="\u200b",
+                                value=centered_display,
+                                inline=False
+                            )
                             
                             # Tournament Info - KURSIV
                             embed.add_field(
@@ -393,11 +392,11 @@ async def subscribe(ctx, *, team):
     if correct_name not in TEAMS[guild_id]:
         TEAMS[guild_id].append(correct_name)
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"✅ **{correct_name}** added for alerts! 🎯")
+            await ctx.send(f"✅ **{get_display_name(correct_name)}** added for alerts! 🎯")
         else:
             await ctx.send("⚠️ **Save failed!**")
     else:
-        await ctx.send(f"⚠️ **{correct_name}** already subscribed!")
+        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** already subscribed!")
 
 @bot.command()
 async def unsubscribe(ctx, *, team):
@@ -408,20 +407,20 @@ async def unsubscribe(ctx, *, team):
     if guild_id in TEAMS and correct_name in TEAMS[guild_id]:
         TEAMS[guild_id].remove(correct_name)
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"❌ **{correct_name}** removed from alerts!")
+            await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from alerts!")
         else:
             await ctx.send("⚠️ **Save failed!**")
     else:
-        await ctx.send(f"❌ **Team {correct_name} not found!**")
+        await ctx.send(f"❌ **Team {get_display_name(correct_name)} not found!**")
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams"""
+    """Show subscribed teams - MIT CODE-BLOCKS!"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        team_list = "\n".join([f"• **{team}**" for team in teams])
+        team_list = "\n".join([f"• {create_team_display(team)}" for team in teams])
         embed = discord.Embed(
             title="📋 **SUBSCRIBED TEAMS**",
             description=team_list,
@@ -459,7 +458,7 @@ async def matches(ctx):
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                match_list += f"{i}. **{match['team1']}** 🆚 **{match['team2']}**\n"
+                match_list += f"{i}. {create_team_display(match['team1'])} 🆚 {create_team_display(match['team2'])}\n"
                 match_list += f"   ⏰ **{int(time_until)}min** | 🏆 **{match['event']}**\n\n"
             
             embed.description = match_list
@@ -498,7 +497,8 @@ async def autosetup(ctx):
     
     if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
         if added_teams:
-            await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**")
+            team_names = "\n".join([f"• {create_team_display(team)}" for team in added_teams])
+            await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**\n{team_names}")
         else:
             await ctx.send("✅ **Teams already subscribed!**")
     else:
@@ -526,21 +526,20 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with frame around team names"""
-    # ✅ TEST EMBED MIT RAHMEN
+    """Test alert with code blocks (Button-Look)"""
+    # ✅ TEST EMBED MIT CODE-BLOCKS
     embed = discord.Embed(
         title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
         color=0x00ff00
     )
     
-    # Teams mit Rahmen zentriert
-    centered_parts = create_centered_teams_display("BETERA ESPORTS", "SPARTA")
-    for part in centered_parts:
-        embed.add_field(
-            name=part["name"],
-            value=part["value"],
-            inline=part["inline"]
-        )
+    # Teams mit Code-Blöcken (Button-Look) - ZENTRIERT
+    centered_display = create_centered_teams_display("Falcons", "M80")
+    embed.add_field(
+        name="\u200b",
+        value=centered_display,
+        inline=False
+    )
     
     # Tournament Info - KURSIV
     embed.add_field(
@@ -561,7 +560,7 @@ async def test(ctx):
         inline=True
     )
     
-    embed.set_thumbnail(url=get_team_logo('BETERA ESPORTS'))
+    embed.set_thumbnail(url=get_team_logo('Falcons'))
     embed.set_footer(text="CS2 Match Alert • PandaScore API")
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
