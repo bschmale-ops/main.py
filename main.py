@@ -1,6 +1,7 @@
 import os
 import discord
 from discord.ext import commands, tasks
+from discord.ui import Button, View
 import datetime
 from datetime import timezone, timedelta
 import json
@@ -39,20 +40,20 @@ AUTO_SUBSCRIBE_TEAMS = [
 
 # Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
-    'Falcons': '<:falcons:1428075105615085598> **FALCONS**',
-    'MOUZ': '<:mouz:1428075167850041425> **MOUZ**',
-    'Team Spirit': '<:spirit:1428075208564019302> **TEAM SPIRIT**',
-    'Team Vitality': '<:vitality:1428075243510956113> **TEAM VITALITY**',
-    'The Mongolz': '<:themongolz:1428075231939133581> **THE MONGOLZ**',
-    'FURIA': '<:furia:1428075132156641471> **FURIA**',
-    'Natus Vincere': '<:navi:1428075186976194691> **NATUS VINCERE**',
-    'FaZe': '<:faze:1428075117753401414> **FAZE**',
-    '3DMAX': '<:3dmax:1428075077408133262> **3DMAX**',
-    'Astralis': '<:astralis:1428075043526672394> **ASTRALIS**',
-    'G2': '<:g2:1428075144240431154> **G2**',
-    'Aurora': '<:aurora:1428075062287798272> **AURORA**',
-    'Liquid': '<:liquid:1428075155456000122> **LIQUID**',
-    'M80': '<:m80:1428076593028530236> **M80**'
+    'Falcons': '<:falcons:1428075105615085598> FALCONS',
+    'MOUZ': '<:mouz:1428075167850041425> MOUZ',
+    'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
+    'Team Vitality': '<:vitality:1428075243510956113> TEAM VITALITY',
+    'The Mongolz': '<:themongolz:1428075231939133581> THE MONGOLZ',
+    'FURIA': '<:furia:1428075132156641471> FURIA',
+    'Natus Vincere': '<:navi:1428075186976194691> NATUS VINCERE',
+    'FaZe': '<:faze:1428075117753401414> FAZE',
+    '3DMAX': '<:3dmax:1428075077408133262> 3DMAX',
+    'Astralis': '<:astralis:1428075043526672394> ASTRALIS',
+    'G2': '<:g2:1428075144240431154> G2',
+    'Aurora': '<:aurora:1428075062287798272> AURORA',
+    'Liquid': '<:liquid:1428075155456000122> LIQUID',
+    'M80': '<:m80:1428076593028530236> M80'
 }
 
 # =========================
@@ -106,9 +107,9 @@ def find_team_match(input_team):
 
 def get_display_name(team_name):
     """Get team name with emoji for display"""
-    return TEAM_DISPLAY_NAMES.get(team_name, f"**{team_name.upper()}**")
+    return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
-def center_vs(team1, team2, separator="🆚", emoji_visual_width=2):
+def center_vs(team1, team2, separator="<:VS:1428100225603600506>", emoji_visual_width=2):
     """Zentriere Teams und VS-Symbol perfekt, berücksichtige visuelle Breite von Emojis"""
     def get_visual_length(text):
         # Entferne <a:name:ID> oder <:name:ID> und zähle das Emoji als 2 Zeichen
@@ -117,7 +118,7 @@ def center_vs(team1, team2, separator="🆚", emoji_visual_width=2):
         return len(cleaned_text)
 
     # Maximale Länge basierend auf visueller Breite
-    max_len = max(get_visual_length(team1), get_visual_length(team2), emoji_visual_width if separator == "🆚" else len(separator))
+    max_len = max(get_visual_length(team1), get_visual_length(team2), get_visual_length(separator) if separator else emoji_visual_width)
     
     # Zentriere mit der berechneten Länge
     line1 = team1.center(max_len)
@@ -130,8 +131,8 @@ def create_centered_teams_display(team1, team2):
     team1_display = get_display_name(team1)
     team2_display = get_display_name(team2)
     
-    # Zentriere alles automatisch
-    centered_display = center_vs(team1_display, team2_display, "🆚", emoji_visual_width=2)
+    # Zentriere alles automatisch mit Custom-VS-Emoji
+    centered_display = center_vs(team1_display, team2_display)
     
     return centered_display
 
@@ -139,6 +140,22 @@ def create_frame(title, content):
     """Erstelle einen Rahmen für Textnachrichten"""
     separator = "─────────────────────────────"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
+
+# =========================
+# BUTTON VIEW FOR /list
+# =========================
+class TeamListView(View):
+    def __init__(self, teams):
+        super().__init__(timeout=None)  # Kein Timeout, da Buttons dekorativ sind
+        for team in teams:
+            # Erstelle einen Button für jedes Team (ohne Funktion)
+            button = Button(
+                label=get_display_name(team),  # Zeigt Emoji + Teamname (z. B. <:falcons:ID> FALCONS)
+                style=discord.ButtonStyle.secondary,  # Grauer Stil für dekorative Buttons
+                custom_id=f"team_{team.lower()}",  # Eindeutige ID, aber keine Funktion
+                disabled=True  # Deaktiviert, um Klicks zu verhindern
+            )
+            self.add_item(button)
 
 # =========================
 # DATA MANAGEMENT
@@ -366,14 +383,14 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams - ALS NORMALE TEXTNACHRICHT!"""
+    """Show subscribed teams with buttons"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
-        framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
-        await ctx.send(framed_message)
+        # Erstelle eine View mit Buttons für jedes Team
+        view = TeamListView(teams)
+        await ctx.send("📋 **SUBSCRIBED TEAMS**", view=view)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
 
@@ -400,7 +417,7 @@ async def matches(ctx):
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                match_list += f"{i}. {get_display_name(match['team1'])} 🆚 {get_display_name(match['team2'])}\n"
+                match_list += f"{i}. {get_display_name(match['team1'])} <:VS:1428100225603600506> {get_display_name(match['team2'])}\n"
                 match_list += f"   *⏰ {int(time_until)}min | 🏆 {match['event']}*\n\n"
             
             footer = f"*🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min*"
