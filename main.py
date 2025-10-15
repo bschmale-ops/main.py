@@ -109,9 +109,12 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_display_name(team_name):
-    """Get team name with emoji for display"""
+    """Get team name with emoji for display, with fallback if emoji fails"""
     display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name}")
-    return display if ' ' in display else f"{team_name}"
+    if ' ' in display and not display.startswith('<'):
+        print(f"⚠️ Emoji for {team_name} might be invalid: {display}")
+        return team_name  # Fallback auf reinen Namen
+    return display
 
 def validate_team_display():
     """Validate the structure of TEAM_DISPLAY_NAMES and log potential issues"""
@@ -156,31 +159,9 @@ def create_centered_teams_display(team1, team2):
     return centered_display
 
 def create_frame(title, content):
-    """Erstelle einen Rahmen für Textnachrichten"""
+    """Erstelle einen Rahmen für Textnachrichten (für Debug oder Text-Ausgabe)"""
     separator = "─────────────────────────────"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
-
-# =========================
-# TEXT-BASED LIST FOR /list (tabellarische Ansicht)
-# =========================
-def create_subscribed_list(teams, temp_teams):
-    """Erstelle eine tabellarische Liste der abonierten Teams"""
-    all_teams = teams + [t for t in temp_teams if t not in teams]
-    if not all_teams:
-        return "❌ No teams subscribed."
-    
-    # Tabellenkopf
-    table = "Name                   | Status\n-----------------------|--------\n"
-    
-    # Tabellenzeilen
-    for team in all_teams:
-        team_display = get_display_name(team)
-        status = "Temporär" if team in temp_teams else "Permanent"
-        # Anpassen der Länge für bessere Ausrichtung
-        team_name = team_display.ljust(20)[:20]  # 20 Zeichen max, linksbündig
-        table += f"{team_name} | {status}\n"
-    
-    return table
 
 # =========================
 # DATA MANAGEMENT
@@ -225,39 +206,27 @@ print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.va
 validate_team_display()
 
 # =========================
-# PANDASCORE API - MIT FINALEM ZEITZONEN-FIX!
+# PANDASCORE API
 # =========================
 async def fetch_pandascore_matches():
     """Fetch real matches from PandaScore API"""
     matches = []
-    
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api.pandascore.co/csgo/matches/upcoming"
-            headers = {
-                'Authorization': f'Bearer {PANDASCORE_TOKEN}',
-                'Accept': 'application/json'
-            }
-            
-            params = {
-                'sort': 'begin_at',
-                'page[size]': 20
-            }
-            
+            headers = {'Authorization': f'Bearer {PANDASCORE_TOKEN}', 'Accept': 'application/json'}
+            params = {'sort': 'begin_at', 'page[size]': 20}
             print("🌐 Fetching PandaScore API...")
             async with session.get(url, headers=headers, params=params, timeout=15) as response:
                 print(f"📡 PandaScore Response: {response.status}")
-                
                 if response.status == 200:
                     data = await response.json()
-                    
                     for match_data in data:
                         try:
                             opponents = match_data.get('opponents', [])
                             if len(opponents) >= 2:
                                 team1 = opponents[0].get('opponent', {}).get('name', 'TBD')
                                 team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
-                                
                                 if team1 != 'TBD' and team2 != 'TBD':
                                     begin_at = match_data.get('begin_at')
                                     if begin_at:
@@ -268,63 +237,50 @@ async def fetch_pandascore_matches():
                                         time_string = local_dt.strftime("%H:%M")
                                     else:
                                         continue
-                                    
                                     league = match_data.get('league', {})
                                     event = league.get('name', 'CS2 Tournament')
-                                    
                                     matches.append({
-                                        'team1': team1,
-                                        'team2': team2,
-                                        'unix_time': unix_time,
-                                        'event': event,
-                                        'time_string': time_string,
-                                        'is_live': False,
+                                        'team1': team1, 'team2': team2, 'unix_time': unix_time,
+                                        'event': event, 'time_string': time_string, 'is_live': False,
                                         'source': 'PandaScore'
                                     })
                                     print(f"✅ Found: {team1} vs {team2} at {time_string}")
-                                    
                         except Exception as e:
                             print(f"⚠️ Error parsing match: {e}")
                             continue
-                    
                     print(f"🎯 PandaScore: {len(matches)} matches found")
                     return matches
                 else:
                     print(f"❌ PandaScore API error: {response.status}")
                     return []
-                    
     except Exception as e:
         print(f"❌ PandaScore connection error: {e}")
         return []
 
 # =========================
-# ALERT SYSTEM - ALS NORMALE TEXTNACHRICHTEN MIT VERBESSERTER FORMATIERUNG!
+# ALERT SYSTEM - ALS EMBED MIT MAXIMALER GRÖSSE
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - ALS NORMALE TEXTNACHRICHTEN!"""
+    """Send match alerts as Embed with maximum size"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
-        
         print(f"🔍 Checking {len(matches)} matches for alerts...")
         
         for guild_id, subscribed_teams in TEAMS.items():
             if not subscribed_teams:
                 continue
-                
             channel_id = CHANNELS.get(guild_id)
             if not channel_id:
                 print(f"❌ No channel set for guild {guild_id}")
                 continue
-
             channel = bot.get_channel(channel_id)
             if not channel:
                 print(f"❌ Channel {channel_id} not found for guild {guild_id}")
                 continue
-
             print(f"✅ Channel found: #{channel.name} in {channel.guild.name}")
 
             all_teams = subscribed_teams + [t for t in TEMP_TEAMS if t not in subscribed_teams]
@@ -332,61 +288,52 @@ async def send_alerts():
                 for subscribed_team in all_teams:
                     correct_name, found = find_team_match(subscribed_team)
                     team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
-                    
-                    if (match['team1'].lower() in team_variants or 
-                        match['team2'].lower() in team_variants or
+                    if (match['team1'].lower() in team_variants or match['team2'].lower() in team_variants or
                         any(variant in match['team1'].lower() for variant in team_variants) or
                         any(variant in match['team2'].lower() for variant in team_variants)):
-                        
                         time_until = (match['unix_time'] - current_time) / 60
                         alert_id = f"{guild_id}_{match['team1']}_{match['team2']}"
-                        
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
-                            
-                            # Verbesserte Formatierung ohne Codeblock
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
-                            match_content = f"{centered_display}\n\n*🏆 {match['event']}*\n*⏰ Starts in {int(time_until)} minutes*\n*🕐 {match['time_string']}*"
-                            framed_message = create_frame(f"🎮 **MATCH ALERT** • {int(time_until)} MINUTES", match_content)
-                            
+                            embed = discord.Embed(
+                                title=f"🎮 **MATCH ALERT** • {int(time_until)} MINUTES",
+                                description=f"{centered_display}\n\n*🏆 {match['event']}*\n*⏰ Starts in {int(time_until)} minutes*\n*🕐 {match['time_string']}*",
+                                color=0x00ff00,
+                                timestamp=datetime.datetime.now(timezone.utc)
+                            )
+                            embed.set_footer(text=f"Powered by PandaScore | Alert ID: {alert_id}")
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
                                 if role:
-                                    await channel.send(f"🔔 {role.mention}\n{framed_message}")
+                                    await channel.send(f"🔔 {role.mention}", embed=embed)
                                 else:
-                                    await channel.send(framed_message)
-                                print(f"✅ Alert sent: {framed_message}")
+                                    await channel.send(embed=embed)
+                                print(f"✅ Alert sent: {embed.to_dict()}")
                             except Exception as e:
                                 print(f"❌ Failed to send message: {e}")
                                 continue
-                            
                             sent_alerts.add(alert_id)
                             print(f"✅ Alert tracked: {match['team1']} vs {match['team2']} in {int(time_until)}min")
-                            
                             if len(sent_alerts) > 50:
                                 sent_alerts.clear()
-                                
                             break
-        
     except Exception as e:
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS - ALLE ALS NORMALE TEXTNACHRICHTEN!
+# BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
     """Subscribe to a team for alerts (temporär oder persistent)"""
     guild_id = str(ctx.guild.id)
     print(f"Debug subscribe: guild_id={guild_id}, team_input={team}")
-    
     if guild_id not in TEAMS:
         TEAMS[guild_id] = []
         print(f"Debug subscribe: Created new list for guild {guild_id}")
-    
     correct_name, found = find_team_match(team)
     print(f"Debug subscribe: correct_name={correct_name}, found={found}")
-    
     if correct_name not in TEAMS[guild_id] and correct_name not in TEMP_TEAMS:
         TEMP_TEAMS.append(correct_name)
         print(f"Debug subscribe: Added {correct_name} to TEMP_TEAMS, list now: {TEMP_TEAMS}")
@@ -401,7 +348,6 @@ async def unsubscribe(ctx, *, team):
     """Unsubscribe from a team"""
     guild_id = str(ctx.guild.id)
     correct_name, found = find_team_match(team)
-    
     if correct_name in TEMP_TEAMS:
         TEMP_TEAMS.remove(correct_name)
         print(f"Debug unsubscribe: Removed {correct_name} from TEMP_TEAMS, list now: {TEMP_TEAMS}")
@@ -417,20 +363,25 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams as a text list (tabellarische Ansicht)"""
+    """Show subscribed teams as an Embed list"""
     guild_id = str(ctx.guild.id)
     print(f"Debug list: guild_id={guild_id}, raw TEAMS={TEAMS.get(guild_id, [])}, TEMP_TEAMS={TEMP_TEAMS}")
-    
     teams = TEAMS.get(guild_id, [])
-    
-    if teams or TEMP_TEAMS:
-        print(f"Debug list: Found {len(teams)} permanent + {len(TEMP_TEAMS)} temporary teams")
-        team_list = create_subscribed_list(teams, TEMP_TEAMS)
-        framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
-        await ctx.send(framed_message)
-    else:
+    all_teams = teams + [t for t in TEMP_TEAMS if t not in teams]
+    if not all_teams:
         print(f"Debug list: No teams for guild {guild_id}")
         await ctx.send("❌ **No teams subscribed yet!**")
+        return
+    print(f"Debug list: Found {len(teams)} permanent + {len(TEMP_TEAMS)} temporary teams")
+    team_list = "\n".join([f"• {get_display_name(team)}" for team in all_teams])
+    embed = discord.Embed(
+        title="📋 **SUBSCRIBED TEAMS**",
+        description=team_list,
+        color=0x00ff00,
+        timestamp=datetime.datetime.now(timezone.utc)
+    )
+    embed.set_footer(text=f"Total Teams: {len(all_teams)} | Updated: {datetime.datetime.now(timezone(timedelta(hours=2))).strftime('%H:%M')}")
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def settime(ctx, minutes: int):
@@ -447,23 +398,22 @@ async def settime(ctx, minutes: int):
 
 @bot.command()
 async def matches(ctx):
-    """Show available matches - ALS NORMALE TEXTNACHRICHT!"""
+    """Show available matches as Embed"""
     try:
         matches = await fetch_pandascore_matches()
-        
         if matches:
-            match_list = ""
-            for i, match in enumerate(matches[:6], 1):
-                time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                match_list += f"{i}. {get_display_name(match['team1'])} <:VS:1428106772312227984> {get_display_name(match['team2'])}\n"
-                match_list += f"   *⏰ {int(time_until)}min | 🏆 {match['event']}*\n\n"
-            
-            footer = f"*🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min*"
-            framed_message = create_frame("🎯 **AVAILABLE CS2 MATCHES**", f"{match_list}{footer}")
-            await ctx.send(framed_message)
+            match_list = "\n".join([f"{i}. {get_display_name(match['team1'])} <:VS:1428106772312227984> {get_display_name(match['team2'])}\n   *⏰ {int((match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60)}min | 🏆 {match['event']}*"
+                                  for i, match in enumerate(matches[:6], 1)])
+            embed = discord.Embed(
+                title="🎯 **AVAILABLE CS2 MATCHES**",
+                description=match_list,
+                color=0x00ff00,
+                timestamp=datetime.datetime.now(timezone.utc)
+            )
+            embed.set_footer(text=f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min")
+            await ctx.send(embed=embed)
         else:
             await ctx.send("❌ **No matches found**")
-        
     except Exception as e:
         await ctx.send(f"❌ **Error:** {e}")
 
@@ -480,16 +430,13 @@ async def setchannel(ctx, channel: discord.TextChannel):
 async def autosetup(ctx):
     """Auto-Subscribe Teams"""
     guild_id = str(ctx.guild.id)
-    
     if guild_id not in TEAMS:
         TEAMS[guild_id] = []
-    
     added_teams = []
     for team in AUTO_SUBSCRIBE_TEAMS:
         if team not in TEAMS[guild_id]:
             TEAMS[guild_id].append(team)
             added_teams.append(team)
-    
     if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
         if added_teams:
             team_list = "\n".join([f"• {get_display_name(team)}" for team in added_teams])
@@ -505,10 +452,8 @@ async def status(ctx):
     uptime = datetime.datetime.now(timezone.utc) - start_time
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
-    
     guild_id = str(ctx.guild.id)
     subscribed_count = len(TEAMS.get(guild_id, [])) + len([t for t in TEMP_TEAMS if t not in TEAMS.get(guild_id, [])])
-    
     status_content = (
         f"**🟢 STATUS:** **✅ ONLINE**\n"
         f"**⏰ UPTIME:** **{hours}h {minutes}m**\n"
@@ -517,21 +462,25 @@ async def status(ctx):
         f"**👥 SUBSCRIBED:** **{subscribed_count} TEAMS**\n"
         f"**🌐 SOURCE:** **PANDASCORE API**"
     )
-    
-    framed_message = create_frame("🤖 **BOT STATUS**", status_content)
-    await ctx.send(framed_message)
+    embed = discord.Embed(
+        title="🤖 **BOT STATUS**",
+        description=status_content,
+        color=0x00ff00,
+        timestamp=datetime.datetime.now(timezone.utc)
+    )
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def test(ctx):
-    """Test alert with Embed for better centering"""
+    """Test alert with Embed, bold and larger team names"""
     centered_display = create_centered_teams_display("Falcons", "Team Vitality")
-    
     embed = discord.Embed(
         title="🎮 **TEST ALERT** • 15 MINUTES",
-        description=f"{centered_display}\n\n*🏆 NODWIN Clutch Series*\n*⏰ Starts in 15 minutes*\n*🕐 16:00*",
-        color=0x00ff00
+        description=f"\n{centered_display}\n\n*🏆 NODWIN Clutch Series*\n*⏰ Starts in 15 minutes*\n*🕐 16:00*",
+        color=0x00ff00,
+        timestamp=datetime.datetime.now(timezone.utc)
     )
-    
+    embed.set_footer(text="Test Alert | Powered by xAI")
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
         await ctx.send(f"🔔 {role.mention}", embed=embed)
@@ -550,7 +499,7 @@ async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
 
 # =========================
-# FLASK & STARTUP - AUTO SUBSCRIBE ONLY!
+# FLASK & STARTUP
 # =========================
 @app.route('/')
 def home():
@@ -576,20 +525,15 @@ flask_thread.start()
 @bot.event
 async def on_ready():
     print(f'✅ {bot.user} is online! - PANDASCORE API')
-    
     for guild in bot.guilds:
         guild_id = str(guild.id)
-        
         if guild_id not in TEAMS:
             TEAMS[guild_id] = []
-        
         for team in AUTO_SUBSCRIBE_TEAMS:
             if team not in TEAMS[guild_id]:
                 TEAMS[guild_id].append(team)
                 print(f"✅ Auto-subscribed {team} for guild {guild.name}")
-    
     save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME})
-    
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
