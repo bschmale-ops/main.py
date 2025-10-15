@@ -98,6 +98,9 @@ TEAM_SYNONYMS = {
     'M80': ['m80']
 }
 
+# Temporäre Teams (nur während Laufzeit)
+TEMP_TEAMS = []
+
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
     for correct_name, variants in TEAM_SYNONYMS.items():
@@ -131,7 +134,7 @@ def get_team_name(team_name):
         return display[display.index(' ') + 1:]
     return display
 
-def center_vs(team1, team2, separator="<:VS:1428106772312227984>", emoji_visual_width=1):
+def center_vs(team1, team2, separator="<:VS:1428106772312227984>", emoji_visual_width=2):
     """Zentriere Teams und VS-Symbol perfekt, berücksichtige visuelle Breite von Emojis"""
     def get_visual_length(text):
         # Entferne <a:name:ID> oder <:name:ID> und zähle das Emoji als angegebene Breite
@@ -164,21 +167,23 @@ def create_frame(title, content):
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
 # =========================
-# BUTTON VIEW FOR /list
+# TEXT-BASED LIST FOR /list (untereinander wie eine Liste)
 # =========================
-class TeamListView(View):
-    def __init__(self, teams):
-        super().__init__(timeout=None)  # Kein Timeout, da Buttons dekorativ sind
-        for team in teams:
-            # Erstelle einen Button für jedes Team mit Emoji als Icon und vollständigem Namen als Label
-            button = Button(
-                emoji=get_team_emoji(team),  # Zeigt nur das Emoji (z. B. <:spirit:ID>)
-                label=get_team_name(team),   # Zeigt den vollständigen Namen (z. B. TEAM SPIRIT)
-                style=discord.ButtonStyle.secondary,  # Grauer Stil für dekorative Buttons
-                custom_id=f"team_{team.lower()}",  # Eindeutige ID, aber keine Funktion
-                disabled=True  # Deaktiviert, um Klicks zu verhindern und "This interaction failed" zu vermeiden
-            )
-            self.add_item(button)
+def create_subscribed_list(teams, temp_teams):
+    """Erstelle eine textbasierte Liste der abonierten Teams (untereinander)"""
+    all_teams = teams + [t for t in temp_teams if t not in teams]
+    if not all_teams:
+        return "❌ No teams subscribed."
+    
+    team_list = ""
+    for team in all_teams:
+        team_display = get_display_name(team)
+        if team in temp_teams:
+            team_list += f"• {team_display} (temporär)\n"
+        else:
+            team_list += f"• {team_display}\n"
+    
+    return team_list
 
 # =========================
 # DATA MANAGEMENT
@@ -189,17 +194,26 @@ def load_data():
     try:
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, "r", encoding='utf-8') as f:
-                return json.load(f)
+                data = json.load(f)
+                print(f"✅ Loaded data from {DATA_FILE}: {len(data.get('TEAMS', {}))} servers")
+                return data
+        print(f"📄 No {DATA_FILE} found, starting fresh")
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
-    except:
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON error in {DATA_FILE}: {e} - resetting to default")
+        return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
+    except Exception as e:
+        print(f"❌ Load error: {e}")
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
 
 def save_data(data):
     try:
         with open(DATA_FILE, "w", encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        print(f"✅ Saved data to {DATA_FILE}: {len(data.get('TEAMS', {}))} servers")
         return True
-    except:
+    except Exception as e:
+        print(f"❌ Save error in {DATA_FILE}: {e}")
         return False
 
 # Load initial data
@@ -318,8 +332,9 @@ async def send_alerts():
 
             print(f"✅ Channel found: #{channel.name} in {channel.guild.name}")
 
+            all_teams = subscribed_teams + [t for t in TEMP_TEAMS if t not in subscribed_teams]
             for match in matches:
-                for subscribed_team in subscribed_teams:
+                for subscribed_team in all_teams:
                     correct_name, found = find_team_match(subscribed_team)
                     team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
                     
@@ -376,21 +391,25 @@ async def send_alerts():
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
-    """Subscribe to a team for alerts"""
+    """Subscribe to a team for alerts (temporär oder persistent)"""
     guild_id = str(ctx.guild.id)
+    print(f"Debug subscribe: guild_id={guild_id}, team_input={team}")
+    
     if guild_id not in TEAMS:
         TEAMS[guild_id] = []
+        print(f"Debug subscribe: Created new list for guild {guild_id}")
     
     correct_name, found = find_team_match(team)
+    print(f"Debug subscribe: correct_name={correct_name}, found={found}")
     
-    if correct_name not in TEAMS[guild_id]:
-        TEAMS[guild_id].append(correct_name)
-        if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"✅ **{get_display_name(correct_name)}** added for alerts! 🎯")
-        else:
-            await ctx.send("⚠️ **Save failed!**")
+    if correct_name not in TEAMS[guild_id] and correct_name not in TEMP_TEAMS:
+        TEMP_TEAMS.append(correct_name)
+        print(f"Debug subscribe: Added {correct_name} to TEMP_TEAMS, list now: {TEMP_TEAMS}")
+        await ctx.send(f"✅ **{get_display_name(correct_name)}** added for alerts (temporär)! 🎯")
+    elif correct_name in TEAMS[guild_id]:
+        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already permanently subscribed!")
     else:
-        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** already subscribed!")
+        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already temporarily subscribed!")
 
 @bot.command()
 async def unsubscribe(ctx, *, team):
@@ -398,10 +417,14 @@ async def unsubscribe(ctx, *, team):
     guild_id = str(ctx.guild.id)
     correct_name, found = find_team_match(team)
     
-    if guild_id in TEAMS and correct_name in TEAMS[guild_id]:
+    if correct_name in TEMP_TEAMS:
+        TEMP_TEAMS.remove(correct_name)
+        print(f"Debug unsubscribe: Removed {correct_name} from TEMP_TEAMS, list now: {TEMP_TEAMS}")
+        await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from temporary alerts!")
+    elif guild_id in TEAMS and correct_name in TEAMS[guild_id]:
         TEAMS[guild_id].remove(correct_name)
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from alerts!")
+            await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from permanent alerts!")
         else:
             await ctx.send("⚠️ **Save failed!**")
     else:
@@ -409,15 +432,19 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams with buttons"""
+    """Show subscribed teams as a text list (untereinander)"""
     guild_id = str(ctx.guild.id)
+    print(f"Debug list: guild_id={guild_id}, raw TEAMS={TEAMS.get(guild_id, [])}, TEMP_TEAMS={TEMP_TEAMS}")
+    
     teams = TEAMS.get(guild_id, [])
     
-    if teams:
-        # Erstelle eine View mit Buttons für jedes Team
-        view = TeamListView(teams)
-        await ctx.send("📋 **SUBSCRIBED TEAMS**", view=view)
+    if teams or TEMP_TEAMS:
+        print(f"Debug list: Found {len(teams)} permanent + {len(TEMP_TEAMS)} temporary teams")
+        team_list = create_subscribed_list(teams, TEMP_TEAMS)
+        framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
+        await ctx.send(framed_message)
     else:
+        print(f"Debug list: No teams for guild {guild_id}")
         await ctx.send("❌ **No teams subscribed yet!**")
 
 @bot.command()
@@ -496,7 +523,7 @@ async def status(ctx):
     minutes, seconds = divmod(remainder, 60)
     
     guild_id = str(ctx.guild.id)
-    subscribed_count = len(TEAMS.get(guild_id, []))
+    subscribed_count = len(TEAMS.get(guild_id, [])) + len([t for t in TEMP_TEAMS if t not in TEAMS.get(guild_id, [])])
     
     status_content = (
         f"**🟢 STATUS:** **✅ ONLINE**\n"
@@ -512,24 +539,20 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert"""
-    # ✅ TEST ALS NORMALE TEXTNACHRICHT
+    """Test alert with Embed for better centering"""
     centered_display = create_centered_teams_display("Falcons", "Team Vitality")
     
-    test_content = (
-        f"```{centered_display}\n\n"
-        f"*🏆 NODWIN Clutch Series*\n"
-        f"*⏰ Starts in 15 minutes*\n"
-        f"*🕐 16:00*```"
+    embed = discord.Embed(
+        title="🎮 **TEST ALERT** • 15 MINUTES",
+        description=f"```{centered_display}```\n\n*🏆 NODWIN Clutch Series*\n*⏰ Starts in 15 minutes*\n*🕐 16:00*",
+        color=0x00ff00
     )
-    
-    framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
-        await ctx.send(f"🔔 {role.mention}\n{framed_message}")
+        await ctx.send(f"🔔 {role.mention}", embed=embed)
     else:
-        await ctx.send(framed_message)
+        await ctx.send(embed=embed)
 
 @bot.command()
 async def debug(ctx):
@@ -553,7 +576,7 @@ def home():
 def health():
     return jsonify({
         "status": "online", 
-        "teams": sum(len(teams) for teams in TEAMS.values()),
+        "teams": sum(len(teams) for teams in TEAMS.values()) + len(TEMP_TEAMS),
         "servers": len(TEAMS)
     })
 
