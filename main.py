@@ -7,9 +7,10 @@ import json
 import asyncio
 from flask import Flask, jsonify
 import threading
-import time
+import aiohttp
+from bs4 import BeautifulSoup
 
-print("🚀 Starting Discord CS2 Bot...")
+print("🚀 Starting Discord CS2 Bot with HLTV Scraping...")
 
 # =========================
 # FLASK STATUS SERVER
@@ -26,49 +27,153 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 # =========================
-# DATA MANAGEMENT
+# DATA MANAGEMENT - VOLLE PERSISTENZ
 # =========================
 DATA_FILE = "bot_data.json"
 
 def load_data():
-    """Lädt gespeicherte Daten"""
+    """Lädt alle gespeicherten Daten - crash-safe"""
     try:
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, "r", encoding='utf-8') as f:
                 data = json.load(f)
                 # Alte Datenstruktur migrieren
                 if "ALERT_TIME" not in data:
-                    data["ALERT_TIME"] = 5
+                    data["ALERT_TIME"] = 30
+                print(f"📂 Daten geladen: {len(data.get('TEAMS', {}))} Server, {sum(len(teams) for teams in data.get('TEAMS', {}).values())} Teams")
                 return data
-        return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 5}
+        print("📂 Keine gespeicherten Daten gefunden, starte frisch")
+        return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
     except Exception as e:
-        print(f"❌ Fehler beim Laden: {e}")
-        return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 5}
+        print(f"❌ Kritischer Fehler beim Laden: {e}")
+        return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
 
 def save_data(data):
-    """Speichert Daten"""
+    """Speichert alle Daten sofort - crash-safe"""
     try:
         with open(DATA_FILE, "w", encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
+        print("💾 Daten gespeichert")
         return True
     except Exception as e:
-        print(f"❌ Fehler beim Speichern: {e}")
+        print(f"❌ Kritischer Fehler beim Speichern: {e}")
         return False
 
-# Initial Daten laden
+# INITIALE DATENLADUNG BEIM START
 data = load_data()
 TEAMS = {}
 CHANNELS = {}
-ALERT_TIME = data.get("ALERT_TIME", 5)
+ALERT_TIME = data.get("ALERT_TIME", 30)
 
-# Guild IDs konvertieren
+# Guild IDs von String zu Integer konvertieren
 for guild_id_str, teams in data.get("TEAMS", {}).items():
-    TEAMS[int(guild_id_str)] = teams
+    try:
+        TEAMS[int(guild_id_str)] = teams
+    except:
+        continue
 
 for guild_id_str, channel_id in data.get("CHANNELS", {}).items():
-    CHANNELS[int(guild_id_str)] = channel_id
+    try:
+        CHANNELS[int(guild_id_str)] = channel_id
+    except:
+        continue
 
-print(f"📊 Geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams, Alert-Time: {ALERT_TIME}min")
+print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams, Alert-Time: {ALERT_TIME}min")
+
+# =========================
+# HLTV SCRAPING FUNCTIONS
+# =========================
+async def fetch_hltv_matches():
+    """Holt aktuelle Matches von HLTV"""
+    matches = []
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://www.hltv.org/matches"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    
+                    # Finde Match-Container
+                    match_containers = soup.find_all('div', class_='upcomingMatch')
+                    
+                    for container in match_containers[:25]:  # Erste 25 Matches
+                        try:
+                            # Team Namen extrahieren
+                            team_elements = container.find_all('div', class_='matchTeamName')
+                            if len(team_elements) >= 2:
+                                team1 = team_elements[0].get_text(strip=True)
+                                team2 = team_elements[1].get_text(strip=True)
+                                
+                                # Match Zeit extrahieren
+                                time_element = container.find('div', class_='matchTime')
+                                if time_element:
+                                    match_time = time_element.get_text(strip=True)
+                                    
+                                    # Event Name
+                                    event_element = container.find('div', class_='matchEventName')
+                                    event = event_element.get_text(strip=True) if event_element else "CS2 Event"
+                                    
+                                    # Match Link
+                                    match_link = container.get('data-z-url')
+                                    if match_link and not match_link.startswith('http'):
+                                        match_link = f"https://www.hltv.org{match_link}"
+                                    else:
+                                        match_link = "https://www.hltv.org/matches"
+                                    
+                                    # Zeit in Unix Timestamp umwandeln
+                                    unix_time = parse_match_time(match_time)
+                                    
+                                    if team1 and team2 and team1 != 'TBD' and team2 != 'TBD':
+                                        matches.append({
+                                            'team1': team1,
+                                            'team2': team2,
+                                            'unix_time': unix_time,
+                                            'event': event,
+                                            'link': match_link,
+                                            'time_string': match_time
+                                        })
+                                        
+                        except Exception as e:
+                            continue
+                            
+                else:
+                    print(f"❌ HLTV Request failed: {response.status}")
+                    
+    except Exception as e:
+        print(f"❌ HLTV Scraping error: {e}")
+    
+    return matches
+
+def parse_match_time(time_str):
+    """Konvertiert HLTV Zeit zu Unix Timestamp"""
+    try:
+        now = datetime.datetime.now(timezone.utc)
+        
+        if 'Today' in time_str:
+            time_part = time_str.replace('Today', '').strip()
+            if ':' in time_part:
+                hours, minutes = map(int, time_part.split(':'))
+                match_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0)
+                return int(match_time.timestamp())
+        
+        elif 'Tomorrow' in time_str:
+            time_part = time_str.replace('Tomorrow', '').strip()
+            if ':' in time_part:
+                hours, minutes = map(int, time_part.split(':'))
+                match_time = now.replace(hour=hours, minute=minutes, second=0, microsecond=0) + datetime.timedelta(days=1)
+                return int(match_time.timestamp())
+        
+        else:
+            return int((now + datetime.timedelta(hours=1)).timestamp())
+            
+    except Exception as e:
+        return int((datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=1)).timestamp())
 
 # =========================
 # FLASK ROUTES
@@ -85,7 +190,8 @@ def ping():
         "alerts_running": send_alerts.is_running(),
         "uptime": str(datetime.datetime.now(timezone.utc) - start_time),
         "monitored_teams": sum(len(teams) for teams in TEAMS.values()),
-        "monitored_guilds": len(TEAMS)
+        "monitored_guilds": len(TEAMS),
+        "alert_time": ALERT_TIME
     })
 
 @app.route('/test')
@@ -102,7 +208,8 @@ def status():
         "status": "online",
         "last_check": last_check_time.isoformat(),
         "teams_count": sum(len(teams) for teams in TEAMS.values()),
-        "alert_time": ALERT_TIME
+        "alert_time": ALERT_TIME,
+        "servers_count": len(TEAMS)
     })
 
 def run_flask():
@@ -117,53 +224,25 @@ flask_thread.start()
 print("✅ Flask server started")
 
 # =========================
-# MATCH FUNCTIONS
-# =========================
-async def get_upcoming_matches():
-    """Holt CS2 Matches (Demo-Daten)"""
-    try:
-        matches = []
-
-        # Demo-Matches für Test
-        demo_teams = [
-            ('Natus Vincere', 'FaZe Clan'),
-            ('Vitality', 'G2 Esports'),
-            ('MOUZ', 'Spirit'), 
-            ('FURIA', 'Falcons'),
-            ('Aurora', '3DMAX')
-        ]
-
-        for i, (team1, team2) in enumerate(demo_teams):
-            match_time = datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=i + 1)
-            matches.append({
-                'team1': team1,
-                'team2': team2,
-                'unix_time': int(match_time.timestamp()),
-                'event': 'ESL Pro League',
-                'link': 'https://www.hltv.org/matches'
-            })
-
-        return matches
-        
-    except Exception as e:
-        print(f"❌ Error getting matches: {e}")
-        return []
-
-# =========================
 # ALERT SYSTEM
 # =========================
 @tasks.loop(minutes=5)
 async def send_alerts():
-    """Sendet Match Alerts"""
+    """Sendet Match Alerts für echte HLTV Matches"""
     global last_check_time
     try:
         last_check_time = datetime.datetime.now(timezone.utc)
-        matches = await get_upcoming_matches()
+        matches = await fetch_hltv_matches()
         current_time = last_check_time.timestamp()
 
+        print(f"🔍 HLTV Matches gefunden: {len(matches)}")
+        
         alerts_sent = 0
         
         for guild_id, teams in TEAMS.items():
+            if not teams:  # Keine Teams abonniert
+                continue
+                
             channel_id = CHANNELS.get(guild_id)
             if not channel_id:
                 continue
@@ -173,53 +252,61 @@ async def send_alerts():
                 continue
 
             for match in matches:
-                match_teams = f"{match['team1']} {match['team2']}".lower()
+                team1_lower = match['team1'].lower()
+                team2_lower = match['team2'].lower()
                 
-                # Prüfe ob eines der abonnierten Teams im Match ist
-                if any(team.lower() in match_teams for team in teams):
-                    time_until_match = (match['unix_time'] - current_time) / 60  # Minuten
+                for subscribed_team in teams:
+                    sub_team_lower = subscribed_team.lower()
                     
-                    # Alert wenn Match innerhalb der eingestellten Zeit startet
-                    if 0 <= time_until_match <= ALERT_TIME:
-                        embed = discord.Embed(
-                            title="⚔️ CS2 Match Alert",
-                            description=f"**{match['team1']}** vs **{match['team2']}**",
-                            color=0x00ff00,
-                            url=match['link']
-                        )
-                        embed.add_field(name="Event", value=match['event'], inline=True)
-                        embed.add_field(name="Start in", value=f"{int(time_until_match)} Minuten", inline=True)
-                        embed.add_field(name="Link", value=match['link'], inline=False)
+                    # Intelligente Team-Erkennung
+                    if (sub_team_lower in team1_lower or 
+                        sub_team_lower in team2_lower or
+                        team1_lower in sub_team_lower or 
+                        team2_lower in sub_team_lower):
                         
-                        await channel.send(embed=embed)
+                        time_until_match = (match['unix_time'] - current_time) / 60  # Minuten
                         
-                        # CS2 Rolle pingen
-                        role = discord.utils.get(channel.guild.roles, name="CS2")
-                        if role:
-                            await channel.send(f"📢 {role.mention}")
-                        
-                        alerts_sent += 1
+                        # Alert wenn Match innerhalb der eingestellten Zeit startet
+                        if 0 <= time_until_match <= ALERT_TIME:
+                            embed = discord.Embed(
+                                title="⚔️ CS2 Match Alert",
+                                description=f"**{match['team1']}** vs **{match['team2']}**",
+                                color=0x00ff00,
+                                url=match['link']
+                            )
+                            embed.add_field(name="Event", value=match['event'], inline=True)
+                            embed.add_field(name="Start in", value=f"{int(time_until_match)} Minuten", inline=True)
+                            embed.add_field(name="Zeit", value=match.get('time_string', 'Soon'), inline=True)
+                            embed.add_field(name="Link", value=f"[HLTV]({match['link']})", inline=False)
+                            
+                            await channel.send(embed=embed)
+                            
+                            # CS2 Rolle pingen
+                            role = discord.utils.get(channel.guild.roles, name="CS2")
+                            if role:
+                                await channel.send(f"📢 {role.mention}")
+                            
+                            alerts_sent += 1
+                            break  # Nur einen Alert pro Match
 
         if alerts_sent > 0:
             print(f"✅ {alerts_sent} Alerts gesendet")
-        else:
-            print(f"🔍 {len(matches)} Matches geprüft, keine Alerts nötig")
         
     except Exception as e:
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS
+# BOT COMMANDS - ALLE MIT SOFORTIGER SPEICHERUNG
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
-    """Abonniere ein Team für Alerts"""
+    """Abonniere ein Team für Alerts - SOFORT GESPEICHERT"""
     guild_id = ctx.guild.id
     TEAMS.setdefault(guild_id, [])
     if team not in TEAMS[guild_id]:
         TEAMS[guild_id].append(team)
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"✅ **{team}** hinzugefügt!")
+            await ctx.send(f"✅ **{team}** hinzugefügt und gespeichert!")
         else:
             await ctx.send(f"⚠️ **{team}** hinzugefügt, aber Speichern fehlgeschlagen!")
     else:
@@ -227,12 +314,12 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def unsubscribe(ctx, *, team):
-    """Entferne ein Team von Alerts"""
+    """Entferne ein Team von Alerts - SOFORT GESPEICHERT"""
     guild_id = ctx.guild.id
     if guild_id in TEAMS and team in TEAMS[guild_id]:
         TEAMS[guild_id].remove(team)
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"❌ **{team}** entfernt!")
+            await ctx.send(f"❌ **{team}** entfernt und gespeichert!")
         else:
             await ctx.send(f"⚠️ **{team}** entfernt, aber Speichern fehlgeschlagen!")
     else:
@@ -250,31 +337,33 @@ async def list_teams(ctx):
             description=team_list,
             color=0x00ff00
         )
+        embed.set_footer(text=f"Gespeichert in bot_data.json")
         await ctx.send(embed=embed)
     else:
         await ctx.send("❌ Noch keine Teams abonniert!")
 
 @bot.command()
 async def setchannel(ctx, channel: discord.TextChannel):
-    """Setze den Alert-Channel"""
+    """Setze den Alert-Channel - SOFORT GESPEICHERT"""
     CHANNELS[ctx.guild.id] = channel.id
     if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-        await ctx.send(f"📡 Alert-Channel auf {channel.mention} gesetzt!")
+        await ctx.send(f"📡 Alert-Channel auf {channel.mention} gesetzt und gespeichert!")
     else:
         await ctx.send(f"⚠️ Channel gesetzt, aber Speichern fehlgeschlagen!")
 
 @bot.command()
 async def settime(ctx, minutes: int):
-    """Setze die Alert-Vorlaufzeit in Minuten"""
+    """Setze die Alert-Vorlaufzeit in Minuten - SOFORT GESPEICHERT"""
     global ALERT_TIME
-    if 1 <= minutes <= 60:
+    if 1 <= minutes <= 120:
+        old_time = ALERT_TIME
         ALERT_TIME = minutes
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"⏰ Alert-Vorlaufzeit auf **{minutes} Minuten** gesetzt!")
+            await ctx.send(f"⏰ Alert-Vorlaufzeit von **{old_time}** auf **{minutes} Minuten** geändert und gespeichert!")
         else:
             await ctx.send(f"⚠️ Zeit gesetzt, aber Speichern fehlgeschlagen!")
     else:
-        await ctx.send("❌ Bitte eine Zeit zwischen 1 und 60 Minuten angeben!")
+        await ctx.send("❌ Bitte eine Zeit zwischen 1 und 120 Minuten angeben!")
 
 @bot.command()
 async def test_alert(ctx):
@@ -310,25 +399,27 @@ async def test_alert(ctx):
 
 @bot.command()
 async def debug_matches(ctx):
-    """Zeigt verfügbare Matches an"""
+    """Zeigt verfügbare Matches von HLTV an"""
     try:
-        matches = await get_upcoming_matches()
+        matches = await fetch_hltv_matches()
         
         if not matches:
-            await ctx.send("❌ Keine Matches verfügbar")
+            await ctx.send("❌ Keine Matches auf HLTV gefunden")
             return
             
         match_list = ""
-        for i, match in enumerate(matches, 1):
+        for i, match in enumerate(matches[:8], 1):
             match_time = datetime.datetime.fromtimestamp(match['unix_time'], tz=timezone.utc)
-            time_str = match_time.strftime("%H:%M")
-            match_list += f"{i}. **{match['team1']}** vs **{match['team2']}** - {time_str} Uhr\n"
+            time_str = match_time.strftime("%d.%m %H:%M")
+            match_list += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
+            match_list += f"   🕐 {time_str} UTC | 📅 {match['event']}\n\n"
         
         embed = discord.Embed(
-            title="🔍 Verfügbare Matches",
+            title="🔍 Aktuelle HLTV Matches",
             description=match_list,
             color=0x0099ff
         )
+        embed.set_footer(text=f"{len(matches)} Matches gefunden")
         await ctx.send(embed=embed)
         
     except Exception as e:
@@ -350,6 +441,7 @@ async def check_data(ctx):
         team_list = "\n".join([f"• {team}" for team in teams])
         embed.add_field(name="Abonnierte Teams", value=team_list, inline=False)
     
+    embed.set_footer(text="Alle Daten persistent in bot_data.json gespeichert")
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -373,14 +465,15 @@ async def status(ctx):
 async def health(ctx):
     """Health Check"""
     try:
-        matches = await get_upcoming_matches()
+        matches = await fetch_hltv_matches()
         
         embed = discord.Embed(title="🏥 Health Check", color=0x00ff00)
         embed.add_field(name="Bot", value="✅ Online", inline=True)
         embed.add_field(name="Alerts", value="✅ Aktiv" if send_alerts.is_running() else "❌ Inaktiv", inline=True)
-        embed.add_field(name="Matches", value=f"✅ {len(matches)} gefunden", inline=True)
-        embed.add_field(name="Daten", value="✅ Geladen", inline=True)
+        embed.add_field(name="HLTV", value=f"✅ {len(matches)} Matches", inline=True)
+        embed.add_field(name="Daten", value="✅ Persistente Speicherung", inline=True)
         embed.add_field(name="Flask", value="✅ Läuft", inline=True)
+        embed.add_field(name="Teams", value=f"✅ {sum(len(teams) for teams in TEAMS.values())}", inline=True)
         
         await ctx.send(embed=embed)
     except Exception as e:
@@ -396,7 +489,7 @@ async def ping(ctx):
 # =========================
 @bot.event
 async def on_ready():
-    """Bot Startup"""
+    """Bot Startup - Lädt alle gespeicherten Daten"""
     print(f'✅ {bot.user} ist online!')
     
     # Alert System starten
@@ -404,8 +497,9 @@ async def on_ready():
         send_alerts.start()
         print("🔄 Alert system started")
     
-    print(f"📊 Monitoring {len(TEAMS)} Server mit {sum(len(teams) for teams in TEAMS.values())} Teams")
+    print(f"📊 Geladene Daten: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
     print(f"⏰ Alert-Time: {ALERT_TIME} Minuten")
+    print("💾 Alle Daten persistent gespeichert")
 
 # =========================
 # START BOT
