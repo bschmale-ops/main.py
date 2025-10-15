@@ -134,7 +134,7 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.values())} teams")
 
 # =========================
-# PANDASCORE API - MIT KORREKTER ZEITZONE!
+# PANDASCORE API - MIT FINALEM ZEITZONEN-FIX!
 # =========================
 async def fetch_pandascore_matches():
     """Fetch real matches from PandaScore API"""
@@ -168,13 +168,15 @@ async def fetch_pandascore_matches():
                                 team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    # ✅ KORREKTE ZEITZONEN-UMRECHNUNG
+                                    # ✅ FINALER ZEITZONEN-FIX!
                                     begin_at = match_data.get('begin_at')
                                     if begin_at:
                                         match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
-                                        # ✅ Automatisch zur lokalen Zeitzone des Servers
-                                        local_dt = match_dt.astimezone()
+                                        # ✅ Deutsche Zeitzone (CET/CEST)
+                                        from datetime import timedelta
+                                        german_tz = timezone(timedelta(hours=2))  # Sommerzeit
+                                        local_dt = match_dt.astimezone(german_tz)
                                         time_string = local_dt.strftime("%H:%M")
                                     else:
                                         continue
@@ -208,13 +210,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - NEUES MAXIMALES EMBED DESIGN!
+# ALERT SYSTEM - FINALES EMBED DESIGN!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT NEUEM MAXIMALEN EMBED DESIGN!"""
+    """Send match alerts - MIT FINALEM EMBED DESIGN!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -253,45 +255,43 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ NEUES MAXIMALES EMBED DESIGN
+                            # ✅ FINALES EMBED DESIGN - KORREKTE ANORDNUNG!
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
-                                title=f"\n\n🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n\n",
+                                title=f"🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮",
                                 color=0x00ff00
                             )
                             
-                            # ✅ TEAMS UNTEREINANDER - MAXIMAL GROSS & ZENTRIERT
-                            team_display = f"\n\n# {match['team1']}\n\n\n**🆚**\n\n\n# {match['team2']}\n\n"
+                            # ✅ TEAMS ZENTRIERT MIT GROSSER SCHRIFT
+                            team_display = f"```\n{' ' * 8}**{match['team1']}**\n\n{' ' * 12}🆚\n\n{' ' * 10}**{match['team2']}**\n```"
                             embed.add_field(
                                 name="\u200b", 
                                 value=team_display, 
                                 inline=False
                             )
                             
-                            # ✅ TOURNAMENT INFO MIT ABSTÄNDEN
+                            # ✅ TOURNAMENT INFO UNTEN - KLEINERE SCHRIFT
                             embed.add_field(
-                                name="\n\n🏆 **TOURNAMENT**", 
-                                value=f"\n\n**{match['event']}**\n", 
+                                name="🏆 TOURNAMENT", 
+                                value=f"**{match['event']}**", 
                                 inline=True
                             )
                             
-                            # ✅ STARTZEIT
                             embed.add_field(
-                                name="\n\n⏰ **STARTS IN**", 
-                                value=f"\n\n**{int(time_until)} MINUTES**\n", 
+                                name="⏰ STARTS IN", 
+                                value=f"**{int(time_until)} MINUTES**", 
                                 inline=True
                             )
                             
-                            # ✅ UHRZEIT RECHTS UNTEN
                             embed.add_field(
-                                name="\n\n🕐 **TIME**", 
-                                value=f"\n\n**{match['time_string']}**\n\n", 
+                                name="🕐 TIME", 
+                                value=f"**{match['time_string']}**", 
                                 inline=True
                             )
                             
                             embed.set_thumbnail(url=team1_logo)
-                            embed.set_footer(text="\n\nCS2 Match Alert • PandaScore API\n\n")
+                            embed.set_footer(text="CS2 Match Alert • PandaScore API")
                             
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
@@ -439,44 +439,42 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with new maximal design"""
-    # ✅ NEUES MAXIMALES TEST EMBED
+    """Test alert with final design"""
+    # ✅ FINALES TEST EMBED
     embed = discord.Embed(
-        title="\n\n🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮\n\n",
+        title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
         color=0x00ff00
     )
     
-    # ✅ TEAMS UNTEREINANDER - MAXIMAL GROSS & ZENTRIERT
-    team_display = f"\n\n# BETERA ESPORTS\n\n\n**🆚**\n\n\n# SPARTA\n\n"
+    # ✅ TEAMS ZENTRIERT MIT GROSSER SCHRIFT
+    team_display = f"```\n{' ' * 8}**BETERA ESPORTS**\n\n{' ' * 12}🆚\n\n{' ' * 10}**SPARTA**\n```"
     embed.add_field(
         name="\u200b", 
         value=team_display, 
         inline=False
     )
     
-    # ✅ TOURNAMENT INFO MIT ABSTÄNDEN
+    # ✅ TOURNAMENT INFO UNTEN - KLEINERE SCHRIFT
     embed.add_field(
-        name="\n\n🏆 **TOURNAMENT**", 
-        value="\n\n**TEST EVENT**\n", 
+        name="🏆 TOURNAMENT", 
+        value="**NODWIN Clutch Series**", 
         inline=True
     )
     
-    # ✅ STARTZEIT
     embed.add_field(
-        name="\n\n⏰ **STARTS IN**", 
-        value="\n\n**15 MINUTES**\n", 
+        name="⏰ STARTS IN", 
+        value="**15 MINUTES**", 
         inline=True
     )
     
-    # ✅ UHRZEIT RECHTS UNTEN
     embed.add_field(
-        name="\n\n🕐 **TIME**", 
-        value="\n\n**16:00**\n\n", 
+        name="🕐 TIME", 
+        value="**16:00**", 
         inline=True
     )
     
     embed.set_thumbnail(url=get_team_logo('BETERA ESPORTS'))
-    embed.set_footer(text="\n\nCS2 Match Alert • PandaScore API\n\n")
+    embed.set_footer(text="CS2 Match Alert • PandaScore API")
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
@@ -518,7 +516,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 MAXIMALES ALERT SYSTEM GESTARTET!")
+    print("🔔 FINALES ALERT SYSTEM GESTARTET!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
