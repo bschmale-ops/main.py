@@ -11,7 +11,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import socket
 
-print("🚀 Starting Discord CS2 Bot - LIQUIPEDIA & TEAM LOGOS")
+print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
 
 # =========================
 # BOT SETUP
@@ -21,6 +21,11 @@ start_time = datetime.datetime.now(timezone.utc)
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='/', intents=intents)
+
+# =========================
+# CONFIGURATION
+# =========================
+PANDASCORE_TOKEN = "NFG_fJz5qyUGHaWJmh-CcIeGELtI5prmh-YHWNibDTqDXR-p6sM"
 
 # =========================
 # TEAM DATA
@@ -97,74 +102,83 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.values())} teams")
 
 # =========================
-# LIQUIPEDIA SCRAPING
+# PANDASCORE API
 # =========================
-async def fetch_liquipedia_matches():
-    """Fetch real matches from Liquipedia"""
+async def fetch_pandascore_matches():
+    """Fetch real matches from PandaScore API"""
     matches = []
     
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://liquipedia.net/counterstrike/Liquipedia:Matches"
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            # Upcoming matches
+            url = "https://api.pandascore.co/csgo/matches/upcoming"
+            headers = {
+                'Authorization': f'Bearer {PANDASCORE_TOKEN}',
+                'Accept': 'application/json'
+            }
             
-            async with session.get(url, headers=headers, timeout=20) as response:
+            params = {
+                'sort': 'begin_at',
+                'page[size]': 20
+            }
+            
+            print("🌐 Fetching PandaScore API...")
+            async with session.get(url, headers=headers, params=params, timeout=15) as response:
+                print(f"📡 PandaScore Response: {response.status}")
+                
                 if response.status == 200:
-                    html = await response.text()
-                    soup = BeautifulSoup(html, 'html.parser')
+                    data = await response.json()
                     
-                    # Find match tables
-                    tables = soup.find_all('table', {'class': 'wikitable'})
-                    
-                    for table in tables[:3]:  # First 3 tables
-                        rows = table.find_all('tr')[1:8]  # First 7 matches
-                        
-                        for row in rows:
-                            cols = row.find_all('td')
-                            if len(cols) >= 4:
-                                try:
-                                    team1 = cols[1].get_text(strip=True)
-                                    team2 = cols[3].get_text(strip=True)
+                    for match_data in data:
+                        try:
+                            opponents = match_data.get('opponents', [])
+                            if len(opponents) >= 2:
+                                team1 = opponents[0].get('opponent', {}).get('name', 'TBD')
+                                team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
+                                
+                                if team1 != 'TBD' and team2 != 'TBD':
+                                    # Parse match time
+                                    begin_at = match_data.get('begin_at')
+                                    if begin_at:
+                                        match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
+                                        unix_time = int(match_dt.timestamp())
+                                        time_string = match_dt.strftime("%H:%M")
+                                    else:
+                                        continue
                                     
-                                    if team1 and team2 and team1 != 'TBD' and team2 != 'TBD':
-                                        # Get tournament name
-                                        tournament = "CS2 Tournament"
-                                        prev_elements = row.find_previous_siblings('tr')
-                                        for elem in prev_elements[:3]:
-                                            th = elem.find('th')
-                                            if th:
-                                                tournament = th.get_text(strip=True)
-                                                break
-                                        
-                                        # Calculate match time (1-6 hours from now)
-                                        now = datetime.datetime.now(timezone.utc)
-                                        hours_ahead = len(matches) + 1
-                                        match_time = int((now + datetime.timedelta(hours=hours_ahead)).timestamp())
-                                        
-                                        matches.append({
-                                            'team1': team1,
-                                            'team2': team2,
-                                            'unix_time': match_time,
-                                            'event': tournament,
-                                            'link': 'https://liquipedia.net/counterstrike/Main_Page',
-                                            'time_string': f"Today {(now.hour + hours_ahead) % 24}:00",
-                                            'is_live': False,
-                                            'source': 'Liquipedia'
-                                        })
-                                        
-                                        if len(matches) >= 8:  # Max 8 matches
-                                            break
-                                            
-                                except:
-                                    continue
+                                    # Get tournament info
+                                    league = match_data.get('league', {})
+                                    event = league.get('name', 'CS2 Tournament')
+                                    
+                                    # Match link
+                                    match_id = match_data.get('id')
+                                    match_link = f"https://pandascore.co/csgo/matches/{match_id}" if match_id else "https://pandascore.co/csgo/matches"
+                                    
+                                    matches.append({
+                                        'team1': team1,
+                                        'team2': team2,
+                                        'unix_time': unix_time,
+                                        'event': event,
+                                        'link': match_link,
+                                        'time_string': time_string,
+                                        'is_live': False,
+                                        'source': 'PandaScore'
+                                    })
+                                    print(f"✅ Found: {team1} vs {team2} at {time_string}")
+                                    
+                        except Exception as e:
+                            print(f"⚠️ Error parsing match: {e}")
+                            continue
                     
-                    print(f"✅ Liquipedia: Found {len(matches)} matches")
+                    print(f"🎯 PandaScore: {len(matches)} matches found")
                     return matches
+                else:
+                    print(f"❌ PandaScore API error: {response.status}")
+                    return []
                     
     except Exception as e:
-        print(f"❌ Liquipedia error: {e}")
-    
-    return matches
+        print(f"❌ PandaScore connection error: {e}")
+        return []
 
 # =========================
 # ALERT SYSTEM
@@ -175,7 +189,7 @@ sent_alerts = set()
 async def send_alerts():
     """Send match alerts"""
     try:
-        matches = await fetch_liquipedia_matches()
+        matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
         
         print(f"🔍 Checking {len(matches)} matches for alerts...")
@@ -310,7 +324,7 @@ async def settime(ctx, minutes: int):
 async def matches(ctx):
     """Show available matches"""
     try:
-        matches = await fetch_liquipedia_matches()
+        matches = await fetch_pandascore_matches()
         
         embed = discord.Embed(
             title="🎯 **AVAILABLE CS2 MATCHES**",
@@ -356,7 +370,7 @@ async def status(ctx):
     embed.add_field(name="**🔔 ALERTS**", value="**✅ ACTIVE**", inline=True)
     embed.add_field(name="**⏱️ ALERT TIME**", value=f"**{ALERT_TIME}min**", inline=True)
     embed.add_field(name="**👥 TEAMS**", value=f"**{sum(len(teams) for teams in TEAMS.values())}**", inline=True)
-    embed.add_field(name="**🌐 SOURCE**", value="**LIQUIPEDIA**", inline=True)
+    embed.add_field(name="**🌐 SOURCE**", value="**PANDASCORE API**", inline=True)
     
     await ctx.send(embed=embed)
 
@@ -387,7 +401,7 @@ async def ping(ctx):
 # =========================
 @app.route('/')
 def home():
-    return "✅ CS2 Match Bot - LIQUIPEDIA"
+    return "✅ CS2 Match Bot - PANDASCORE API"
 
 @app.route('/health')
 def health():
@@ -408,7 +422,7 @@ flask_thread.start()
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user} is online! - LIQUIPEDIA & LOGOS')
+    print(f'✅ {bot.user} is online! - PANDASCORE API')
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
