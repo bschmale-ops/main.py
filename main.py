@@ -310,7 +310,7 @@ async def subscribe(ctx, *, team):
     """Subscribe to a team for alerts"""
     guild_id = str(ctx.guild.id)
     if guild_id not in TEAMS:
-        TEAMS[guild.id] = []
+        TEAMS[guild_id] = []
     
     correct_name, found = find_team_match(team)
     
