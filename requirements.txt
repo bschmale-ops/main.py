@@ -2,3 +2,4 @@ discord.py
 flask
 aiohttp
 requests
+beautifulsoup4==4.13.3
