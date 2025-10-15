@@ -255,13 +255,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - PERFEKTE ZENTRIERUNG MIT FELDS!
+# ALERT SYSTEM - PERFEKTE ZENTRIERUNG MIT KURSIV!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT FIELDS FÜR ZENTRIERUNG!"""
+    """Send match alerts - MIT PERFEKTER ZENTRIERUNG UND KURSIV!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -300,7 +300,7 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ PERFEKT ZENTRIERTES EMBED MIT FIELDS
+                            # ✅ PERFEKT ZENTRIERTES EMBED MIT KURSIV!
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
@@ -308,7 +308,7 @@ async def send_alerts():
                                 color=0x00ff00
                             )
                             
-                            # Teams zentriert mit Fields
+                            # Teams zentriert mit Fields - FETT
                             centered_parts = create_centered_teams_display(match['team1'], match['team2'])
                             for part in centered_parts:
                                 embed.add_field(
@@ -317,22 +317,22 @@ async def send_alerts():
                                     inline=part["inline"]
                                 )
                             
-                            # Tournament Info - normale Schrift
+                            # Tournament Info - KURSIV statt fett
                             embed.add_field(
                                 name="🏆 TOURNAMENT", 
-                                value=f"{match['event']}", 
+                                value=f"*{match['event']}*", 
                                 inline=True
                             )
                             
                             embed.add_field(
                                 name="⏰ STARTS IN", 
-                                value=f"{int(time_until)} MINUTES", 
+                                value=f"*{int(time_until)} MINUTES*", 
                                 inline=True
                             )
                             
                             embed.add_field(
                                 name="🕐 TIME", 
-                                value=f"{match['time_string']}", 
+                                value=f"*{match['time_string']}*", 
                                 inline=True
                             )
                             
@@ -468,21 +468,8 @@ async def setchannel(ctx, channel: discord.TextChannel):
 
 @bot.command()
 async def autosetup(ctx):
-    """Auto-Setup für Channel und Teams"""
+    """Auto-Subscribe Teams"""
     guild_id = str(ctx.guild.id)
-    
-    # Auto-Set Channel
-    channel_found = None
-    for channel in ctx.guild.text_channels:
-        if 'hltv' in channel.name.lower() or '💡' in channel.name:
-            channel_found = channel
-            break
-    
-    if channel_found:
-        CHANNELS[guild_id] = channel_found.id
-        channel_msg = f"📡 **Auto-channel set to {channel_found.mention}!**"
-    else:
-        channel_msg = "❌ **No HLTV channel found!**"
     
     # Auto-Subscribe Teams
     if guild_id not in TEAMS:
@@ -496,13 +483,11 @@ async def autosetup(ctx):
     
     if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
         if added_teams:
-            teams_msg = f"✅ **Auto-subscribed {len(added_teams)} teams!**"
+            await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**")
         else:
-            teams_msg = "✅ **Teams already subscribed!**"
+            await ctx.send("✅ **Teams already subscribed!**")
     else:
-        teams_msg = "⚠️ **Save failed!**"
-    
-    await ctx.send(f"{channel_msg}\n{teams_msg}")
+        await ctx.send("⚠️ **Save failed!**")
 
 @bot.command()
 async def status(ctx):
@@ -526,14 +511,14 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with perfect centering"""
-    # ✅ PERFEKT ZENTRIERTES TEST EMBED
+    """Test alert with perfect centering and italic"""
+    # ✅ PERFEKT ZENTRIERTES TEST EMBED MIT KURSIV
     embed = discord.Embed(
         title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
         color=0x00ff00
     )
     
-    # Teams zentriert mit Fields
+    # Teams zentriert mit Fields - FETT
     centered_parts = create_centered_teams_display("BETERA ESPORTS", "SPARTA")
     for part in centered_parts:
         embed.add_field(
@@ -542,22 +527,22 @@ async def test(ctx):
             inline=part["inline"]
         )
     
-    # Tournament Info - normale Schrift
+    # Tournament Info - KURSIV statt fett
     embed.add_field(
         name="🏆 TOURNAMENT", 
-        value="NODWIN Clutch Series", 
+        value="*NODWIN Clutch Series*", 
         inline=True
     )
     
     embed.add_field(
         name="⏰ STARTS IN", 
-        value="15 MINUTES", 
+        value="*15 MINUTES*", 
         inline=True
     )
     
     embed.add_field(
         name="🕐 TIME", 
-        value="16:00", 
+        value="*16:00*", 
         inline=True
     )
     
@@ -575,7 +560,7 @@ async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
 
 # =========================
-# FLASK & STARTUP - AUTO SETUP!
+# FLASK & STARTUP - AUTO SUBSCRIBE ONLY!
 # =========================
 @app.route('/')
 def home():
@@ -602,7 +587,7 @@ flask_thread.start()
 async def on_ready():
     print(f'✅ {bot.user} is online! - PANDASCORE API')
     
-    # Auto-Setup für alle Server
+    # Auto-Subscribe für alle Server
     for guild in bot.guilds:
         guild_id = str(guild.id)
         
@@ -614,14 +599,6 @@ async def on_ready():
             if team not in TEAMS[guild_id]:
                 TEAMS[guild_id].append(team)
                 print(f"✅ Auto-subscribed {team} for guild {guild.name}")
-        
-        # Auto-Set Channel falls vorhanden
-        if guild_id not in CHANNELS:
-            for channel in guild.text_channels:
-                if 'hltv' in channel.name.lower() or '💡' in channel.name:
-                    CHANNELS[guild_id] = channel.id
-                    print(f"✅ Auto-channel set to #{channel.name} for guild {guild.name}")
-                    break
     
     # Daten speichern
     save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME})
@@ -629,7 +606,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 AUTO-SETUP COMPLETE! Alert system started!")
+    print("🔔 AUTO-SUBSCRIBE COMPLETE! Alert system started!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
