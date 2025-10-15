@@ -109,12 +109,22 @@ def get_display_name(team_name):
     """Get team name with emoji for display"""
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
-def center_vs(team1, team2, separator="<:VS:1428100225603600506>", emoji_visual_width=2):
+def get_team_emoji(team_name):
+    """Get only the emoji part of the display name"""
+    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+    return display.split()[0] if ' ' in display else display
+
+def get_team_name(team_name):
+    """Get only the name part of the display name"""
+    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+    return display.split()[1] if ' ' in display else display
+
+def center_vs(team1, team2, separator="<:VS:1428100225603600506>", emoji_visual_width=1):
     """Zentriere Teams und VS-Symbol perfekt, berücksichtige visuelle Breite von Emojis"""
     def get_visual_length(text):
-        # Entferne <a:name:ID> oder <:name:ID> und zähle das Emoji als 2 Zeichen
+        # Entferne <a:name:ID> oder <:name:ID> und zähle das Emoji als angegebene Breite
         emoji_pattern = r'<a?:[a-zA-Z0-9_]+:\d+>'
-        cleaned_text = re.sub(emoji_pattern, '  ', text)  # Emoji als 2 Zeichen
+        cleaned_text = re.sub(emoji_pattern, ' ' * emoji_visual_width, text)
         return len(cleaned_text)
 
     # Maximale Länge basierend auf visueller Breite
@@ -148,12 +158,13 @@ class TeamListView(View):
     def __init__(self, teams):
         super().__init__(timeout=None)  # Kein Timeout, da Buttons dekorativ sind
         for team in teams:
-            # Erstelle einen Button für jedes Team (ohne Funktion)
+            # Erstelle einen Button für jedes Team mit Emoji als Icon und Name als Label
             button = Button(
-                label=get_display_name(team),  # Zeigt Emoji + Teamname (z. B. <:falcons:ID> FALCONS)
+                emoji=get_team_emoji(team),  # Zeigt nur das Emoji (z. B. <:falcons:ID>)
+                label=get_team_name(team),   # Zeigt nur den Namen (z. B. FALCONS)
                 style=discord.ButtonStyle.secondary,  # Grauer Stil für dekorative Buttons
                 custom_id=f"team_{team.lower()}",  # Eindeutige ID, aber keine Funktion
-                disabled=True  # Deaktiviert, um Klicks zu verhindern
+                # disabled=False  # Ohne disabled, um sie sichtbar zu machen (Klicks werden ignoriert)
             )
             self.add_item(button)
 
@@ -312,10 +323,10 @@ async def send_alerts():
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
                             
                             match_content = (
-                                f"{centered_display}\n\n"
+                                f"```{centered_display}\n\n"
                                 f"*🏆 {match['event']}*\n"
                                 f"*⏰ Starts in {int(time_until)} minutes*\n"
-                                f"*🕐 {match['time_string']}*"
+                                f"*🕐 {match['time_string']}*```"
                             )
                             
                             framed_message = create_frame(
@@ -491,10 +502,10 @@ async def test(ctx):
     centered_display = create_centered_teams_display("Falcons", "M80")
     
     test_content = (
-        f"{centered_display}\n\n"
+        f"```{centered_display}\n\n"
         f"*🏆 NODWIN Clutch Series*\n"
         f"*⏰ Starts in 15 minutes*\n"
-        f"*🕐 16:00*"
+        f"*🕐 16:00*```"
     )
     
     framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
@@ -504,6 +515,12 @@ async def test(ctx):
         await ctx.send(f"🔔 {role.mention}\n{framed_message}")
     else:
         await ctx.send(framed_message)
+
+@bot.command()
+async def debug(ctx):
+    """Debug: Test Zentrierung und Emojis"""
+    centered_display = create_centered_teams_display("Falcons", "MOUZ")
+    await ctx.send(f"**Debug Output:**\n```{centered_display}```")
 
 @bot.command()
 async def ping(ctx):
