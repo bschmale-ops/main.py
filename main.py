@@ -479,6 +479,23 @@ async def subscribe(ctx, *, team):
         await ctx.send(f"⚠️ **{correct_name}** ist bereits für LIVE Alerts abonniert!")
 
 @bot.command()
+async def unsubscribe(ctx, *, team):
+    """Entferne ein Team von LIVE Alerts"""
+    guild_id = ctx.guild.id
+    
+    # Finde korrekten Team-Namen für Matching
+    correct_name, found_match = find_team_match(team)
+    
+    if guild_id in TEAMS and correct_name in TEAMS[guild_id]:
+        TEAMS[guild_id].remove(correct_name)
+        if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+            await ctx.send(f"❌ **{correct_name}** von LIVE Alerts entfernt!")
+        else:
+            await ctx.send(f"⚠️ **{correct_name}** entfernt, aber Speichern fehlgeschlagen!")
+    else:
+        await ctx.send(f"❌ Team **{correct_name}** nicht gefunden!")
+
+@bot.command()
 async def check_team(ctx, *, team_name):
     """Prüft ob ein Team-Name erkannt wird"""
     correct_name, found_match = find_team_match(team_name)
@@ -575,6 +592,20 @@ async def setchannel(ctx, channel: discord.TextChannel):
         await ctx.send(f"📡 LIVE Alert-Channel auf {channel.mention} gesetzt! 🔴")
     else:
         await ctx.send(f"⚠️ Channel gesetzt, aber Speichern fehlgeschlagen!")
+
+@bot.command()
+async def settime(ctx, minutes: int):
+    """Setze die Check-Interval Zeit (für zukünftige Erweiterungen)"""
+    global ALERT_TIME
+    if 1 <= minutes <= 240:
+        old_time = ALERT_TIME
+        ALERT_TIME = minutes
+        if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+            await ctx.send(f"⏰ Check-Interval Referenzzeit auf **{minutes} Minuten** gesetzt! 🔄\n*Hinweis: Bei LIVE Matches wird alle 2 Minuten geprüft*")
+        else:
+            await ctx.send(f"⚠️ Zeit gesetzt, aber Speichern fehlgeschlagen!")
+    else:
+        await ctx.send("❌ Bitte eine Zeit zwischen 1 und 240 Minuten angeben!")
 
 @bot.command()
 async def status(ctx):
