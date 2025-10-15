@@ -10,6 +10,7 @@ import threading
 import aiohttp
 from bs4 import BeautifulSoup
 import socket
+import re
 
 print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
 
@@ -36,22 +37,22 @@ AUTO_SUBSCRIBE_TEAMS = [
     'G2', 'Aurora', 'Liquid', 'M80'
 ]
 
-# Team Display Names mit Emojis (für Ausgabe in /list und Alerts)
+# Team Display Names mit Emojis (mit korrekten Emoji-IDs)
 TEAM_DISPLAY_NAMES = {
-    'Falcons': ':falcons: **FALCONS**',
-    'MOUZ': ':mouz: **MOUZ**',
-    'Team Spirit': ':spirit: **TEAM SPIRIT**', 
-    'Team Vitality': ':vitality: **TEAM VITALITY**',
-    'The Mongolz': ':themongolz: **THE MONGOLZ**',
-    'FURIA': ':furia: **FURIA**',
-    'Natus Vincere': ':navi: **NATUS VINCERE**',
-    'FaZe': ':faze: **FAZE**',
-    '3DMAX': ':3dmax: **3DMAX**',
-    'Astralis': ':astralis: **ASTRALIS**',
-    'G2': ':g2: **G2**',
-    'Aurora': ':aurora: **AURORA**',
-    'Liquid': ':liquid: **LIQUID**',
-    'M80': ':m80: **M80**'
+    'Falcons': '<:falcons:1428089350217793616> **FALCONS**',
+    'MOUZ': '<:mouz:1428089555340361799> **MOUZ**',
+    'Team Spirit': '<:spirit:1428089687905402950> **TEAM SPIRIT**',
+    'Team Vitality': '<:vitality:1428089770554298600> **TEAM VITALITY**',
+    'The Mongolz': '<:themongolz:1428089834467229821> **THE MONGOLZ**',
+    'FURIA': '<:furia:1428089888686870699> **FURIA**',
+    'Natus Vincere': '<:navi:1428089945041666160> **NATUS VINCERE**',
+    'FaZe': '<:faze:1428089989392109711> **FAZE**',
+    '3DMAX': '<:3dmax:1428090044345749515> **3DMAX**',
+    'Astralis': '<:astralis:1428090097349165066> **ASTRALIS**',
+    'G2': '<:g2:1428090150835064875> **G2**',
+    'Aurora': '<:aurora:1428090193705173022> **AURORA**',
+    'Liquid': '<:liquid:1428090244997189663> **LIQUID**',
+    'M80': '<:m80:1428090295341420664> **M80**'
 }
 
 # =========================
@@ -108,8 +109,17 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"**{team_name.upper()}**")
 
 def center_vs(team1, team2, separator="🆚", emoji_visual_width=2):
-    """Zentriere Teams und VS-Symbol perfekt"""
-    max_len = max(len(team1), len(team2), emoji_visual_width if separator == "🆚" else len(separator))
+    """Zentriere Teams und VS-Symbol perfekt, berücksichtige visuelle Breite von Emojis"""
+    def get_visual_length(text):
+        # Entferne <a:name:ID> oder <:name:ID> und zähle das Emoji als 2 Zeichen
+        emoji_pattern = r'<a?:[a-zA-Z0-9_]+:\d+>'
+        cleaned_text = re.sub(emoji_pattern, '  ', text)  # Emoji als 2 Zeichen
+        return len(cleaned_text)
+
+    # Maximale Länge basierend auf visueller Breite
+    max_len = max(get_visual_length(team1), get_visual_length(team2), emoji_visual_width if separator == "🆚" else len(separator))
+    
+    # Zentriere mit der berechneten Länge
     line1 = team1.center(max_len)
     line2 = separator.center(max_len)
     line3 = team2.center(max_len)
@@ -428,8 +438,8 @@ async def autosetup(ctx):
     
     if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
         if added_teams:
-            team_names = "\n".join([f"• {get_display_name(team)}" for team in added_teams])
-            await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**\n{team_names}")
+            team_list = "\n".join([f"• {get_display_name(team)}" for team in added_teams])
+            await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**\n{team_list}")
         else:
             await ctx.send("✅ **Teams already subscribed!**")
     else:
