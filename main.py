@@ -2,7 +2,7 @@ import os
 import discord
 from discord.ext import commands, tasks
 import datetime
-from datetime import timezone
+from datetime import timezone, timedelta
 import json
 import asyncio
 from flask import Flask, jsonify
@@ -103,6 +103,25 @@ def get_team_logo(team_name):
     
     return 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 
+def center_teams(team1, team2):
+    """Zentriere beide Teams perfekt am VS-Icon"""
+    vs_length = 2  # 🆚 ist 2 Zeichen breit
+    
+    # Berechne Leerzeichen für Team1
+    spaces1 = (vs_length - len(team1)) // 2
+    if spaces1 < 0:
+        spaces1 = 0
+    
+    # Berechne Leerzeichen für Team2  
+    spaces2 = (vs_length - len(team2)) // 2
+    if spaces2 < 0:
+        spaces2 = 0
+    
+    # Erstelle zentrierte Anzeige
+    centered_display = f"**{' ' * spaces1}{team1}**\n\n{' ' * spaces1}🆚\n\n**{' ' * spaces2}{team2}**"
+    
+    return centered_display
+
 # =========================
 # DATA MANAGEMENT
 # =========================
@@ -174,7 +193,6 @@ async def fetch_pandascore_matches():
                                         match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
                                         # ✅ Deutsche Zeitzone (CET/CEST)
-                                        from datetime import timedelta
                                         german_tz = timezone(timedelta(hours=2))  # Sommerzeit
                                         local_dt = match_dt.astimezone(german_tz)
                                         time_string = local_dt.strftime("%H:%M")
@@ -210,13 +228,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - FINALES EMBED DESIGN!
+# ALERT SYSTEM - PERFEKTE ZENTRIERUNG!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT FINALEM EMBED DESIGN!"""
+    """Send match alerts - MIT PERFEKTER ZENTRIERUNG!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -255,38 +273,34 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ FINALES EMBED DESIGN - KORREKTE ANORDNUNG!
+                            # ✅ PERFEKT ZENTRIERTES EMBED DESIGN
                             team1_logo = get_team_logo(match['team1'])
+                            
+                            # Teams perfekt zentriert
+                            centered_teams = center_teams(match['team1'], match['team2'])
                             
                             embed = discord.Embed(
                                 title=f"🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮",
+                                description=centered_teams,
                                 color=0x00ff00
                             )
                             
-                            # ✅ TEAMS ZENTRIERT MIT GROSSER SCHRIFT
-                            team_display = f"```\n{' ' * 8}**{match['team1']}**\n\n{' ' * 12}🆚\n\n{' ' * 10}**{match['team2']}**\n```"
-                            embed.add_field(
-                                name="\u200b", 
-                                value=team_display, 
-                                inline=False
-                            )
-                            
-                            # ✅ TOURNAMENT INFO UNTEN - KLEINERE SCHRIFT
+                            # Tournament Info unten
                             embed.add_field(
                                 name="🏆 TOURNAMENT", 
-                                value=f"**{match['event']}**", 
+                                value=f"{match['event']}", 
                                 inline=True
                             )
                             
                             embed.add_field(
                                 name="⏰ STARTS IN", 
-                                value=f"**{int(time_until)} MINUTES**", 
+                                value=f"{int(time_until)} MINUTES", 
                                 inline=True
                             )
                             
                             embed.add_field(
                                 name="🕐 TIME", 
-                                value=f"**{match['time_string']}**", 
+                                value=f"{match['time_string']}", 
                                 inline=True
                             )
                             
@@ -439,37 +453,32 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with final design"""
-    # ✅ FINALES TEST EMBED
+    """Test alert with perfect centering"""
+    # ✅ PERFEKT ZENTRIERTES TEST EMBED
+    centered_teams = center_teams("BETERA ESPORTS", "SPARTA")
+    
     embed = discord.Embed(
         title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
+        description=centered_teams,
         color=0x00ff00
     )
     
-    # ✅ TEAMS ZENTRIERT MIT GROSSER SCHRIFT
-    team_display = f"```\n{' ' * 8}**BETERA ESPORTS**\n\n{' ' * 12}🆚\n\n{' ' * 10}**SPARTA**\n```"
-    embed.add_field(
-        name="\u200b", 
-        value=team_display, 
-        inline=False
-    )
-    
-    # ✅ TOURNAMENT INFO UNTEN - KLEINERE SCHRIFT
+    # Tournament Info unten
     embed.add_field(
         name="🏆 TOURNAMENT", 
-        value="**NODWIN Clutch Series**", 
+        value="NODWIN Clutch Series", 
         inline=True
     )
     
     embed.add_field(
         name="⏰ STARTS IN", 
-        value="**15 MINUTES**", 
+        value="15 MINUTES", 
         inline=True
     )
     
     embed.add_field(
         name="🕐 TIME", 
-        value="**16:00**", 
+        value="16:00", 
         inline=True
     )
     
@@ -516,7 +525,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 FINALES ALERT SYSTEM GESTARTET!")
+    print("🔔 PERFEKTES ALERT SYSTEM GESTARTET!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
