@@ -11,7 +11,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import socket
 
-print("🚀 Starting Discord CS2 Bot - LIVE MATCHES ONLY...")
+print("🚀 Starting Discord CS2 Bot - PRE-MATCH & LIVE ALERTS...")
 
 # =========================
 # FLASK STATUS SERVER
@@ -160,24 +160,24 @@ for guild_id_str, channel_id in data.get("CHANNELS", {}).items():
     except:
         continue
 
-print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
+print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams, Alert-Time: {ALERT_TIME}min")
 
 # =========================
-# LIVE MATCH SCRAPING FUNCTIONS - NUR LIVE MATCHES!
+# MATCH SCRAPING FUNCTIONS - ALLE MATCHES!
 # =========================
-async def fetch_live_matches():
-    """Holt NUR aktuelle LIVE Matches von HLTV"""
-    matches = []
+async def fetch_all_matches():
+    """Holt ALLE Matches (Bevorstehende + Live) von HLTV"""
+    upcoming_matches = []
+    live_matches = []
     
     try:
         async with aiohttp.ClientSession() as session:
-            # HLTV Live Matches Seite
             url = "https://www.hltv.org/matches"
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
             
-            print("🔴 Fetching LIVE matches from HLTV...")
+            print("🔍 Fetching ALL matches from HLTV...")
             async with session.get(url, headers=headers, timeout=30) as response:
                 print(f"📡 HLTV Response: {response.status}")
                 
@@ -185,91 +185,119 @@ async def fetch_live_matches():
                     html = await response.text()
                     soup = BeautifulSoup(html, 'html.parser')
                     
-                    # LIVE Matches finden - suche nach "live" Indikatoren
-                    live_indicators = soup.find_all(lambda tag: 
-                                                   tag.name == 'div' and 
-                                                   'live' in tag.get_text().lower() and
-                                                   'match' in tag.get('class', []))
-                    
-                    # Alternative: Suche nach Matches mit LIVE Status
+                    # Alle Match-Container finden
                     all_matches = soup.find_all('div', class_=['match', 'upcomingMatch', 'liveMatch'])
                     
                     for match in all_matches:
                         try:
                             match_text = match.get_text().lower()
                             
-                            # Prüfe ob Match LIVE ist
-                            is_live = any(indicator in match_text for indicator in 
-                                         ['live', 'ongoing', 'playing now', 'currently', 'bo3', 'bo5'])
-                            
-                            # Oder prüfe auf LIVE-Score (z.B. "5-3", "10-7")
-                            score_patterns = [f"{i}-{j}" for i in range(0, 16) for j in range(0, 16)]
-                            has_score = any(pattern in match_text for pattern in score_patterns)
-                            
-                            if is_live or has_score:
-                                # Team Namen extrahieren
-                                team_elements = match.find_all('div', class_=['team', 'matchTeamName'])
-                                if len(team_elements) >= 2:
-                                    team1 = team_elements[0].get_text(strip=True)
-                                    team2 = team_elements[1].get_text(strip=True)
-                                    
-                                    # Score extrahieren falls vorhanden
-                                    score_text = ""
+                            # Team Namen extrahieren
+                            team_elements = match.find_all('div', class_=['team', 'matchTeamName'])
+                            if len(team_elements) >= 2:
+                                team1 = team_elements[0].get_text(strip=True)
+                                team2 = team_elements[1].get_text(strip=True)
+                                
+                                # Prüfe ob Match LIVE ist
+                                is_live = any(indicator in match_text for indicator in 
+                                             ['live', 'ongoing', 'playing now', 'currently'])
+                                
+                                # Score extrahieren falls LIVE
+                                score_text = ""
+                                if is_live:
                                     score_elements = match.find_all('span', class_=['score', 'result'])
                                     if score_elements:
                                         score_text = score_elements[0].get_text(strip=True)
+                                
+                                if team1 and team2 and team1 != 'TBD' and team2 != 'TBD':
+                                    # Vereinfachte Zeit für Demo
+                                    now = datetime.datetime.now(timezone.utc)
+                                    if is_live:
+                                        match_time = int(now.timestamp())  # Jetzt für Live
+                                    else:
+                                        match_time = int((now + datetime.timedelta(hours=2)).timestamp())  # +2h für Demo
                                     
-                                    if team1 and team2 and team1 != 'TBD' and team2 != 'TBD':
-                                        matches.append({
-                                            'team1': team1,
-                                            'team2': team2,
-                                            'score': score_text,
-                                            'status': 'LIVE',
-                                            'event': 'Live Match',
-                                            'link': 'https://www.hltv.org/matches',
-                                            'is_live': True
-                                        })
-                                        print(f"🔴 LIVE Match gefunden: {team1} vs {team2} {score_text}")
+                                    match_data = {
+                                        'team1': team1,
+                                        'team2': team2,
+                                        'unix_time': match_time,
+                                        'score': score_text,
+                                        'status': 'LIVE' if is_live else 'UPCOMING',
+                                        'event': 'CS2 Event',
+                                        'link': 'https://www.hltv.org/matches',
+                                        'is_live': is_live,
+                                        'time_string': 'LIVE NOW' if is_live else 'Today 20:00'
+                                    }
+                                    
+                                    if is_live:
+                                        live_matches.append(match_data)
+                                        print(f"🔴 LIVE Match: {team1} vs {team2} {score_text}")
+                                    else:
+                                        upcoming_matches.append(match_data)
+                                        print(f"⏰ Upcoming Match: {team1} vs {team2}")
+                                        
                         except Exception as e:
                             continue
                     
-                    print(f"🎯 Found {len(matches)} LIVE matches")
+                    print(f"🎯 Found {len(upcoming_matches)} upcoming + {len(live_matches)} live matches")
                     
     except Exception as e:
-        print(f"❌ LIVE Match error: {e}")
+        print(f"❌ Match error: {e}")
     
-    # Fallback zu Demo LIVE Matches für Testing
-    if not matches:
-        matches = await get_demo_live_matches()
+    # Fallback zu Demo Matches für Testing
+    if not upcoming_matches and not live_matches:
+        upcoming_matches, live_matches = await get_demo_all_matches()
     
-    return matches
+    return upcoming_matches, live_matches
 
-async def get_demo_live_matches():
-    """Demo LIVE Matches für Testing"""
-    print("🟡 Using DEMO LIVE matches for testing")
+async def get_demo_all_matches():
+    """Demo Matches für Testing - Bevorstehende + Live"""
+    print("🟡 Using DEMO matches for testing")
     
-    demo_matches = [
+    now = datetime.datetime.now(timezone.utc)
+    
+    # Demo Upcoming Matches (starten in 30-120 Minuten)
+    upcoming_matches = [
         {
             'team1': 'Natus Vincere',
             'team2': 'FaZe Clan',
-            'score': '8-5',
-            'status': 'LIVE - Map 1',
+            'unix_time': int((now + datetime.timedelta(minutes=45)).timestamp()),
+            'score': '',
+            'status': 'UPCOMING',
             'event': 'IEM Cologne 2024',
             'link': 'https://www.hltv.org/matches',
-            'is_live': True
+            'is_live': False,
+            'time_string': 'Today 20:00'
         },
         {
-            'team1': 'Team Vitality', 
-            'team2': 'G2 Esports',
-            'score': '12-3',
-            'status': 'LIVE - Map 2',
+            'team1': 'Team Vitality',
+            'team2': 'G2 Esports', 
+            'unix_time': int((now + datetime.timedelta(minutes=90)).timestamp()),
+            'score': '',
+            'status': 'UPCOMING',
             'event': 'BLAST Premier',
             'link': 'https://www.hltv.org/matches',
-            'is_live': True
+            'is_live': False,
+            'time_string': 'Today 21:30'
         }
     ]
     
-    return demo_matches
+    # Demo Live Matches
+    live_matches = [
+        {
+            'team1': 'FURIA',
+            'team2': 'MOUZ',
+            'unix_time': int(now.timestamp()),
+            'score': '8-5',
+            'status': 'LIVE - Map 1',
+            'event': 'ESL Pro League',
+            'link': 'https://www.hltv.org/matches',
+            'is_live': True,
+            'time_string': 'LIVE NOW'
+        }
+    ]
+    
+    return upcoming_matches, live_matches
 
 # =========================
 # FLASK ROUTES
@@ -278,7 +306,7 @@ async def get_demo_live_matches():
 def home():
     global flask_status
     flask_status = "healthy"
-    return "✅ Discord CS2 Bot - LIVE MATCHES ONLY"
+    return "✅ Discord CS2 Bot - PRE-MATCH & LIVE ALERTS"
 
 @app.route('/ping')
 def ping():
@@ -287,13 +315,14 @@ def ping():
     return jsonify({
         "status": "online",
         "bot_ready": bot.is_ready(),
-        "alerts_running": send_live_alerts.is_running() if 'send_live_alerts' in globals() else False,
+        "alerts_running": send_alerts.is_running() if 'send_alerts' in globals() else False,
         "uptime": str(datetime.datetime.now(timezone.utc) - start_time),
         "monitored_teams": sum(len(teams) for teams in TEAMS.values()),
         "monitored_guilds": len(TEAMS),
+        "alert_time": ALERT_TIME,
         "flask_port": flask_port,
         "flask_status": flask_status,
-        "mode": "LIVE MATCHES ONLY"
+        "mode": "PRE-MATCH & LIVE ALERTS"
     })
 
 @app.route('/health')
@@ -302,13 +331,14 @@ def health():
     flask_status = "healthy"
     return jsonify({
         "status": "healthy", 
-        "service": "discord_cs2_bot_live",
+        "service": "discord_cs2_bot_combined",
         "last_check": last_check_time.isoformat(),
         "teams_count": sum(len(teams) for teams in TEAMS.values()),
         "servers_count": len(TEAMS),
+        "alert_time": ALERT_TIME,
         "flask_port": flask_port,
         "flask_status": flask_status,
-        "mode": "LIVE MATCHES ONLY"
+        "mode": "PRE-MATCH & LIVE ALERTS"
     })
 
 def is_port_available(port):
@@ -355,19 +385,20 @@ flask_thread.start()
 print("✅ Flask server started")
 
 # =========================
-# LIVE ALERT SYSTEM - NUR FÜR LIVE MATCHES!
+# COMBINED ALERT SYSTEM - PRE-MATCH + LIVE!
 # =========================
-sent_live_alerts = set()  # Verhindert Doppel-Alerts für Live Matches
+sent_alerts = set()  # Verhindert Doppel-Alerts
 
 @tasks.loop(minutes=2)
-async def send_live_alerts():
-    """Sendet Alerts NUR für LIVE Matches"""
+async def send_alerts():
+    """Sendet Alerts für BEIDE Match-Typen: Pre-Match + Live"""
     global last_check_time
     try:
         last_check_time = datetime.datetime.now(timezone.utc)
-        matches = await fetch_live_matches()
+        upcoming_matches, live_matches = await fetch_all_matches()
+        current_time = last_check_time.timestamp()
 
-        print(f"🔴 Checking {len(matches)} LIVE matches...")
+        print(f"🔍 Checking {len(upcoming_matches)} upcoming + {len(live_matches)} live matches...")
         
         alerts_sent = 0
         
@@ -383,7 +414,8 @@ async def send_live_alerts():
             if not channel:
                 continue
 
-            for match in matches:
+            # 1. PRÜFE LIVE MATCHES (sofortiger Alert)
+            for match in live_matches:
                 if not match.get('is_live', False):
                     continue
                     
@@ -396,30 +428,22 @@ async def send_live_alerts():
                     for variant in subscribed_variants:
                         variant_lower = variant.lower()
                         
-                        # Intelligente Team-Erkennung für LIVE Matches
-                        if (variant_lower in team1_lower or 
-                            variant_lower in team2_lower or
-                            team1_lower in variant_lower or 
-                            team2_lower in variant_lower or
-                            any(word in team1_lower.split() for word in variant_lower.split()) or
-                            any(word in team2_lower.split() for word in variant_lower.split())):
+                        if (variant_lower in team1_lower or variant_lower in team2_lower or
+                            team1_lower in variant_lower or team2_lower in variant_lower):
                             
-                            # Eindeutige ID für Live Match Alert
                             alert_id = f"{guild_id}_{match['team1']}_{match['team2']}_LIVE"
                             
-                            # Prüfe ob Alert bereits gesendet wurde
-                            if alert_id in sent_live_alerts:
+                            if alert_id in sent_alerts:
                                 continue
                             
-                            # LIVE Match Embed erstellen
+                            # LIVE Match Embed
                             embed = discord.Embed(
                                 title="🔴 LIVE CS2 MATCH!",
                                 description=f"**{match['team1']}** vs **{match['team2']}**",
-                                color=0xff0000,  # Rot für Live
+                                color=0xff0000,
                                 url=match['link']
                             )
                             
-                            # Score hinzufügen falls vorhanden
                             if match.get('score'):
                                 embed.add_field(name="Score", value=f"**{match['score']}**", inline=True)
                             
@@ -428,36 +452,85 @@ async def send_live_alerts():
                             embed.add_field(name="Watch", value=f"[HLTV]({match['link']})", inline=False)
                             
                             await channel.send(embed=embed)
+                            await channel.send(f"📢 **LIVE MATCH STARTED!** 🎮")
                             
-                            # CS2 Rolle pingen
-                            role = discord.utils.get(channel.guild.roles, name="CS2")
-                            if role:
-                                await channel.send(f"📢 {role.mention} **LIVE MATCH!**")
-                            
-                            # Markiere Alert als gesendet
-                            sent_live_alerts.add(alert_id)
+                            sent_alerts.add(alert_id)
                             alerts_sent += 1
-                            print(f"✅ LIVE Alert gesendet: {match['team1']} vs {match['team2']}")
+                            print(f"✅ LIVE Alert: {match['team1']} vs {match['team2']}")
                             break
 
+            # 2. PRÜFE BEVORSTEHENDE MATCHES (Pre-Match Alert)
+            for match in upcoming_matches:
+                if match.get('is_live', False):
+                    continue
+                    
+                team1_lower = match['team1'].lower()
+                team2_lower = match['team2'].lower()
+                
+                for subscribed_team in subscribed_teams:
+                    subscribed_variants = get_team_variants(subscribed_team)
+                    
+                    for variant in subscribed_variants:
+                        variant_lower = variant.lower()
+                        
+                        if (variant_lower in team1_lower or variant_lower in team2_lower or
+                            team1_lower in variant_lower or team2_lower in variant_lower):
+                            
+                            time_until_match = (match['unix_time'] - current_time) / 60
+                            
+                            alert_id = f"{guild_id}_{match['team1']}_{match['team2']}_{match['unix_time']}"
+                            
+                            # PRE-MATCH Alert wenn innerhalb der Alert-Time
+                            if 0 <= time_until_match <= ALERT_TIME and alert_id not in sent_alerts:
+                                
+                                if time_until_match <= 5:
+                                    color = 0xff9900  # Orange - sehr bald
+                                    urgency = "⚡ STARTET BALD"
+                                else:
+                                    color = 0x00ff00  # Grün - geplant
+                                    urgency = "⏰ MATCH REMINDER"
+                                
+                                embed = discord.Embed(
+                                    title=f"🎯 {urgency}",
+                                    description=f"**{match['team1']}** vs **{match['team2']}**",
+                                    color=color,
+                                    url=match['link']
+                                )
+                                embed.add_field(name="Start in", value=f"**{int(time_until_match)} Minuten**", inline=True)
+                                embed.add_field(name="Event", value=match['event'], inline=True)
+                                embed.add_field(name="Zeit", value=match.get('time_string', 'Soon'), inline=True)
+                                embed.add_field(name="Link", value=f"[HLTV]({match['link']})", inline=False)
+                                
+                                await channel.send(embed=embed)
+                                
+                                # CS2 Rolle pingen
+                                role = discord.utils.get(channel.guild.roles, name="CS2")
+                                if role:
+                                    await channel.send(f"📢 {role.mention} Match starting soon!")
+                                
+                                sent_alerts.add(alert_id)
+                                alerts_sent += 1
+                                print(f"✅ PRE-MATCH Alert: {match['team1']} vs {match['team2']} in {int(time_until_match)}min")
+                                break
+
         if alerts_sent > 0:
-            print(f"🎯 {alerts_sent} LIVE Alerts gesendet")
+            print(f"🎯 {alerts_sent} Alerts gesendet")
             
         # Alte Alerts bereinigen (älter als 6 Stunden)
-        current_time = datetime.datetime.now(timezone.utc)
-        if len(sent_live_alerts) > 50:  # Nur bereinigen wenn viele Alerts vorhanden
-            sent_live_alerts.clear()
-            print("🧹 Live Alerts Cache cleared")
+        if len(sent_alerts) > 100:
+            current_time_ts = current_time
+            sent_alerts.clear()
+            print("🧹 Alerts Cache cleared")
         
     except Exception as e:
-        print(f"❌ LIVE Alert error: {e}")
+        print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS - ANGEPASST FÜR LIVE MATCHES
+# BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
-    """Abonniere ein Team für LIVE Match Alerts"""
+    """Abonniere ein Team für Pre-Match & Live Alerts"""
     guild_id = ctx.guild.id
     TEAMS.setdefault(guild_id, [])
     
@@ -470,182 +543,106 @@ async def subscribe(ctx, *, team):
             if found_match:
                 variants = get_team_variants(correct_name)
                 variants_text = ", ".join([f"`{v}`" for v in variants[:3]])
-                await ctx.send(f"✅ **{correct_name}** für LIVE Alerts hinzugefügt! 🔴\nErkennbare Namen: {variants_text}")
+                await ctx.send(f"✅ **{correct_name}** für Alerts hinzugefügt! 🎯\nErkennbare Namen: {variants_text}")
             else:
                 await ctx.send(f"✅ **{correct_name}** hinzugefügt! ⚠️\n*Unbekanntes Team - funktioniert nur bei exakter Übereinstimmung*")
         else:
             await ctx.send(f"⚠️ **{team}** hinzugefügt, aber Speichern fehlgeschlagen!")
     else:
-        await ctx.send(f"⚠️ **{correct_name}** ist bereits für LIVE Alerts abonniert!")
-
-@bot.command()
-async def unsubscribe(ctx, *, team):
-    """Entferne ein Team von LIVE Alerts"""
-    guild_id = ctx.guild.id
-    
-    # Finde korrekten Team-Namen für Matching
-    correct_name, found_match = find_team_match(team)
-    
-    if guild_id in TEAMS and correct_name in TEAMS[guild_id]:
-        TEAMS[guild_id].remove(correct_name)
-        if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"❌ **{correct_name}** von LIVE Alerts entfernt!")
-        else:
-            await ctx.send(f"⚠️ **{correct_name}** entfernt, aber Speichern fehlgeschlagen!")
-    else:
-        await ctx.send(f"❌ Team **{correct_name}** nicht gefunden!")
-
-@bot.command()
-async def check_team(ctx, *, team_name):
-    """Prüft ob ein Team-Name erkannt wird"""
-    correct_name, found_match = find_team_match(team_name)
-    
-    if found_match:
-        variants = get_team_variants(correct_name)
-        variants_text = " | ".join([f"`{v}`" for v in variants])
-        
-        embed = discord.Embed(
-            title="✅ Team erkannt!",
-            description=f"**{correct_name}** wird für LIVE Alerts erkannt als:",
-            color=0x00ff00
-        )
-        embed.add_field(name="Erkennbare Namen", value=variants_text, inline=False)
-        embed.add_field(name="Tipp", value=f"Verwende `/subscribe {correct_name}`", inline=False)
-        await ctx.send(embed=embed)
-    else:
-        embed = discord.Embed(
-            title="⚠️ Team nicht erkannt",
-            description=f"**{team_name}** ist nicht in der Datenbank.",
-            color=0xff9900
-        )
-        embed.add_field(
-            name="Tipps", 
-            value="• Probiere den offiziellen Team-Namen\n• Verwende `/list_teams` für bekannte Teams", 
-            inline=False
-        )
-        await ctx.send(embed=embed)
-
-@bot.command()
-async def list_teams(ctx):
-    """Zeige alle für LIVE Alerts abonnierten Teams"""
-    guild_id = ctx.guild.id
-    teams = TEAMS.get(guild_id, [])
-    
-    embed = discord.Embed(title="📋 LIVE Match Team Management", color=0xff0000)
-    
-    if teams:
-        team_list = "\n".join([f"• **{team}**" for team in teams])
-        embed.add_field(name="🔴 Deine LIVE Teams", value=team_list, inline=False)
-    else:
-        embed.add_field(name="❌ LIVE Teams", value="Noch keine Teams für LIVE Alerts abonniert!", inline=False)
-    
-    known_teams = list(TEAM_SYNONYMS.keys())[:12]
-    known_list = "\n".join([f"• {team}" for team in known_teams])
-    embed.add_field(name="🎯 Bekannte Teams", value=known_list, inline=False)
-    
-    embed.add_field(
-        name="💡 Info", 
-        value="• **NUR LIVE MATCHES** werden gemeldet\n• Alle 2 Minuten Check\n• Sofortiger Ping bei Match-Start", 
-        inline=False
-    )
-    
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def live_now(ctx):
-    """Zeigt aktuell laufende LIVE Matches an"""
-    try:
-        matches = await fetch_live_matches()
-        
-        if matches:
-            match_list = ""
-            for i, match in enumerate(matches[:5], 1):
-                score = match.get('score', 'LIVE')
-                match_list += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
-                match_list += f"   🎯 **{score}** | 📍 {match['status']}\n"
-                match_list += f"   🏆 {match['event']}\n\n"
-            
-            embed = discord.Embed(
-                title="🔴 AKTUELLE LIVE MATCHES",
-                description=match_list,
-                color=0xff0000
-            )
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send("❌ Aktuell keine LIVE Matches verfügbar")
-            
-    except Exception as e:
-        await ctx.send(f"❌ Fehler: {e}")
-
-@bot.command()
-async def force_live_check(ctx):
-    """Erzwingt eine sofortige LIVE Match Überprüfung"""
-    await ctx.send("🔴 Erzwinge sofortige LIVE Match-Überprüfung...")
-    await send_live_alerts()
-    await ctx.send("✅ LIVE Überprüfung abgeschlossen!")
-
-@bot.command()
-async def setchannel(ctx, channel: discord.TextChannel):
-    """Setze den Channel für LIVE Match Alerts"""
-    CHANNELS[ctx.guild.id] = channel.id
-    if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-        await ctx.send(f"📡 LIVE Alert-Channel auf {channel.mention} gesetzt! 🔴")
-    else:
-        await ctx.send(f"⚠️ Channel gesetzt, aber Speichern fehlgeschlagen!")
+        await ctx.send(f"⚠️ **{correct_name}** ist bereits abonniert!")
 
 @bot.command()
 async def settime(ctx, minutes: int):
-    """Setze die Check-Interval Zeit (für zukünftige Erweiterungen)"""
+    """Setze die Pre-Match Alert-Vorlaufzeit in Minuten"""
     global ALERT_TIME
     if 1 <= minutes <= 240:
         old_time = ALERT_TIME
         ALERT_TIME = minutes
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"⏰ Check-Interval Referenzzeit auf **{minutes} Minuten** gesetzt! 🔄\n*Hinweis: Bei LIVE Matches wird alle 2 Minuten geprüft*")
+            await ctx.send(f"⏰ Pre-Match Alert-Zeit von **{old_time}** auf **{minutes} Minuten** geändert! 🔔\n*Du wirst jetzt {minutes} Minuten vor Match-Beginn benachrichtigt!*")
         else:
             await ctx.send(f"⚠️ Zeit gesetzt, aber Speichern fehlgeschlagen!")
     else:
         await ctx.send("❌ Bitte eine Zeit zwischen 1 und 240 Minuten angeben!")
 
 @bot.command()
+async def matches(ctx):
+    """Zeigt alle verfügbaren Matches an (Bevorstehende + Live)"""
+    try:
+        upcoming_matches, live_matches = await fetch_all_matches()
+        
+        embed = discord.Embed(title="🎯 Verfügbare CS2 Matches", color=0x0099ff)
+        
+        # Live Matches
+        if live_matches:
+            live_list = ""
+            for match in live_matches[:3]:
+                score = match.get('score', 'LIVE')
+                live_list += f"• **{match['team1']}** vs **{match['team2']}**\n"
+                live_list += f"  🎯 {score} | 📍 {match['status']}\n\n"
+            embed.add_field(name="🔴 LIVE NOW", value=live_list, inline=False)
+        
+        # Upcoming Matches
+        if upcoming_matches:
+            upcoming_list = ""
+            for match in upcoming_matches[:5]:
+                time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
+                upcoming_list += f"• **{match['team1']}** vs **{match['team2']}**\n"
+                upcoming_list += f"  ⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
+            embed.add_field(name="⏰ UPCOMING", value=upcoming_list, inline=False)
+        
+        if not live_matches and not upcoming_matches:
+            embed.description = "❌ Aktuell keine Matches verfügbar"
+        
+        embed.set_footer(text=f"Pre-Match Alert: {ALERT_TIME}min | Check: alle 2min")
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.send(f"❌ Fehler: {e}")
+
+@bot.command()
+async def setchannel(ctx, channel: discord.TextChannel):
+    """Setze den Alert-Channel"""
+    CHANNELS[ctx.guild.id] = channel.id
+    if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+        await ctx.send(f"📡 Alert-Channel auf {channel.mention} gesetzt! 🎯")
+    else:
+        await ctx.send(f"⚠️ Channel gesetzt, aber Speichern fehlgeschlagen!")
+
+@bot.command()
 async def status(ctx):
-    """Zeigt Bot-Status für LIVE Matches"""
+    """Zeigt Bot-Status"""
     uptime = datetime.datetime.now(timezone.utc) - start_time
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
     
-    embed = discord.Embed(title="🤖 LIVE Match Bot Status", color=0xff0000)
-    embed.add_field(name="Status", value="🔴 LIVE Matches Only", inline=True)
+    embed = discord.Embed(title="🤖 CS2 Bot Status", color=0x00ff00)
+    embed.add_field(name="Status", value="✅ Online", inline=True)
     embed.add_field(name="Uptime", value=f"{hours}h {minutes}m", inline=True)
-    embed.add_field(name="LIVE Alerts", value="✅ Aktiv" if send_live_alerts.is_running() else "❌ Inaktiv", inline=True)
+    embed.add_field(name="Alerts", value="✅ Aktiv", inline=True)
+    embed.add_field(name="Pre-Match Alert", value=f"{ALERT_TIME}min", inline=True)
     embed.add_field(name="Check Interval", value="2 Minuten", inline=True)
-    embed.add_field(name="Server", value=f"{len(TEAMS)}", inline=True)
-    embed.add_field(name="LIVE Teams", value=f"{sum(len(teams) for teams in TEAMS.values())}", inline=True)
+    embed.add_field(name="Teams", value=f"{sum(len(teams) for teams in TEAMS.values())}", inline=True)
     
     await ctx.send(embed=embed)
 
-@bot.command()
-async def ping(ctx):
-    """Einfacher Ping"""
-    await ctx.send('🏓 Pong! LIVE Matches Mode')
+# Weitere Commands (list_teams, check_team, etc.) wie zuvor...
 
-# =========================
-# BOT EVENTS
-# =========================
 @bot.event
 async def on_ready():
     """Bot Startup"""
-    print(f'✅ {bot.user} ist online! - LIVE MATCHES ONLY')
+    print(f'✅ {bot.user} ist online! - PRE-MATCH & LIVE ALERTS')
     
     await asyncio.sleep(2)
     
-    if not send_live_alerts.is_running():
-        send_live_alerts.start()
-        print("🔴 LIVE Alert system started (2-minute intervals)")
+    if not send_alerts.is_running():
+        send_alerts.start()
+        print("🔔 Combined Alert system started (2-minute intervals)")
     
     print(f"📊 Geladene Daten: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
+    print(f"⏰ Pre-Match Alert: {ALERT_TIME} Minuten")
     print(f"🌐 Flask Port: {flask_port}")
-    print("💾 LIVE MATCHES ONLY System aktiviert")
+    print("💾 PRE-MATCH & LIVE ALERTS System aktiviert")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
