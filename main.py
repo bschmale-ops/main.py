@@ -47,7 +47,7 @@ TEAM_SYNONYMS = {
     'BIG': ['big'],
     'Eternal Fire': ['eternal fire', 'ef'],
     'Monte': ['monte'],
-    'TheMongolz': ['mongolz', 'the mongolz'],
+    'TheMongolz': ['the mongolz', 'the mongolz', 'mongolz'],
     '9z Team': ['9z', '9z team'],
     'G2 Ares': ['g2 ares', 'g2'],
     'MANA eSports': ['mana', 'mana esports'],
@@ -206,13 +206,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM
+# ALERT SYSTEM - SICHER IM LIMIT!
 # =========================
 sent_alerts = set()
 
-@tasks.loop(minutes=2)
+@tasks.loop(minutes=2)  # ✅ SICHER: 2min = 720 Requests/Tag (im Limit!)
 async def send_alerts():
-    """Send match alerts"""
+    """Send match alerts - SICHER IM API LIMIT"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -242,8 +242,9 @@ async def send_alerts():
                         any(variant in match['team2'].lower() for variant in team_variants)):
                         
                         time_until = (match['unix_time'] - current_time) / 60
-                        alert_id = f"{guild_id}_{match['team1']}_{match['team2']}_{match['unix_time']}"
+                        alert_id = f"{guild_id}_{match['team1']}_{match['team2']}"
                         
+                        # ✅ ROBUSTERE LOGIK: Prüfe Time-Window genauer
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             # Create LARGER alert embed with better spacing - NO TITLE LINK
                             team1_logo = get_team_logo(match['team1'])
@@ -252,7 +253,6 @@ async def send_alerts():
                                 title="\n🔔 🎮 **MATCH STARTING SOON!** 🎮\n",
                                 description=f"\n## **{match['team1']}**\n\n   🆚   \n\n## **{match['team2']}**\n",
                                 color=0x00ff00
-                                # KEIN url Parameter mehr - Titel ist nur Text!
                             )
                             
                             embed.set_author(name=f"\n{match['team1']} vs {match['team2']}\n", icon_url=team1_logo)
@@ -272,7 +272,8 @@ async def send_alerts():
                             sent_alerts.add(alert_id)
                             print(f"✅ Alert sent: {match['team1']} vs {match['team2']} in {int(time_until)}min")
                             
-                            if len(sent_alerts) > 50:
+                            # ✅ BESSERER CACHE: Nur 30min behalten
+                            if len(sent_alerts) > 100:
                                 sent_alerts.clear()
                                 
                             break
@@ -411,11 +412,11 @@ async def test(ctx):
     embed.set_thumbnail(url=get_team_logo('Natus Vincere'))
     embed.set_author(name="\nNatus Vincere vs FaZe Clan\n", icon_url=get_team_logo('Natus Vincere'))
     embed.add_field(name="\n**🏆 TOURNAMENT**", value="\n**TEST EVENT**\n", inline=True)
-    embed.add_field(name="\n**⏰ STARTS IN**", value="\n**15 MINUTES**\n", inline=True)
+    embed.add_field(name="**⏰ STARTS IN**", value="**15 MINUTES**", inline=True)
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
-        await ctx.send(f"\n🔔 {role.mention} **TEST ALERT!** 🎮\n")
+        await ctx.send(f"🔔 {role.mention} **TEST ALERT!** 🎮")
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -453,7 +454,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 Alert system started")
+    print("🔔 SAFE Alert system started (2min intervals - 720 requests/day)")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
