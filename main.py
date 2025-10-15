@@ -40,19 +40,19 @@ AUTO_SUBSCRIBE_TEAMS = [
 
 # Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
-    'Falcons': '<:falcons:1428075105615085598> FALCONS',
+    'Falcons': '<:falcons:1428075105615085598> Falcons',
     'MOUZ': '<:mouz:1428075167850041425> MOUZ',
-    'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
-    'Team Vitality': '<:vitality:1428075243510956113> TEAM VITALITY',
-    'The Mongolz': '<:themongolz:1428075231939133581> THE MONGOLZ',
+    'Team Spirit': '<:spirit:1428075208564019302> Team Spirit',
+    'Team Vitality': '<:vitality:1428075243510956113> Team Vitality',
+    'The Mongolz': '<:themongolz:1428075231939133581> The Mongolz',
     'FURIA': '<:furia:1428075132156641471> FURIA',
-    'Natus Vincere': '<:navi:1428075186976194691> NATUS VINCERE',
-    'FaZe': '<:faze:1428075117753401414> FAZE',
+    'Natus Vincere': '<:navi:1428075186976194691> Natus Vincere',
+    'FaZe': '<:faze:1428075117753401414> FaZe',
     '3DMAX': '<:3dmax:1428075077408133262> 3DMAX',
-    'Astralis': '<:astralis:1428075043526672394> ASTRALIS',
+    'Astralis': '<:astralis:1428075043526672394> Astralis',
     'G2': '<:g2:1428075144240431154> G2',
-    'Aurora': '<:aurora:1428075062287798272> AURORA',
-    'Liquid': '<:liquid:1428075155456000122> LIQUID',
+    'Aurora': '<:aurora:1428075062287798272> Aurora',
+    'Liquid': '<:liquid:1428075155456000122> Liquid',
     'M80': '<:m80:1428076593028530236> M80'
 }
 
@@ -110,7 +110,8 @@ def find_team_match(input_team):
 
 def get_display_name(team_name):
     """Get team name with emoji for display"""
-    return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name}")
+    return display if ' ' in display else f"{team_name}"
 
 def validate_team_display():
     """Validate the structure of TEAM_DISPLAY_NAMES and log potential issues"""
@@ -122,14 +123,14 @@ def validate_team_display():
 
 def get_team_emoji(team_name):
     """Get only the emoji part of the display name"""
-    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name}")
     if ' ' in display:
         return display[:display.index(' ')]
-    return display
+    return ""
 
 def get_team_name(team_name):
     """Get only the name part of the display name, handling multiple words"""
-    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name}")
     if ' ' in display:
         return display[display.index(' ') + 1:]
     return display
@@ -137,15 +138,11 @@ def get_team_name(team_name):
 def center_vs(team1, team2, separator="<:VS:1428106772312227984>", emoji_visual_width=2):
     """Zentriere Teams und VS-Symbol perfekt, berücksichtige visuelle Breite von Emojis"""
     def get_visual_length(text):
-        # Entferne <a:name:ID> oder <:name:ID> und zähle das Emoji als angegebene Breite
         emoji_pattern = r'<a?:[a-zA-Z0-9_]+:\d+>'
         cleaned_text = re.sub(emoji_pattern, ' ' * emoji_visual_width, text)
         return len(cleaned_text)
 
-    # Maximale Länge basierend auf visueller Breite
     max_len = max(get_visual_length(team1), get_visual_length(team2), get_visual_length(separator) if separator else emoji_visual_width)
-    
-    # Zentriere mit der berechneten Länge
     line1 = team1.center(max_len)
     line2 = separator.center(max_len)
     line3 = team2.center(max_len)
@@ -155,10 +152,7 @@ def create_centered_teams_display(team1, team2):
     """Erstelle perfekt zentrierte Team-Anzeige"""
     team1_display = get_display_name(team1)
     team2_display = get_display_name(team2)
-    
-    # Zentriere alles automatisch mit neuem Custom-VS-Emoji
     centered_display = center_vs(team1_display, team2_display)
-    
     return centered_display
 
 def create_frame(title, content):
@@ -167,23 +161,26 @@ def create_frame(title, content):
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
 # =========================
-# TEXT-BASED LIST FOR /list (untereinander wie eine Liste)
+# TEXT-BASED LIST FOR /list (tabellarische Ansicht)
 # =========================
 def create_subscribed_list(teams, temp_teams):
-    """Erstelle eine textbasierte Liste der abonierten Teams (untereinander)"""
+    """Erstelle eine tabellarische Liste der abonierten Teams"""
     all_teams = teams + [t for t in temp_teams if t not in teams]
     if not all_teams:
         return "❌ No teams subscribed."
     
-    team_list = ""
+    # Tabellenkopf
+    table = "Name                   | Status\n-----------------------|--------\n"
+    
+    # Tabellenzeilen
     for team in all_teams:
         team_display = get_display_name(team)
-        if team in temp_teams:
-            team_list += f"• {team_display} (temporär)\n"
-        else:
-            team_list += f"• {team_display}\n"
+        status = "Temporär" if team in temp_teams else "Permanent"
+        # Anpassen der Länge für bessere Ausrichtung
+        team_name = team_display.ljust(20)[:20]  # 20 Zeichen max, linksbündig
+        table += f"{team_name} | {status}\n"
     
-    return team_list
+    return table
 
 # =========================
 # DATA MANAGEMENT
@@ -262,12 +259,10 @@ async def fetch_pandascore_matches():
                                 team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    # ✅ FINALER ZEITZONEN-FIX!
                                     begin_at = match_data.get('begin_at')
                                     if begin_at:
                                         match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
-                                        # ✅ Deutsche Zeitzone (CET/CEST)
                                         german_tz = timezone(timedelta(hours=2))  # Sommerzeit
                                         local_dt = match_dt.astimezone(german_tz)
                                         time_string = local_dt.strftime("%H:%M")
@@ -303,7 +298,7 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - ALS NORMALE TEXTNACHRICHTEN MIT RAHMEN!
+# ALERT SYSTEM - ALS NORMALE TEXTNACHRICHTEN MIT VERBESSERTER FORMATIERUNG!
 # =========================
 sent_alerts = set()
 
@@ -349,20 +344,10 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ ALS NORMALE TEXTNACHRICHT MIT RAHMEN!
+                            # Verbesserte Formatierung ohne Codeblock
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
-                            
-                            match_content = (
-                                f"```{centered_display}\n\n"
-                                f"*🏆 {match['event']}*\n"
-                                f"*⏰ Starts in {int(time_until)} minutes*\n"
-                                f"*🕐 {match['time_string']}*```"
-                            )
-                            
-                            framed_message = create_frame(
-                                f"🎮 **MATCH ALERT** • {int(time_until)} MINUTES",
-                                match_content
-                            )
+                            match_content = f"{centered_display}\n\n*🏆 {match['event']}*\n*⏰ Starts in {int(time_until)} minutes*\n*🕐 {match['time_string']}*"
+                            framed_message = create_frame(f"🎮 **MATCH ALERT** • {int(time_until)} MINUTES", match_content)
                             
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
@@ -370,13 +355,13 @@ async def send_alerts():
                                     await channel.send(f"🔔 {role.mention}\n{framed_message}")
                                 else:
                                     await channel.send(framed_message)
-                                
+                                print(f"✅ Alert sent: {framed_message}")
                             except Exception as e:
                                 print(f"❌ Failed to send message: {e}")
                                 continue
                             
                             sent_alerts.add(alert_id)
-                            print(f"✅ Alert sent and tracked: {match['team1']} vs {match['team2']} in {int(time_until)}min")
+                            print(f"✅ Alert tracked: {match['team1']} vs {match['team2']} in {int(time_until)}min")
                             
                             if len(sent_alerts) > 50:
                                 sent_alerts.clear()
@@ -432,7 +417,7 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams as a text list (untereinander)"""
+    """Show subscribed teams as a text list (tabellarische Ansicht)"""
     guild_id = str(ctx.guild.id)
     print(f"Debug list: guild_id={guild_id}, raw TEAMS={TEAMS.get(guild_id, [])}, TEMP_TEAMS={TEMP_TEAMS}")
     
@@ -496,7 +481,6 @@ async def autosetup(ctx):
     """Auto-Subscribe Teams"""
     guild_id = str(ctx.guild.id)
     
-    # Auto-Subscribe Teams
     if guild_id not in TEAMS:
         TEAMS[guild_id] = []
     
@@ -544,7 +528,7 @@ async def test(ctx):
     
     embed = discord.Embed(
         title="🎮 **TEST ALERT** • 15 MINUTES",
-        description=f"```{centered_display}```\n\n*🏆 NODWIN Clutch Series*\n*⏰ Starts in 15 minutes*\n*🕐 16:00*",
+        description=f"{centered_display}\n\n*🏆 NODWIN Clutch Series*\n*⏰ Starts in 15 minutes*\n*🕐 16:00*",
         color=0x00ff00
     )
     
@@ -558,7 +542,7 @@ async def test(ctx):
 async def debug(ctx):
     """Debug: Test Zentrierung und Emojis"""
     centered_display = create_centered_teams_display("Team Spirit", "The Mongolz")
-    await ctx.send(f"**Debug Output:**\n```{centered_display}```")
+    await ctx.send(f"**Debug Output:**\n{centered_display}")
 
 @bot.command()
 async def ping(ctx):
@@ -593,11 +577,9 @@ flask_thread.start()
 async def on_ready():
     print(f'✅ {bot.user} is online! - PANDASCORE API')
     
-    # Auto-Subscribe für alle Server
     for guild in bot.guilds:
         guild_id = str(guild.id)
         
-        # Auto-Subscribe Teams
         if guild_id not in TEAMS:
             TEAMS[guild_id] = []
         
@@ -606,7 +588,6 @@ async def on_ready():
                 TEAMS[guild_id].append(team)
                 print(f"✅ Auto-subscribed {team} for guild {guild.name}")
     
-    # Daten speichern
     save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME})
     
     await asyncio.sleep(2)
