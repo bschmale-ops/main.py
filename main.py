@@ -95,8 +95,7 @@ TEAM_SYNONYMS = {
     'Astralis': ['astralis'],
     'Aurora': ['aurora'],
     'Liquid': ['liquid'],
-    'M80': ['m80'
-}
+    'M80': ['m80'}
 
 # Temporäre Teams (nur während Laufzeit)
 TEMP_TEAMS = []
