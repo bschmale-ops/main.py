@@ -31,12 +31,12 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 # =========================
-# DATA MANAGEMENT - VOLLE PERSISTENZ
+# DATA MANAGEMENT - ROBUSTE PERSISTENZ
 # =========================
 DATA_FILE = "bot_data.json"
 
 def load_data():
-    """Lädt alle gespeicherten Daten - crash-safe"""
+    """Lädt alle gespeicherten Daten mit Fallback"""
     try:
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, "r", encoding='utf-8') as f:
@@ -44,21 +44,40 @@ def load_data():
                 # Alte Datenstruktur migrieren
                 if "ALERT_TIME" not in data:
                     data["ALERT_TIME"] = 30
-                print(f"📂 Daten geladen: {len(data.get('TEAMS', {}))} Server, {sum(len(teams) for teams in data.get('TEAMS', {}).values())} Teams")
+                
+                # Debug-Ausgabe
+                server_count = len(data.get('TEAMS', {}))
+                total_teams = sum(len(teams) for teams in data.get('TEAMS', {}).values())
+                print(f"📂 Daten geladen: {server_count} Server, {total_teams} Teams")
                 return data
-        print("📂 Keine gespeicherten Daten gefunden, starte frisch")
-        return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
+        else:
+            print("📂 Keine gespeicherten Daten gefunden, starte frisch")
+            # Erstelle Standard-Datenstruktur
+            default_data = {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
+            # Speichere sie sofort
+            save_data(default_data)
+            return default_data
+            
     except Exception as e:
-        print(f"❌ Kritischer Fehler beim Laden: {e}")
+        print(f"❌ Fehler beim Laden: {e}")
+        # Fallback auf leere Daten
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
 
 def save_data(data):
-    """Speichert alle Daten sofort - crash-safe"""
+    """Speichert alle Daten mit Error-Handling"""
     try:
         with open(DATA_FILE, "w", encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-        print("💾 Daten gespeichert")
-        return True
+        
+        # Verifiziere das Speichern
+        if os.path.exists(DATA_FILE):
+            file_size = os.path.getsize(DATA_FILE)
+            print(f"💾 Daten gespeichert ({file_size} bytes)")
+            return True
+        else:
+            print("❌ Datei wurde nicht erstellt")
+            return False
+            
     except Exception as e:
         print(f"❌ Kritischer Fehler beim Speichern: {e}")
         return False
