@@ -109,17 +109,29 @@ def get_display_name(team_name):
     """Get team name with emoji for display"""
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
+def validate_team_display():
+    """Validate the structure of TEAM_DISPLAY_NAMES and log potential issues"""
+    for team, display in TEAM_DISPLAY_NAMES.items():
+        if ' ' not in display:
+            print(f"⚠️ Warning: Team '{team}' has an invalid display format: '{display}' (no space between emoji and name)")
+        elif not display.startswith('<:') and not display.startswith('<a:'):
+            print(f"⚠️ Warning: Team '{team}' has an invalid emoji format: '{display}' (does not start with <: or <a:)")
+
 def get_team_emoji(team_name):
     """Get only the emoji part of the display name"""
     display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
-    return display.split()[0] if ' ' in display else display
+    if ' ' in display:
+        return display[:display.index(' ')]
+    return display
 
 def get_team_name(team_name):
-    """Get only the name part of the display name"""
+    """Get only the name part of the display name, handling multiple words"""
     display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
-    return display.split()[1] if ' ' in display else display
+    if ' ' in display:
+        return display[display.index(' ') + 1:]
+    return display
 
-def center_vs(team1, team2, separator="<:VS:1428100225603600506>", emoji_visual_width=1):
+def center_vs(team1, team2, separator="<:VS:1428106772312227984>", emoji_visual_width=1):
     """Zentriere Teams und VS-Symbol perfekt, berücksichtige visuelle Breite von Emojis"""
     def get_visual_length(text):
         # Entferne <a:name:ID> oder <:name:ID> und zähle das Emoji als angegebene Breite
@@ -141,7 +153,7 @@ def create_centered_teams_display(team1, team2):
     team1_display = get_display_name(team1)
     team2_display = get_display_name(team2)
     
-    # Zentriere alles automatisch mit Custom-VS-Emoji
+    # Zentriere alles automatisch mit neuem Custom-VS-Emoji
     centered_display = center_vs(team1_display, team2_display)
     
     return centered_display
@@ -158,13 +170,13 @@ class TeamListView(View):
     def __init__(self, teams):
         super().__init__(timeout=None)  # Kein Timeout, da Buttons dekorativ sind
         for team in teams:
-            # Erstelle einen Button für jedes Team mit Emoji als Icon und Name als Label
+            # Erstelle einen Button für jedes Team mit Emoji als Icon und vollständigem Namen als Label
             button = Button(
-                emoji=get_team_emoji(team),  # Zeigt nur das Emoji (z. B. <:falcons:ID>)
-                label=get_team_name(team),   # Zeigt nur den Namen (z. B. FALCONS)
+                emoji=get_team_emoji(team),  # Zeigt nur das Emoji (z. B. <:spirit:ID>)
+                label=get_team_name(team),   # Zeigt den vollständigen Namen (z. B. TEAM SPIRIT)
                 style=discord.ButtonStyle.secondary,  # Grauer Stil für dekorative Buttons
                 custom_id=f"team_{team.lower()}",  # Eindeutige ID, aber keine Funktion
-                # disabled=False  # Ohne disabled, um sie sichtbar zu machen (Klicks werden ignoriert)
+                disabled=True  # Deaktiviert, um Klicks zu verhindern und "This interaction failed" zu vermeiden
             )
             self.add_item(button)
 
@@ -197,6 +209,9 @@ CHANNELS = data.get("CHANNELS", {})
 ALERT_TIME = data.get("ALERT_TIME", 30)
 
 print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.values())} teams")
+
+# Validate team display names on startup
+validate_team_display()
 
 # =========================
 # PANDASCORE API - MIT FINALEM ZEITZONEN-FIX!
@@ -428,7 +443,7 @@ async def matches(ctx):
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                match_list += f"{i}. {get_display_name(match['team1'])} <:VS:1428100225603600506> {get_display_name(match['team2'])}\n"
+                match_list += f"{i}. {get_display_name(match['team1'])} <:VS:1428106772312227984> {get_display_name(match['team2'])}\n"
                 match_list += f"   *⏰ {int(time_until)}min | 🏆 {match['event']}*\n\n"
             
             footer = f"*🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min*"
@@ -499,7 +514,7 @@ async def status(ctx):
 async def test(ctx):
     """Test alert"""
     # ✅ TEST ALS NORMALE TEXTNACHRICHT
-    centered_display = create_centered_teams_display("Falcons", "M80")
+    centered_display = create_centered_teams_display("Falcons", "Team Vitality")
     
     test_content = (
         f"```{centered_display}\n\n"
@@ -519,7 +534,7 @@ async def test(ctx):
 @bot.command()
 async def debug(ctx):
     """Debug: Test Zentrierung und Emojis"""
-    centered_display = create_centered_teams_display("Falcons", "MOUZ")
+    centered_display = create_centered_teams_display("Team Spirit", "The Mongolz")
     await ctx.send(f"**Debug Output:**\n```{centered_display}```")
 
 @bot.command()
