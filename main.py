@@ -28,6 +28,15 @@ bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)
 PANDASCORE_TOKEN = "NFG_fJz5qyUGHaWJmh-CcIeGELtI5prmh-YHWNibDTqDXR-p6sM"
 
 # =========================
+# AUTO-SUBSCRIBE TEAMS
+# =========================
+AUTO_SUBSCRIBE_TEAMS = [
+    'Falcons', 'MOUZ', 'Team Spirit', 'Team Vitality', 'The Mongolz',
+    'FURIA', 'Natus Vincere', 'FaZe', '3DMAX', 'Astralis', 
+    'G2', 'Aurora', 'Liquid', 'M80'
+]
+
+# =========================
 # TEAM DATA
 # =========================
 TEAM_SYNONYMS = {
@@ -47,9 +56,9 @@ TEAM_SYNONYMS = {
     'BIG': ['big'],
     'Eternal Fire': ['eternal fire', 'ef'],
     'Monte': ['monte'],
-    'TheMongolz': ['the mongolz', 'mongolz'],
+    'The Mongolz': ['the mongolz', 'mongolz'],
     '9z Team': ['9z', '9z team'],
-    'G2 Ares': ['g2 ares', 'g2'],
+    'G2 Esports': ['g2 ares', 'g2'],
     'MANA eSports': ['mana', 'mana esports'],
     '3DMAX': ['3dmax'],
     'Lynn Vision': ['lynn vision', 'lynn'],
@@ -61,7 +70,12 @@ TEAM_SYNONYMS = {
     'Dynamo Eclot': ['dynamo eclot'],
     'm0nesy team': ['m0nesy'],
     'Betera Esports': ['betera'],
-    'SPARTA': ['sparta']
+    'SPARTA': ['sparta'],
+    'Falcons': ['falcons'],
+    'Astralis': ['astralis'],
+    'Aurora': ['aurora'],
+    'Liquid': ['liquid'],
+    'M80': ['m80']
 }
 
 TEAM_LOGOS = {
@@ -74,12 +88,16 @@ TEAM_LOGOS = {
     'Team Spirit': 'https://liquipedia.net/commons/images/thumb/6/6c/Team_Spirit_2020.png/150px-Team_Spirit_2020.png',
     'Cloud9': 'https://liquipedia.net/commons/images/thumb/5/5e/Cloud9_2021.png/150px-Cloud9_2021.png',
     'Virtus.pro': 'https://liquipedia.net/commons/images/thumb/6/60/Virtus.pro_2022.png/150px-Virtus.pro_2022.png',
-    'TheMongolz': 'https://liquipedia.net/commons/images/thumb/4/47/TheMongolz_allmode.png/150px-TheMongolz_allmode.png',
+    'The Mongolz': 'https://liquipedia.net/commons/images/thumb/4/47/TheMongolz_allmode.png/150px-TheMongolz_allmode.png',
     '9z Team': 'https://liquipedia.net/commons/images/thumb/f/f2/9z_Team_2021.png/150px-9z_Team_2021.png',
-    'G2 Ares': 'https://liquipedia.net/commons/images/thumb/5/5e/G2_Esports_2020.png/150px-G2_Esports_2020.png',
     '3DMAX': 'https://liquipedia.net/commons/images/thumb/4/4a/3DMAX_2024.png/150px-3DMAX_2024.png',
     'Betera Esports': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
-    'SPARTA': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
+    'SPARTA': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
+    'Falcons': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
+    'Astralis': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
+    'Aurora': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
+    'Liquid': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
+    'M80': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 }
 
 def find_team_match(input_team):
@@ -103,24 +121,33 @@ def get_team_logo(team_name):
     
     return 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 
-def center_teams(team1, team2):
-    """Zentriere beide Teams perfekt am VS-Icon"""
-    vs_length = 2  # 🆚 ist 2 Zeichen breit
+def create_centered_teams_display(team1, team2):
+    """Erstelle perfekt zentrierte Team-Anzeige mit Fields"""
+    # Verwende Discord Fields für die Zentrierung
+    display_parts = []
     
-    # Berechne Leerzeichen für Team1
-    spaces1 = (vs_length - len(team1)) // 2
-    if spaces1 < 0:
-        spaces1 = 0
+    # Team 1 oben - FETT und groß
+    display_parts.append({
+        "name": "\u200b",
+        "value": f"**{team1}**",
+        "inline": False
+    })
     
-    # Berechne Leerzeichen für Team2  
-    spaces2 = (vs_length - len(team2)) // 2
-    if spaces2 < 0:
-        spaces2 = 0
+    # VS in der Mitte
+    display_parts.append({
+        "name": "\u200b", 
+        "value": "**🆚**",
+        "inline": False
+    })
     
-    # Erstelle zentrierte Anzeige
-    centered_display = f"**{' ' * spaces1}{team1}**\n\n{' ' * spaces1}🆚\n\n**{' ' * spaces2}{team2}**"
+    # Team 2 unten - FETT und groß
+    display_parts.append({
+        "name": "\u200b",
+        "value": f"**{team2}**", 
+        "inline": False
+    })
     
-    return centered_display
+    return display_parts
 
 # =========================
 # DATA MANAGEMENT
@@ -228,13 +255,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - PERFEKTE ZENTRIERUNG!
+# ALERT SYSTEM - PERFEKTE ZENTRIERUNG MIT FELDS!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT PERFEKTER ZENTRIERUNG!"""
+    """Send match alerts - MIT FIELDS FÜR ZENTRIERUNG!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -273,19 +300,24 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ PERFEKT ZENTRIERTES EMBED DESIGN
+                            # ✅ PERFEKT ZENTRIERTES EMBED MIT FIELDS
                             team1_logo = get_team_logo(match['team1'])
-                            
-                            # Teams perfekt zentriert
-                            centered_teams = center_teams(match['team1'], match['team2'])
                             
                             embed = discord.Embed(
                                 title=f"🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮",
-                                description=centered_teams,
                                 color=0x00ff00
                             )
                             
-                            # Tournament Info unten
+                            # Teams zentriert mit Fields
+                            centered_parts = create_centered_teams_display(match['team1'], match['team2'])
+                            for part in centered_parts:
+                                embed.add_field(
+                                    name=part["name"],
+                                    value=part["value"],
+                                    inline=part["inline"]
+                                )
+                            
+                            # Tournament Info - normale Schrift
                             embed.add_field(
                                 name="🏆 TOURNAMENT", 
                                 value=f"{match['event']}", 
@@ -435,18 +467,59 @@ async def setchannel(ctx, channel: discord.TextChannel):
         await ctx.send("⚠️ **Save failed!**")
 
 @bot.command()
+async def autosetup(ctx):
+    """Auto-Setup für Channel und Teams"""
+    guild_id = str(ctx.guild.id)
+    
+    # Auto-Set Channel
+    channel_found = None
+    for channel in ctx.guild.text_channels:
+        if 'hltv' in channel.name.lower() or '💡' in channel.name:
+            channel_found = channel
+            break
+    
+    if channel_found:
+        CHANNELS[guild_id] = channel_found.id
+        channel_msg = f"📡 **Auto-channel set to {channel_found.mention}!**"
+    else:
+        channel_msg = "❌ **No HLTV channel found!**"
+    
+    # Auto-Subscribe Teams
+    if guild_id not in TEAMS:
+        TEAMS[guild_id] = []
+    
+    added_teams = []
+    for team in AUTO_SUBSCRIBE_TEAMS:
+        if team not in TEAMS[guild_id]:
+            TEAMS[guild_id].append(team)
+            added_teams.append(team)
+    
+    if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+        if added_teams:
+            teams_msg = f"✅ **Auto-subscribed {len(added_teams)} teams!**"
+        else:
+            teams_msg = "✅ **Teams already subscribed!**"
+    else:
+        teams_msg = "⚠️ **Save failed!**"
+    
+    await ctx.send(f"{channel_msg}\n{teams_msg}")
+
+@bot.command()
 async def status(ctx):
     """Show bot status"""
     uptime = datetime.datetime.now(timezone.utc) - start_time
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
     
+    guild_id = str(ctx.guild.id)
+    subscribed_count = len(TEAMS.get(guild_id, []))
+    
     embed = discord.Embed(title="🤖 **BOT STATUS**", color=0x00ff00)
     embed.add_field(name="**🟢 STATUS**", value="**✅ ONLINE**", inline=True)
     embed.add_field(name="**⏰ UPTIME**", value=f"**{hours}h {minutes}m**", inline=True)
     embed.add_field(name="**🔔 ALERTS**", value="**✅ ACTIVE**", inline=True)
     embed.add_field(name="**⏱️ ALERT TIME**", value=f"**{ALERT_TIME}min**", inline=True)
-    embed.add_field(name="**👥 TEAMS**", value=f"**{sum(len(teams) for teams in TEAMS.values())}**", inline=True)
+    embed.add_field(name="**👥 SUBSCRIBED**", value=f"**{subscribed_count} TEAMS**", inline=True)
     embed.add_field(name="**🌐 SOURCE**", value="**PANDASCORE API**", inline=True)
     
     await ctx.send(embed=embed)
@@ -455,15 +528,21 @@ async def status(ctx):
 async def test(ctx):
     """Test alert with perfect centering"""
     # ✅ PERFEKT ZENTRIERTES TEST EMBED
-    centered_teams = center_teams("BETERA ESPORTS", "SPARTA")
-    
     embed = discord.Embed(
         title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
-        description=centered_teams,
         color=0x00ff00
     )
     
-    # Tournament Info unten
+    # Teams zentriert mit Fields
+    centered_parts = create_centered_teams_display("BETERA ESPORTS", "SPARTA")
+    for part in centered_parts:
+        embed.add_field(
+            name=part["name"],
+            value=part["value"],
+            inline=part["inline"]
+        )
+    
+    # Tournament Info - normale Schrift
     embed.add_field(
         name="🏆 TOURNAMENT", 
         value="NODWIN Clutch Series", 
@@ -496,7 +575,7 @@ async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
 
 # =========================
-# FLASK & STARTUP
+# FLASK & STARTUP - AUTO SETUP!
 # =========================
 @app.route('/')
 def home():
@@ -522,10 +601,35 @@ flask_thread.start()
 @bot.event
 async def on_ready():
     print(f'✅ {bot.user} is online! - PANDASCORE API')
+    
+    # Auto-Setup für alle Server
+    for guild in bot.guilds:
+        guild_id = str(guild.id)
+        
+        # Auto-Subscribe Teams
+        if guild_id not in TEAMS:
+            TEAMS[guild_id] = []
+        
+        for team in AUTO_SUBSCRIBE_TEAMS:
+            if team not in TEAMS[guild_id]:
+                TEAMS[guild_id].append(team)
+                print(f"✅ Auto-subscribed {team} for guild {guild.name}")
+        
+        # Auto-Set Channel falls vorhanden
+        if guild_id not in CHANNELS:
+            for channel in guild.text_channels:
+                if 'hltv' in channel.name.lower() or '💡' in channel.name:
+                    CHANNELS[guild_id] = channel.id
+                    print(f"✅ Auto-channel set to #{channel.name} for guild {guild.name}")
+                    break
+    
+    # Daten speichern
+    save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME})
+    
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 PERFEKTES ALERT SYSTEM GESTARTET!")
+    print("🔔 AUTO-SETUP COMPLETE! Alert system started!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
