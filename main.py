@@ -46,19 +46,35 @@ TEAM_SYNONYMS = {
     'Complexity': ['complexity', 'col'],
     'BIG': ['big'],
     'Eternal Fire': ['eternal fire', 'ef'],
-    'Monte': ['monte']
+    'Monte': ['monte'],
+    'TheMongolz': ['mongolz', 'the mongolz'],
+    '9z Team': ['9z', '9z team'],
+    'G2 Ares': ['g2 ares', 'g2'],
+    'MANA eSports': ['mana', 'mana esports'],
+    '3DMAX': ['3dmax'],
+    'Lynn Vision': ['lynn vision', 'lynn'],
+    'Team Novaq': ['novaq'],
+    'AMKAL ESPORTS': ['amkal'],
+    'ARCRED': ['arcred'],
+    '500': ['500'],
+    'AM Gaming': ['am gaming'],
+    'Dynamo Eclot': ['dynamo eclot']
 }
 
 TEAM_LOGOS = {
-    'Natus Vincere': 'https://liquipedia.net/commons/images/thumb/6/60/Natus_Vincere_2022.png/100px-Natus_Vincere_2022.png',
-    'FaZe Clan': 'https://liquipedia.net/commons/images/thumb/5/5e/FaZe_Clan_2021.png/100px-FaZe_Clan_2021.png',
-    'Team Vitality': 'https://liquipedia.net/commons/images/thumb/5/5e/Team_Vitality_2020.png/100px-Team_Vitality_2020.png',
-    'G2 Esports': 'https://liquipedia.net/commons/images/thumb/5/5e/G2_Esports_2020.png/100px-G2_Esports_2020.png',
-    'FURIA': 'https://liquipedia.net/commons/images/thumb/3/3c/FURIA_Esports_2020.png/100px-FURIA_Esports_2020.png',
-    'MOUZ': 'https://liquipedia.net/commons/images/thumb/8/83/MOUZ_2023.png/100px-MOUZ_2023.png',
-    'Team Spirit': 'https://liquipedia.net/commons/images/thumb/6/6c/Team_Spirit_2020.png/100px-Team_Spirit_2020.png',
-    'Cloud9': 'https://liquipedia.net/commons/images/thumb/5/5e/Cloud9_2021.png/100px-Cloud9_2021.png',
-    'Virtus.pro': 'https://liquipedia.net/commons/images/thumb/6/60/Virtus.pro_2022.png/100px-Virtus.pro_2022.png'
+    'Natus Vincere': 'https://liquipedia.net/commons/images/thumb/6/60/Natus_Vincere_2022.png/150px-Natus_Vincere_2022.png',
+    'FaZe Clan': 'https://liquipedia.net/commons/images/thumb/5/5e/FaZe_Clan_2021.png/150px-FaZe_Clan_2021.png',
+    'Team Vitality': 'https://liquipedia.net/commons/images/thumb/5/5e/Team_Vitality_2020.png/150px-Team_Vitality_2020.png',
+    'G2 Esports': 'https://liquipedia.net/commons/images/thumb/5/5e/G2_Esports_2020.png/150px-G2_Esports_2020.png',
+    'FURIA': 'https://liquipedia.net/commons/images/thumb/3/3c/FURIA_Esports_2020.png/150px-FURIA_Esports_2020.png',
+    'MOUZ': 'https://liquipedia.net/commons/images/thumb/8/83/MOUZ_2023.png/150px-MOUZ_2023.png',
+    'Team Spirit': 'https://liquipedia.net/commons/images/thumb/6/6c/Team_Spirit_2020.png/150px-Team_Spirit_2020.png',
+    'Cloud9': 'https://liquipedia.net/commons/images/thumb/5/5e/Cloud9_2021.png/150px-Cloud9_2021.png',
+    'Virtus.pro': 'https://liquipedia.net/commons/images/thumb/6/60/Virtus.pro_2022.png/150px-Virtus.pro_2022.png',
+    'TheMongolz': 'https://liquipedia.net/commons/images/thumb/4/47/TheMongolz_allmode.png/150px-TheMongolz_allmode.png',
+    '9z Team': 'https://liquipedia.net/commons/images/thumb/f/f2/9z_Team_2021.png/150px-9z_Team_2021.png',
+    'G2 Ares': 'https://liquipedia.net/commons/images/thumb/5/5e/G2_Esports_2020.png/150px-G2_Esports_2020.png',
+    '3DMAX': 'https://liquipedia.net/commons/images/thumb/4/4a/3DMAX_2024.png/150px-3DMAX_2024.png'
 }
 
 def find_team_match(input_team):
@@ -69,7 +85,21 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_team_logo(team_name):
-    return TEAM_LOGOS.get(team_name, 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/100px-CS2_Default_icon.png')
+    """Find logo with better team name matching"""
+    # Direct match
+    if team_name in TEAM_LOGOS:
+        return TEAM_LOGOS[team_name]
+    
+    # Fuzzy match for similar names
+    team_lower = team_name.lower()
+    for logo_team, logo_url in TEAM_LOGOS.items():
+        if (team_lower in logo_team.lower() or 
+            logo_team.lower() in team_lower or
+            any(word in team_lower for word in logo_team.lower().split())):
+            return logo_url
+    
+    # Fallback to default CS2 logo
+    return 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 
 # =========================
 # DATA MANAGEMENT
@@ -150,16 +180,11 @@ async def fetch_pandascore_matches():
                                     league = match_data.get('league', {})
                                     event = league.get('name', 'CS2 Tournament')
                                     
-                                    # Match link
-                                    match_id = match_data.get('id')
-                                    match_link = f"https://pandascore.co/csgo/matches/{match_id}" if match_id else "https://pandascore.co/csgo/matches"
-                                    
                                     matches.append({
                                         'team1': team1,
                                         'team2': team2,
                                         'unix_time': unix_time,
                                         'event': event,
-                                        'link': match_link,
                                         'time_string': time_string,
                                         'is_live': False,
                                         'source': 'PandaScore'
@@ -220,27 +245,28 @@ async def send_alerts():
                         alert_id = f"{guild_id}_{match['team1']}_{match['team2']}_{match['unix_time']}"
                         
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
-                            # Create alert embed
+                            # Create LARGER alert embed with better spacing - NO TITLE LINK
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
-                                title="🔔 🎮 **MATCH STARTING SOON!** 🎮",
-                                description=f"## **{match['team1']}**   🆚   **{match['team2']}**",
-                                color=0x00ff00,
-                                url=match['link']
+                                title="\n🔔 🎮 **MATCH STARTING SOON!** 🎮\n",
+                                description=f"\n## **{match['team1']}**\n\n   🆚   \n\n## **{match['team2']}**\n",
+                                color=0x00ff00
+                                # KEIN url Parameter mehr - Titel ist nur Text!
                             )
                             
-                            embed.set_author(name=f"{match['team1']} vs {match['team2']}", icon_url=team1_logo)
+                            embed.set_author(name=f"\n{match['team1']} vs {match['team2']}\n", icon_url=team1_logo)
                             embed.set_thumbnail(url=team1_logo)
-                            embed.add_field(name="**🏆 TOURNAMENT**", value=f"**{match['event']}**", inline=True)
-                            embed.add_field(name="**⏰ STARTS IN**", value=f"**{int(time_until)} MINUTES**", inline=True)
-                            embed.add_field(name="**🕐 TIME**", value=f"**{match['time_string']}**", inline=True)
-                            embed.add_field(name="**🔗 WATCH**", value=f"[📺 View Match]({match['link']})", inline=False)
+                            
+                            # More spacing in fields - NO WATCH FIELD
+                            embed.add_field(name="\n**🏆 TOURNAMENT**", value=f"\n**{match['event']}**\n", inline=True)
+                            embed.add_field(name="\n**⏰ STARTS IN**", value=f"\n**{int(time_until)} MINUTES**\n", inline=True)
+                            embed.add_field(name="\n**🕐 TIME**", value=f"\n**{match['time_string']}**\n", inline=True)
                             
                             # Send ping and embed
                             role = discord.utils.get(channel.guild.roles, name="CS2")
                             if role:
-                                await channel.send(f"🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
+                                await channel.send(f"\n🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n")
                             await channel.send(embed=embed)
                             
                             sent_alerts.add(alert_id)
@@ -378,17 +404,18 @@ async def status(ctx):
 async def test(ctx):
     """Test alert"""
     embed = discord.Embed(
-        title="🔔 **TEST ALERT**",
-        description="## **Natus Vincere** 🆚 **FaZe Clan**",
+        title="\n🔔 **TEST ALERT**\n",
+        description=f"\n## **Natus Vincere**\n\n   🆚   \n\n## **FaZe Clan**\n",
         color=0x00ff00
     )
     embed.set_thumbnail(url=get_team_logo('Natus Vincere'))
-    embed.add_field(name="**🏆 TOURNAMENT**", value="**TEST EVENT**", inline=True)
-    embed.add_field(name="**⏰ STARTS IN**", value="**15 MINUTES**", inline=True)
+    embed.set_author(name="\nNatus Vincere vs FaZe Clan\n", icon_url=get_team_logo('Natus Vincere'))
+    embed.add_field(name="\n**🏆 TOURNAMENT**", value="\n**TEST EVENT**\n", inline=True)
+    embed.add_field(name="\n**⏰ STARTS IN**", value="\n**15 MINUTES**\n", inline=True)
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
-        await ctx.send(f"🔔 {role.mention} **TEST ALERT!** 🎮")
+        await ctx.send(f"\n🔔 {role.mention} **TEST ALERT!** 🎮\n")
     await ctx.send(embed=embed)
 
 @bot.command()
