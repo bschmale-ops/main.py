@@ -10,9 +10,8 @@ import threading
 import aiohttp
 from bs4 import BeautifulSoup
 import socket
-import random
 
-print("🚀 Starting Discord CS2 Bot - STRAFE API & ENHANCED VISUALS...")
+print("🚀 Starting Discord CS2 Bot - PANDASCORE API & ENHANCED VISUALS...")
 
 # =========================
 # FLASK STATUS SERVER
@@ -158,18 +157,17 @@ for guild_id_str, channel_id in data.get("CHANNELS", {}).items():
 print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams, Alert-Time: {ALERT_TIME}min")
 
 # =========================
-# STRAFE API MATCH SCRAPING - ZUVERLÄSSIG!
+# PANDASCORE API MATCH SCRAPING - NUR ECHTE DATEN!
 # =========================
 async def fetch_all_matches():
-    """Holt Matches von STRAFE API - zuverlässig und schnell!"""
+    """Holt Matches von PANDASCORE API - nur echte Daten!"""
     upcoming_matches = []
     
-    print("🔍 Fetching matches from STRAFE API...")
+    print("🔍 Fetching matches from PANDASCORE API...")
     
-    # Versuche verschiedene Quellen in Reihenfolge
+    # Nur Pandascore API - KEINE Demo-Daten!
     sources = [
-        fetch_strafe_matches,  # Hauptquelle - zuverlässig!
-        fetch_demo_matches     # Fallback - garantiert Matches
+        fetch_pandascore_matches  # Nur echte Daten!
     ]
     
     for source in sources:
@@ -189,7 +187,7 @@ async def fetch_all_matches():
     # Entferne Duplikate
     upcoming_matches = remove_duplicate_matches(upcoming_matches)
     
-    print(f"🎯 Total matches found: {len(upcoming_matches)}")
+    print(f"🎯 Total REAL matches found: {len(upcoming_matches)}")
     return upcoming_matches, []  # Keine live matches für jetzt
 
 def remove_duplicate_matches(matches):
@@ -205,22 +203,31 @@ def remove_duplicate_matches(matches):
     
     return unique_matches
 
-async def fetch_strafe_matches():
-    """Holt CS2 Matches von STRAFE API - ZUVERLÄSSIG!"""
+async def fetch_pandascore_matches():
+    """Holt CS2 Matches von PANDASCORE API - ECHTE DATEN!"""
     matches = []
     
     try:
         async with aiohttp.ClientSession() as session:
-            # STRAFE API für CS2 Matches
-            url = "https://api.strafe.com/matches?game=cs2&status=upcoming&take=20"
+            # Pandascore API für CS2 Matches - KOSTENLOS TIER (1000 requests/Tag)
+            url = "https://api.pandascore.co/csgo/matches/upcoming"
+            
+            # API Token - KOSTENLOS registrieren auf pandascore.co
+            # Für jetzt ohne Token probieren, falls nicht geht: kostenlos registrieren
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': 'application/json',
             }
             
-            print("🌐 Requesting Strafe API...")
-            async with session.get(url, headers=headers, timeout=15) as response:
-                print(f"📡 Strafe API Response: {response.status}")
+            params = {
+                'sort': 'begin_at',
+                'page[size]': 20,
+                'filter[videogame]': 3  # CS:GO/CS2
+            }
+            
+            print("🌐 Requesting Pandascore API...")
+            async with session.get(url, headers=headers, params=params, timeout=15) as response:
+                print(f"📡 Pandascore API Response: {response.status}")
                 
                 if response.status == 200:
                     data = await response.json()
@@ -229,97 +236,65 @@ async def fetch_strafe_matches():
                         for match_data in data[:15]:  # Erste 15 Matches
                             try:
                                 # Extrahiere Team Informationen
-                                team1 = match_data.get('team1', {}).get('name', 'TBD')
-                                team2 = match_data.get('team2', {}).get('name', 'TBD')
-                                
-                                # Überspringe Matches mit TBD Teams
-                                if team1 == 'TBD' or team2 == 'TBD':
-                                    continue
-                                
-                                # Match Zeit
-                                start_time = match_data.get('startTime')
-                                if start_time:
-                                    # Konvertiere ISO Zeit zu Unix Timestamp
-                                    match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                                    unix_time = int(match_dt.timestamp())
-                                else:
-                                    # Fallback: 1-4 Stunden in der Zukunft
-                                    now = datetime.datetime.now(timezone.utc)
-                                    hours_ahead = random.randint(1, 4)
-                                    unix_time = int((now + datetime.timedelta(hours=hours_ahead)).timestamp())
-                                
-                                # Event Name
-                                event = match_data.get('tournament', {}).get('name', 'CS2 Tournament')
-                                
-                                # Match Link
-                                match_id = match_data.get('id')
-                                match_link = f"https://strafe.com/esports-match/{match_id}" if match_id else "https://strafe.com/esports/cs2/matches"
-                                
-                                # Zeit-String für Anzeige
-                                if start_time:
-                                    match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                                    time_string = match_dt.strftime("%H:%M")
-                                else:
-                                    time_string = f"Today {random.randint(12, 23)}:{random.randint(0, 59):02d}"
-                                
-                                matches.append({
-                                    'team1': team1,
-                                    'team2': team2,
-                                    'unix_time': unix_time,
-                                    'event': event,
-                                    'link': match_link,
-                                    'time_string': time_string,
-                                    'is_live': False,
-                                    'source': 'Strafe API'
-                                })
-                                print(f"✅ Strafe Match: {team1} vs {team2}")
+                                opponents = match_data.get('opponents', [])
+                                if len(opponents) >= 2:
+                                    team1 = opponents[0].get('opponent', {}).get('name', 'TBD')
+                                    team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
+                                    
+                                    # Überspringe Matches mit TBD Teams
+                                    if team1 == 'TBD' or team2 == 'TBD' or not team1 or not team2:
+                                        continue
+                                    
+                                    # Match Zeit
+                                    begin_at = match_data.get('begin_at')
+                                    if begin_at:
+                                        # Konvertiere ISO Zeit zu Unix Timestamp
+                                        match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
+                                        unix_time = int(match_dt.timestamp())
+                                    else:
+                                        # Überspringe Matches ohne Zeit
+                                        continue
+                                    
+                                    # Event Name
+                                    league = match_data.get('league', {})
+                                    event = league.get('name', 'CS2 Tournament')
+                                    
+                                    # Match Link
+                                    match_id = match_data.get('id')
+                                    match_link = f"https://pandascore.co/csgo/matches/{match_id}" if match_id else "https://pandascore.co/csgo/matches"
+                                    
+                                    # Zeit-String für Anzeige
+                                    if begin_at:
+                                        match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
+                                        time_string = match_dt.strftime("%H:%M")
+                                    else:
+                                        continue  # Überspringe ohne Zeit
+                                    
+                                    matches.append({
+                                        'team1': team1,
+                                        'team2': team2,
+                                        'unix_time': unix_time,
+                                        'event': event,
+                                        'link': match_link,
+                                        'time_string': time_string,
+                                        'is_live': False,
+                                        'source': 'Pandascore API'
+                                    })
+                                    print(f"✅ Pandascore Match: {team1} vs {team2} at {time_string}")
                                 
                             except Exception as e:
-                                print(f"⚠️ Error parsing Strafe match: {e}")
+                                print(f"⚠️ Error parsing Pandascore match: {e}")
                                 continue
                     
                     return matches
                 else:
-                    print(f"❌ Strafe API error: {response.status}")
+                    print(f"❌ Pandascore API error: {response.status}")
+                    print("💡 Tipp: Kostenlos registrieren auf pandascore.co für API Token")
                     return []
                     
     except Exception as e:
-        print(f"❌ Strafe API connection error: {e}")
+        print(f"❌ Pandascore API connection error: {e}")
         return []
-
-async def fetch_demo_matches():
-    """Fallback: Demo Matches die GARANTIERT funktionieren!"""
-    print("🔄 Using DEMO matches as fallback...")
-    
-    matches = []
-    now = datetime.datetime.now(timezone.utc)
-    
-    # AKTUELLE ECHTE MATCHES als Demo-Daten
-    demo_matches = [
-        ('FURIA', 'OG', 'Thunderpick World Championship 2025', 2),  # 2 Stunden
-        ('Natus Vincere', 'FaZe Clan', 'BLAST Premier Spring Finals', 3),  # 3 Stunden
-        ('Team Vitality', 'G2 Esports', 'IEM Cologne 2025', 4),  # 4 Stunden
-        ('MOUZ', 'Team Spirit', 'ESL Pro League', 1),  # 1 Stunde
-        ('Cloud9', 'Complexity', 'BLAST Premier', 5),  # 5 Stunden
-        ('Virtus.pro', 'ENCE', 'IEM Tournament', 6),  # 6 Stunden
-    ]
-    
-    for team1, team2, event, hours_ahead in demo_matches:
-        match_time = int((now + datetime.timedelta(hours=hours_ahead)).timestamp())
-        
-        matches.append({
-            'team1': team1,
-            'team2': team2,
-            'unix_time': match_time,
-            'event': event,
-            'link': 'https://strafe.com/esports/cs2/matches',
-            'time_string': f"Today {(now.hour + hours_ahead) % 24}:{random.randint(0, 59):02d}",
-            'is_live': False,
-            'source': 'Demo Data'
-        })
-    
-    print(f"🎯 Demo matches created: {len(matches)}")
-    return matches
 
 # =========================
 # FLASK ROUTES
@@ -328,7 +303,7 @@ async def fetch_demo_matches():
 def home():
     global flask_status
     flask_status = "healthy"
-    return "✅ Discord CS2 Bot - STRAFE API & ENHANCED"
+    return "✅ Discord CS2 Bot - PANDASCORE API & ENHANCED"
 
 @app.route('/ping')
 def ping():
@@ -352,7 +327,7 @@ def health():
     flask_status = "healthy"
     return jsonify({
         "status": "healthy", 
-        "service": "discord_cs2_bot_strafe_api",
+        "service": "discord_cs2_bot_pandascore_api",
         "last_check": last_check_time.isoformat(),
         "teams_count": sum(len(teams) for teams in TEAMS.values()),
         "servers_count": len(TEAMS),
@@ -404,13 +379,13 @@ flask_thread.start()
 print("✅ Flask server started")
 
 # =========================
-# ENHANCED ALERT SYSTEM - MIT STRAFE API!
+# ENHANCED ALERT SYSTEM - MIT PANDASCORE API!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Sendet Alerts für Matches - MIT STRAFE API!"""
+    """Sendet Alerts für Matches - MIT PANDASCORE API!"""
     global last_check_time
     try:
         last_check_time = datetime.datetime.now(timezone.utc)
@@ -469,7 +444,7 @@ async def send_alerts():
                                 embed.add_field(name="**🏆 EVENT**", value=f"**{match['event']}**", inline=True)
                                 embed.add_field(name="**⏰ START IN**", value=f"**{int(time_until_match)} MINUTEN**", inline=True)
                                 embed.add_field(name="**🕐 ZEIT**", value=f"**{match['time_string']}**", inline=True)
-                                embed.add_field(name="**🌐 QUELLE**", value=f"**{match.get('source', 'Strafe API')}**", inline=True)
+                                embed.add_field(name="**🌐 QUELLE**", value=f"**{match.get('source', 'Pandascore API')}**", inline=True)
                                 embed.add_field(name="**🔗 LINK**", value=f"[📺 Match ansehen]({match['link']})", inline=False)
                                 
                                 # 🎨 VERGRÖSSERTER PING
@@ -586,12 +561,12 @@ async def matches(ctx):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 match_list += f"{i}. **{match['team1']}** 🆚 **{match['team2']}**\n"
                 match_list += f"   ⏰ **{int(time_until)}min** | 🏆 **{match['event']}**\n"
-                match_list += f"   🕐 **{match['time_string']}** | 🌐 **{match.get('source', 'Strafe API')}**\n\n"
+                match_list += f"   🕐 **{match['time_string']}** | 🌐 **{match.get('source', 'Pandascore API')}**\n\n"
             
             embed.add_field(name="⏰ **UPCOMING MATCHES**", value=match_list, inline=False)
         
         if not upcoming_matches:
-            embed.description = "❌ **Keine Matches gefunden**"
+            embed.description = "❌ **Keine echten Matches gefunden**"
         
         embed.set_footer(text=f"🔔 Alert-Time: {ALERT_TIME}min | 🔄 Check: alle 2min")
         await ctx.send(embed=embed)
@@ -627,7 +602,7 @@ async def debug_matches(ctx):
             for i, match in enumerate(upcoming_matches[:4], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 match_info += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
-                match_info += f"   ⏰ {int(time_until)}min | 🌐 {match.get('source', 'Strafe API')}\n\n"
+                match_info += f"   ⏰ {int(time_until)}min | 🌐 {match.get('source', 'Pandascore API')}\n\n"
             embed.add_field(name="**🎯 MATCHES**", value=match_info, inline=False)
         
         await ctx.send(embed=embed)
@@ -659,7 +634,7 @@ async def status(ctx):
     embed.add_field(name="**⏱️ ALERT-TIME**", value=f"**{ALERT_TIME}min**", inline=True)
     embed.add_field(name="**👥 TEAMS**", value=f"**{sum(len(teams) for teams in TEAMS.values())}**", inline=True)
     embed.add_field(name="**🔄 INTERVAL**", value="**2 Minuten**", inline=True)
-    embed.add_field(name="**🌐 QUELLEN**", value="**STRAFE API + Demo Fallback**", inline=False)
+    embed.add_field(name="**🌐 QUELLEN**", value="**PANDASCORE API**", inline=False)
     
     await ctx.send(embed=embed)
 
@@ -700,18 +675,18 @@ async def ping(ctx):
 @bot.event
 async def on_ready():
     """Bot Startup"""
-    print(f'✅ {bot.user} ist online! - STRAFE API & ENHANCED')
+    print(f'✅ {bot.user} ist online! - PANDASCORE API & ENHANCED')
     
     await asyncio.sleep(2)
     
     if not send_alerts.is_running():
         send_alerts.start()
-        print("🔔 Strafe API Alert system started")
+        print("🔔 Pandascore API Alert system started")
     
     print(f"📊 {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
     print(f"⏰ Alert-Time: {ALERT_TIME}min")
     print(f"🎨 Enhanced Visuals aktiviert!")
-    print(f"🌐 Strafe API aktiviert - ZUVERLÄSSIGE MATCHES!")
+    print(f"🌐 Pandascore API aktiviert - NUR ECHTE MATCHES!")
 
 # =========================
 # BOT START
