@@ -11,7 +11,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import socket
 
-print("🚀 Starting Discord CS2 Bot - ENHANCED VISUALS & OPTIMIZED...")
+print("🚀 Starting Discord CS2 Bot - ENHANCED VISUALS & ALL COMMANDS...")
 
 # =========================
 # FLASK STATUS SERVER
@@ -431,7 +431,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS - MIT VISUAL VERBESSERUNGEN!
+# BOT COMMANDS - MIT ALLEN NOTWENDIGEN COMMANDS!
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -455,6 +455,39 @@ async def subscribe(ctx, *, team):
             await ctx.send(f"⚠️ **Speichern fehlgeschlagen!**")
     else:
         await ctx.send(f"⚠️ **{correct_name}** bereits abonniert!")
+
+@bot.command()
+async def unsubscribe(ctx, *, team):
+    """Entferne ein Team von Alerts"""
+    guild_id = ctx.guild.id
+    
+    correct_name, found_match = find_team_match(team)
+    
+    if guild_id in TEAMS and correct_name in TEAMS[guild_id]:
+        TEAMS[guild_id].remove(correct_name)
+        if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+            await ctx.send(f"❌ **{correct_name}** von Alerts entfernt!")
+        else:
+            await ctx.send(f"⚠️ **{correct_name}** entfernt, aber Speichern fehlgeschlagen!")
+    else:
+        await ctx.send(f"❌ **Team {correct_name} nicht gefunden!**")
+
+@bot.command()
+async def list_teams(ctx):
+    """Zeige alle abonnierten Teams"""
+    guild_id = ctx.guild.id
+    teams = TEAMS.get(guild_id, [])
+    
+    if teams:
+        team_list = "\n".join([f"• **{team}**" for team in teams])
+        embed = discord.Embed(
+            title="📋 👥 ABONNIERTE TEAMS 👥",
+            description=team_list,
+            color=0x00ff00
+        )
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send("❌ **Noch keine Teams abonniert!**")
 
 @bot.command()
 async def settime(ctx, minutes: int):
@@ -497,6 +530,33 @@ async def matches(ctx):
             
     except Exception as e:
         await ctx.send(f"❌ **Fehler:** {e}")
+
+@bot.command()
+async def debug_matches(ctx):
+    """Debug-Informationen zu gefundenen Matches"""
+    try:
+        matches = await fetch_hltv_matches()
+        
+        embed = discord.Embed(
+            title="🔧 📊 DEBUG MATCHES 📊",
+            color=0x0099ff
+        )
+        embed.add_field(name="**🔍 GEFUNDENE MATCHES**", value=f"**{len(matches)}**", inline=True)
+        embed.add_field(name="**⏰ ALERT-TIME**", value=f"**{ALERT_TIME}min**", inline=True)
+        embed.add_field(name="**🔄 LETZTER CHECK**", value=f"**{last_check_time.strftime('%H:%M:%S')}**", inline=True)
+        
+        if matches:
+            match_info = ""
+            for i, match in enumerate(matches[:5], 1):
+                time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
+                match_info += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
+                match_info += f"   ⏰ {int(time_until)}min | {match['event']}\n\n"
+            embed.add_field(name="**🎯 MATCHES**", value=match_info, inline=False)
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.send(f"❌ **Debug Fehler:** {e}")
 
 @bot.command()
 async def setchannel(ctx, channel: discord.TextChannel):
@@ -550,6 +610,11 @@ async def test_alert(ctx):
         await ctx.send(f"🔔 {role.mention} **TEST ALERT! MATCH STARTING IN 15 MINUTES!** 🎮")
     await ctx.send(embed=embed)
     await ctx.send("✅ **TEST ALERT GESENDET!**")
+
+@bot.command()
+async def ping(ctx):
+    """Einfacher Ping-Befehl"""
+    await ctx.send('🏓 **PONG!** 🎯')
 
 @bot.event
 async def on_ready():
