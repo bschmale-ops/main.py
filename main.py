@@ -121,15 +121,30 @@ def get_team_logo(team_name):
     
     return 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 
+def create_team_with_frame(team_name):
+    """Erstelle Teamnamen mit Rahmen drumherum"""
+    # Rahmen basierend auf Teamnamen-Länge
+    name_length = len(team_name)
+    frame_width = name_length + 4  # Extra Platz für Rahmen
+    
+    top_frame = "┌" + "─" * (frame_width - 2) + "┐"
+    middle_frame = "│ " + team_name + " │"
+    bottom_frame = "└" + "─" * (frame_width - 2) + "┘"
+    
+    return f"```\n{top_frame}\n{middle_frame}\n{bottom_frame}\n```"
+
 def create_centered_teams_display(team1, team2):
-    """Erstelle perfekt zentrierte Team-Anzeige mit Fields"""
-    # Verwende Discord Fields für die Zentrierung
+    """Erstelle perfekt zentrierte Team-Anzeige mit Rahmen"""
+    # Teams mit Rahmen
+    team1_framed = create_team_with_frame(team1)
+    team2_framed = create_team_with_frame(team2)
+    
     display_parts = []
     
-    # Team 1 oben - FETT und groß
+    # Team 1 mit Rahmen
     display_parts.append({
         "name": "\u200b",
-        "value": f"**{team1}**",
+        "value": team1_framed,
         "inline": False
     })
     
@@ -140,10 +155,10 @@ def create_centered_teams_display(team1, team2):
         "inline": False
     })
     
-    # Team 2 unten - FETT und groß
+    # Team 2 mit Rahmen
     display_parts.append({
         "name": "\u200b",
-        "value": f"**{team2}**", 
+        "value": team2_framed, 
         "inline": False
     })
     
@@ -255,13 +270,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - PERFEKTE ZENTRIERUNG MIT KURSIV!
+# ALERT SYSTEM - MIT RAHMEN UM TEAMNAMEN!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT PERFEKTER ZENTRIERUNG UND KURSIV!"""
+    """Send match alerts - MIT RAHMEN UM TEAMNAMEN!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -300,7 +315,7 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ PERFEKT ZENTRIERTES EMBED MIT KURSIV!
+                            # ✅ EMBED MIT RAHMEN UM TEAMNAMEN!
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
@@ -308,7 +323,7 @@ async def send_alerts():
                                 color=0x00ff00
                             )
                             
-                            # Teams zentriert mit Fields - FETT
+                            # Teams mit Rahmen zentriert
                             centered_parts = create_centered_teams_display(match['team1'], match['team2'])
                             for part in centered_parts:
                                 embed.add_field(
@@ -317,7 +332,7 @@ async def send_alerts():
                                     inline=part["inline"]
                                 )
                             
-                            # Tournament Info - KURSIV statt fett
+                            # Tournament Info - KURSIV
                             embed.add_field(
                                 name="🏆 TOURNAMENT", 
                                 value=f"*{match['event']}*", 
@@ -511,14 +526,14 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with perfect centering and italic"""
-    # ✅ PERFEKT ZENTRIERTES TEST EMBED MIT KURSIV
+    """Test alert with frame around team names"""
+    # ✅ TEST EMBED MIT RAHMEN
     embed = discord.Embed(
         title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
         color=0x00ff00
     )
     
-    # Teams zentriert mit Fields - FETT
+    # Teams mit Rahmen zentriert
     centered_parts = create_centered_teams_display("BETERA ESPORTS", "SPARTA")
     for part in centered_parts:
         embed.add_field(
@@ -527,7 +542,7 @@ async def test(ctx):
             inline=part["inline"]
         )
     
-    # Tournament Info - KURSIV statt fett
+    # Tournament Info - KURSIV
     embed.add_field(
         name="🏆 TOURNAMENT", 
         value="*NODWIN Clutch Series*", 
