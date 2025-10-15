@@ -164,6 +164,11 @@ def create_centered_teams_display(team1, team2):
     
     return centered_display
 
+def create_frame(title, content):
+    """Erstelle einen Rahmen nach Option 3 für Textnachrichten"""
+    separator = "─────────────────────────────"
+    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
+
 # =========================
 # DATA MANAGEMENT
 # =========================
@@ -270,13 +275,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - MIT ZENTRIERTEN CODE-BLOCKS!
+# ALERT SYSTEM - ALS NORMALE TEXTNACHRICHTEN MIT RAHMEN!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT ZENTRIERTEN CODE-BLOCKS!"""
+    """Send match alerts - ALS NORMALE TEXTNACHRICHTEN!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -315,52 +320,27 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ EMBED MIT ZENTRIERTEN CODE-BLOCKS!
-                            team1_logo = get_team_logo(match['team1'])
-                            
-                            embed = discord.Embed(
-                                title=f"🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮",
-                                color=0x00ff00
-                            )
-                            
-                            # Teams zentriert anzeigen
+                            # ✅ ALS NORMALE TEXTNACHRICHT MIT RAHMEN!
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
-                            embed.add_field(
-                                name="\u200b",
-                                value=centered_display,
-                                inline=False
+                            
+                            match_content = (
+                                f"{centered_display}\n\n"
+                                f"🏆 **{match['event']}**\n"
+                                f"⏰ **Starts in {int(time_until)} minutes**\n"
+                                f"🕐 **{match['time_string']}**"
                             )
                             
-                            # Tournament Info - KURSIV
-                            embed.add_field(
-                                name="🏆 TOURNAMENT", 
-                                value=f"*{match['event']}*", 
-                                inline=True
+                            framed_message = create_frame(
+                                f"🎮 **MATCH ALERT** • {int(time_until)} MINUTES",
+                                match_content
                             )
-                            
-                            embed.add_field(
-                                name="⏰ STARTS IN", 
-                                value=f"*{int(time_until)} MINUTES*", 
-                                inline=True
-                            )
-                            
-                            embed.add_field(
-                                name="🕐 TIME", 
-                                value=f"*{match['time_string']}*", 
-                                inline=True
-                            )
-                            
-                            embed.set_thumbnail(url=team1_logo)
-                            embed.set_footer(text="CS2 Match Alert • PandaScore API")
                             
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
                                 if role:
-                                    await channel.send(f"🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
+                                    await channel.send(f"🔔 {role.mention}\n{framed_message}")
                                 else:
-                                    await channel.send(f"🔔 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
-                                
-                                await channel.send(embed=embed)
+                                    await channel.send(framed_message)
                                 
                             except Exception as e:
                                 print(f"❌ Failed to send message: {e}")
@@ -378,7 +358,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS
+# BOT COMMANDS - ALLE ALS NORMALE TEXTNACHRICHTEN!
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -415,18 +395,14 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams - MIT CODE-BLOCKS!"""
+    """Show subscribed teams - ALS NORMALE TEXTNACHRICHT!"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
     
     if teams:
         team_list = "\n".join([f"• {create_team_display(team)}" for team in teams])
-        embed = discord.Embed(
-            title="📋 **SUBSCRIBED TEAMS**",
-            description=team_list,
-            color=0x00ff00
-        )
-        await ctx.send(embed=embed)
+        framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
+        await ctx.send(framed_message)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
 
@@ -445,28 +421,22 @@ async def settime(ctx, minutes: int):
 
 @bot.command()
 async def matches(ctx):
-    """Show available matches"""
+    """Show available matches - ALS NORMALE TEXTNACHRICHT!"""
     try:
         matches = await fetch_pandascore_matches()
-        
-        embed = discord.Embed(
-            title="🎯 **AVAILABLE CS2 MATCHES**",
-            color=0x0099ff
-        )
         
         if matches:
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 match_list += f"{i}. {create_team_display(match['team1'])} 🆚 {create_team_display(match['team2'])}\n"
-                match_list += f"   ⏰ **{int(time_until)}min** | 🏆 **{match['event']}**\n\n"
+                match_list += f"   ⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
-            embed.description = match_list
+            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
+            framed_message = create_frame("🎯 **AVAILABLE CS2 MATCHES**", f"{match_list}{footer}")
+            await ctx.send(framed_message)
         else:
-            embed.description = "❌ **No matches found**"
-        
-        embed.set_footer(text=f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min")
-        await ctx.send(embed=embed)
+            await ctx.send("❌ **No matches found**")
         
     except Exception as e:
         await ctx.send(f"❌ **Error:** {e}")
@@ -514,59 +484,38 @@ async def status(ctx):
     guild_id = str(ctx.guild.id)
     subscribed_count = len(TEAMS.get(guild_id, []))
     
-    embed = discord.Embed(title="🤖 **BOT STATUS**", color=0x00ff00)
-    embed.add_field(name="**🟢 STATUS**", value="**✅ ONLINE**", inline=True)
-    embed.add_field(name="**⏰ UPTIME**", value=f"**{hours}h {minutes}m**", inline=True)
-    embed.add_field(name="**🔔 ALERTS**", value="**✅ ACTIVE**", inline=True)
-    embed.add_field(name="**⏱️ ALERT TIME**", value=f"**{ALERT_TIME}min**", inline=True)
-    embed.add_field(name="**👥 SUBSCRIBED**", value=f"**{subscribed_count} TEAMS**", inline=True)
-    embed.add_field(name="**🌐 SOURCE**", value="**PANDASCORE API**", inline=True)
+    status_content = (
+        f"**🟢 STATUS:** **✅ ONLINE**\n"
+        f"**⏰ UPTIME:** **{hours}h {minutes}m**\n"
+        f"**🔔 ALERTS:** **✅ ACTIVE**\n"
+        f"**⏱️ ALERT TIME:** **{ALERT_TIME}min**\n"
+        f"**👥 SUBSCRIBED:** **{subscribed_count} TEAMS**\n"
+        f"**🌐 SOURCE:** **PANDASCORE API**"
+    )
     
-    await ctx.send(embed=embed)
+    framed_message = create_frame("🤖 **BOT STATUS**", status_content)
+    await ctx.send(framed_message)
 
 @bot.command()
 async def test(ctx):
     """Test alert with code blocks (Button-Look)"""
-    # ✅ TEST EMBED MIT CODE-BLOCKS
-    embed = discord.Embed(
-        title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
-        color=0x00ff00
-    )
-    
-    # Teams mit Code-Blöcken (Button-Look) - ZENTRIERT
+    # ✅ TEST ALS NORMALE TEXTNACHRICHT
     centered_display = create_centered_teams_display("Falcons", "M80")
-    embed.add_field(
-        name="\u200b",
-        value=centered_display,
-        inline=False
+    
+    test_content = (
+        f"{centered_display}\n\n"
+        f"🏆 **NODWIN Clutch Series**\n"
+        f"⏰ **Starts in 15 minutes**\n"
+        f"🕐 **16:00**"
     )
     
-    # Tournament Info - KURSIV
-    embed.add_field(
-        name="🏆 TOURNAMENT", 
-        value="*NODWIN Clutch Series*", 
-        inline=True
-    )
-    
-    embed.add_field(
-        name="⏰ STARTS IN", 
-        value="*15 MINUTES*", 
-        inline=True
-    )
-    
-    embed.add_field(
-        name="🕐 TIME", 
-        value="*16:00*", 
-        inline=True
-    )
-    
-    embed.set_thumbnail(url=get_team_logo('Falcons'))
-    embed.set_footer(text="CS2 Match Alert • PandaScore API")
+    framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
-        await ctx.send(f"🔔 {role.mention} **TEST ALERT!** 🎮")
-    await ctx.send(embed=embed)
+        await ctx.send(f"🔔 {role.mention}\n{framed_message}")
+    else:
+        await ctx.send(framed_message)
 
 @bot.command()
 async def ping(ctx):
