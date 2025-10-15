@@ -19,7 +19,6 @@ ALERT_TIME = 5  # Default 5 Min. Vorlauf (in Minuten, änderbar)
 API_KEY = 'DEIN_PANDASCORE_API_KEY'  # Ersetze mit deinem PandaScore API-Key
 HEADERS = {'Authorization': f'Bearer {API_KEY}'}
 
-
 # HLTV Scraping ersetzen durch PandaScore API
 def get_upcoming_matches():
     matches = []
@@ -82,7 +81,9 @@ async def send_alerts():
                     embed = discord.Embed(
                         title="🎮 Match startet bald!",
                         description=(
-                            f"**# {match['team1']} 🆚 {match['team2']}**\n\n"
+                            f"# :{match['team1'].lower()}: {match['team1']}\n"
+                            f"# <:VS:1428145739443208305>\n"
+                            f"# :{match['team2'].lower()}: {match['team2']}\n\n"
                             f"🎟️ **Event:** {match['event']}\n"
                             f"⏰ **Start:** in ca. {int(time_left)} Minuten"
                         ),
@@ -154,9 +155,11 @@ async def testreminder(ctx):
     embed = discord.Embed(
         title="🎮 Test-Reminder",
         description=(
-            f"**# NAVI 🆚 FaZe**\n\n"
-            f"🎟️ **Event:** Test Turnier\n"
-            f"⏰ **Start:** in ca. 5 Minuten"
+            "# :falcons: Falcons\n"
+            "# <:VS:1428145739443208305>\n"
+            "# :mouz: MOUZ\n\n"
+            "🎟️ **Event:** Test Turnier\n"
+            "⏰ **Start:** in ca. 5 Minuten"
         ),
         color=discord.Color.orange()
     )
