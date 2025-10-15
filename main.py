@@ -11,7 +11,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import socket
 
-print("🚀 Starting Discord CS2 Bot - PRE-MATCH & LIVE ALERTS...")
+print("🚀 Starting Discord CS2 Bot - SMART PING SYSTEM...")
 
 # =========================
 # FLASK STATUS SERVER
@@ -163,7 +163,7 @@ for guild_id_str, channel_id in data.get("CHANNELS", {}).items():
 print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams, Alert-Time: {ALERT_TIME}min")
 
 # =========================
-# MATCH SCRAPING FUNCTIONS - ALLE MATCHES!
+# MATCH SCRAPING FUNCTIONS
 # =========================
 async def fetch_all_matches():
     """Holt ALLE Matches (Bevorstehende + Live) von HLTV"""
@@ -306,7 +306,7 @@ async def get_demo_all_matches():
 def home():
     global flask_status
     flask_status = "healthy"
-    return "✅ Discord CS2 Bot - PRE-MATCH & LIVE ALERTS"
+    return "✅ Discord CS2 Bot - SMART PING SYSTEM"
 
 @app.route('/ping')
 def ping():
@@ -322,7 +322,7 @@ def ping():
         "alert_time": ALERT_TIME,
         "flask_port": flask_port,
         "flask_status": flask_status,
-        "mode": "PRE-MATCH & LIVE ALERTS"
+        "mode": "SMART PING SYSTEM"
     })
 
 @app.route('/health')
@@ -331,14 +331,14 @@ def health():
     flask_status = "healthy"
     return jsonify({
         "status": "healthy", 
-        "service": "discord_cs2_bot_combined",
+        "service": "discord_cs2_bot_smart",
         "last_check": last_check_time.isoformat(),
         "teams_count": sum(len(teams) for teams in TEAMS.values()),
         "servers_count": len(TEAMS),
         "alert_time": ALERT_TIME,
         "flask_port": flask_port,
         "flask_status": flask_status,
-        "mode": "PRE-MATCH & LIVE ALERTS"
+        "mode": "SMART PING SYSTEM"
     })
 
 def is_port_available(port):
@@ -385,13 +385,14 @@ flask_thread.start()
 print("✅ Flask server started")
 
 # =========================
-# COMBINED ALERT SYSTEM - PRE-MATCH + LIVE!
+# SMART PING SYSTEM - OHNE ROLE PING FÜR PRE-MATCH!
 # =========================
 sent_alerts = set()  # Verhindert Doppel-Alerts
+pre_match_messages = {}  # Speichert Pre-Match Nachrichten zum Löschen
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Sendet Alerts für BEIDE Match-Typen: Pre-Match + Live"""
+    """Smart Alert System: Pre-Match ohne Ping, LIVE mit Ping"""
     global last_check_time
     try:
         last_check_time = datetime.datetime.now(timezone.utc)
@@ -414,7 +415,7 @@ async def send_alerts():
             if not channel:
                 continue
 
-            # 1. PRÜFE LIVE MATCHES (sofortiger Alert)
+            # 1. PRÜFE LIVE MATCHES (MIT PING!)
             for match in live_matches:
                 if not match.get('is_live', False):
                     continue
@@ -436,7 +437,7 @@ async def send_alerts():
                             if alert_id in sent_alerts:
                                 continue
                             
-                            # LIVE Match Embed
+                            # 🔴 LIVE Match Embed MIT PING!
                             embed = discord.Embed(
                                 title="🔴 LIVE CS2 MATCH!",
                                 description=f"**{match['team1']}** vs **{match['team2']}**",
@@ -451,15 +452,21 @@ async def send_alerts():
                             embed.add_field(name="Event", value=match['event'], inline=True)
                             embed.add_field(name="Watch", value=f"[HLTV]({match['link']})", inline=False)
                             
-                            await channel.send(embed=embed)
-                            await channel.send(f"📢 **LIVE MATCH STARTED!** 🎮")
+                            # CS2 Rolle PINGEN für Live Matches!
+                            role = discord.utils.get(channel.guild.roles, name="CS2")
+                            if role:
+                                ping_message = await channel.send(f"📢 {role.mention} **LIVE MATCH STARTED!** 🎮")
+                                await channel.send(embed=embed)
+                            else:
+                                await channel.send(embed=embed)
+                                await channel.send("📢 **LIVE MATCH STARTED!** 🎮")
                             
                             sent_alerts.add(alert_id)
                             alerts_sent += 1
-                            print(f"✅ LIVE Alert: {match['team1']} vs {match['team2']}")
+                            print(f"✅ LIVE Alert with PING: {match['team1']} vs {match['team2']}")
                             break
 
-            # 2. PRÜFE BEVORSTEHENDE MATCHES (Pre-Match Alert)
+            # 2. PRÜFE BEVORSTEHENDE MATCHES (OHNE PING!)
             for match in upcoming_matches:
                 if match.get('is_live', False):
                     continue
@@ -480,7 +487,7 @@ async def send_alerts():
                             
                             alert_id = f"{guild_id}_{match['team1']}_{match['team2']}_{match['unix_time']}"
                             
-                            # PRE-MATCH Alert wenn innerhalb der Alert-Time
+                            # PRE-MATCH Alert wenn innerhalb der Alert-Time (OHNE PING!)
                             if 0 <= time_until_match <= ALERT_TIME and alert_id not in sent_alerts:
                                 
                                 if time_until_match <= 5:
@@ -501,17 +508,25 @@ async def send_alerts():
                                 embed.add_field(name="Zeit", value=match.get('time_string', 'Soon'), inline=True)
                                 embed.add_field(name="Link", value=f"[HLTV]({match['link']})", inline=False)
                                 
-                                await channel.send(embed=embed)
+                                # 🔕 PRE-MATCH Nachricht OHNE PING!
+                                message = await channel.send(embed=embed)
                                 
-                                # CS2 Rolle pingen
-                                role = discord.utils.get(channel.guild.roles, name="CS2")
-                                if role:
-                                    await channel.send(f"📢 {role.mention} Match starting soon!")
+                                # Speichere Nachricht für mögliches späteres Löschen
+                                message_id = f"{guild_id}_{match['team1']}_{match['team2']}_PREMATCH"
+                                pre_match_messages[message_id] = {
+                                    'message_id': message.id,
+                                    'channel_id': channel.id,
+                                    'match_time': match['unix_time'],
+                                    'teams': f"{match['team1']} vs {match['team2']}"
+                                }
                                 
                                 sent_alerts.add(alert_id)
                                 alerts_sent += 1
-                                print(f"✅ PRE-MATCH Alert: {match['team1']} vs {match['team2']} in {int(time_until_match)}min")
+                                print(f"✅ PRE-MATCH Alert (NO PING): {match['team1']} vs {match['team2']} in {int(time_until_match)}min")
                                 break
+
+        # 3. LÖSCHE ALTE PRE-MATCH NACHRICHTEN wenn Match live geht oder vorbei ist
+        await cleanup_old_prematch_messages(live_matches, current_time)
 
         if alerts_sent > 0:
             print(f"🎯 {alerts_sent} Alerts gesendet")
@@ -525,12 +540,51 @@ async def send_alerts():
     except Exception as e:
         print(f"❌ Alert error: {e}")
 
+async def cleanup_old_prematch_messages(live_matches, current_time):
+    """Löscht Pre-Match Nachrichten wenn Match live geht oder vorbei ist"""
+    try:
+        messages_to_delete = []
+        
+        for message_id, message_data in list(pre_match_messages.items()):
+            channel = bot.get_channel(message_data['channel_id'])
+            if not channel:
+                continue
+            
+            # Prüfe ob Match jetzt LIVE ist
+            match_is_live = any(
+                live_match['team1'] in message_data['teams'] and 
+                live_match['team2'] in message_data['teams']
+                for live_match in live_matches
+            )
+            
+            # Prüfe ob Match vorbei ist (mehr als 30 Minuten alt)
+            match_time_passed = (current_time - message_data['match_time']) > 1800  # 30 Minuten
+            
+            if match_is_live or match_time_passed:
+                try:
+                    message = await channel.fetch_message(message_data['message_id'])
+                    await message.delete()
+                    print(f"🗑️ Deleted pre-match message: {message_data['teams']}")
+                    messages_to_delete.append(message_id)
+                except discord.NotFound:
+                    # Nachricht wurde bereits gelöscht
+                    messages_to_delete.append(message_id)
+                except Exception as e:
+                    print(f"❌ Error deleting message: {e}")
+        
+        # Entferne gelöschte Nachrichten aus dem Cache
+        for msg_id in messages_to_delete:
+            pre_match_messages.pop(msg_id, None)
+            
+    except Exception as e:
+        print(f"❌ Cleanup error: {e}")
+
 # =========================
 # BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
-    """Abonniere ein Team für Pre-Match & Live Alerts"""
+    """Abonniere ein Team für Smart Alerts"""
     guild_id = ctx.guild.id
     TEAMS.setdefault(guild_id, [])
     
@@ -543,7 +597,7 @@ async def subscribe(ctx, *, team):
             if found_match:
                 variants = get_team_variants(correct_name)
                 variants_text = ", ".join([f"`{v}`" for v in variants[:3]])
-                await ctx.send(f"✅ **{correct_name}** für Alerts hinzugefügt! 🎯\nErkennbare Namen: {variants_text}")
+                await ctx.send(f"✅ **{correct_name}** für Smart Alerts hinzugefügt! 🎯\nErkennbare Namen: {variants_text}")
             else:
                 await ctx.send(f"✅ **{correct_name}** hinzugefügt! ⚠️\n*Unbekanntes Team - funktioniert nur bei exakter Übereinstimmung*")
         else:
@@ -559,15 +613,41 @@ async def settime(ctx, minutes: int):
         old_time = ALERT_TIME
         ALERT_TIME = minutes
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"⏰ Pre-Match Alert-Zeit von **{old_time}** auf **{minutes} Minuten** geändert! 🔔\n*Du wirst jetzt {minutes} Minuten vor Match-Beginn benachrichtigt!*")
+            await ctx.send(f"⏰ Pre-Match Alert-Zeit auf **{minutes} Minuten** gesetzt! 🔔\n*Pre-Match: Ohne Ping | Live: Mit Ping*")
         else:
             await ctx.send(f"⚠️ Zeit gesetzt, aber Speichern fehlgeschlagen!")
     else:
         await ctx.send("❌ Bitte eine Zeit zwischen 1 und 240 Minuten angeben!")
 
 @bot.command()
+async def clean_channel(ctx):
+    """Löscht alle Pre-Match Nachrichten im Channel"""
+    try:
+        deleted_count = 0
+        messages_to_delete = []
+        
+        for message_id, message_data in list(pre_match_messages.items()):
+            if message_data['channel_id'] == ctx.channel.id:
+                try:
+                    message = await ctx.channel.fetch_message(message_data['message_id'])
+                    await message.delete()
+                    messages_to_delete.append(message_id)
+                    deleted_count += 1
+                except:
+                    continue
+        
+        # Entferne gelöschte Nachrichten aus dem Cache
+        for msg_id in messages_to_delete:
+            pre_match_messages.pop(msg_id, None)
+            
+        await ctx.send(f"🧹 {deleted_count} Pre-Match Nachrichten gelöscht!")
+        
+    except Exception as e:
+        await ctx.send(f"❌ Fehler beim Löschen: {e}")
+
+@bot.command()
 async def matches(ctx):
-    """Zeigt alle verfügbaren Matches an (Bevorstehende + Live)"""
+    """Zeigt alle verfügbaren Matches an"""
     try:
         upcoming_matches, live_matches = await fetch_all_matches()
         
@@ -594,7 +674,7 @@ async def matches(ctx):
         if not live_matches and not upcoming_matches:
             embed.description = "❌ Aktuell keine Matches verfügbar"
         
-        embed.set_footer(text=f"Pre-Match Alert: {ALERT_TIME}min | Check: alle 2min")
+        embed.set_footer(text=f"Pre-Match: {ALERT_TIME}min (no ping) | Live: With ping")
         await ctx.send(embed=embed)
         
     except Exception as e:
@@ -620,29 +700,42 @@ async def status(ctx):
     embed.add_field(name="Status", value="✅ Online", inline=True)
     embed.add_field(name="Uptime", value=f"{hours}h {minutes}m", inline=True)
     embed.add_field(name="Alerts", value="✅ Aktiv", inline=True)
-    embed.add_field(name="Pre-Match Alert", value=f"{ALERT_TIME}min", inline=True)
-    embed.add_field(name="Check Interval", value="2 Minuten", inline=True)
+    embed.add_field(name="Pre-Match Alert", value=f"{ALERT_TIME}min (no ping)", inline=True)
+    embed.add_field(name="Live Alert", value="With ping", inline=True)
     embed.add_field(name="Teams", value=f"{sum(len(teams) for teams in TEAMS.values())}", inline=True)
     
     await ctx.send(embed=embed)
 
-# Weitere Commands (list_teams, check_team, etc.) wie zuvor...
+@bot.command()
+async def debug_prematch(ctx):
+    """Zeigt gespeicherte Pre-Match Nachrichten"""
+    if pre_match_messages:
+        message_list = ""
+        for msg_id, data in list(pre_match_messages.items())[:5]:
+            message_list += f"• {data['teams']}\n"
+            message_list += f"  📝 ID: {data['message_id']}\n\n"
+        
+        embed = discord.Embed(title="📋 Pre-Match Nachrichten", description=message_list, color=0x0099ff)
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send("❌ Keine Pre-Match Nachrichten gespeichert")
 
 @bot.event
 async def on_ready():
     """Bot Startup"""
-    print(f'✅ {bot.user} ist online! - PRE-MATCH & LIVE ALERTS')
+    print(f'✅ {bot.user} ist online! - SMART PING SYSTEM')
     
     await asyncio.sleep(2)
     
     if not send_alerts.is_running():
         send_alerts.start()
-        print("🔔 Combined Alert system started (2-minute intervals)")
+        print("🔔 Smart Ping System started (2-minute intervals)")
     
     print(f"📊 Geladene Daten: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
-    print(f"⏰ Pre-Match Alert: {ALERT_TIME} Minuten")
+    print(f"⏰ Pre-Match Alert: {ALERT_TIME} Minuten (NO PING)")
+    print(f"🔴 Live Alert: WITH PING")
     print(f"🌐 Flask Port: {flask_port}")
-    print("💾 PRE-MATCH & LIVE ALERTS System aktiviert")
+    print("💾 SMART PING SYSTEM aktiviert")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
