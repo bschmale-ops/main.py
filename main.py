@@ -20,7 +20,7 @@ app = Flask(__name__)
 start_time = datetime.datetime.now(timezone.utc)
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)  # ✅ Case-insensitive hinzugefügt
+bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)
 
 # =========================
 # CONFIGURATION
@@ -47,7 +47,7 @@ TEAM_SYNONYMS = {
     'BIG': ['big'],
     'Eternal Fire': ['eternal fire', 'ef'],
     'Monte': ['monte'],
-    'TheMongolz': ['the mongolz', 'the mongolz', 'mongolz'],
+    'TheMongolz': ['the mongolz', 'mongolz'],
     '9z Team': ['9z', '9z team'],
     'G2 Ares': ['g2 ares', 'g2'],
     'MANA eSports': ['mana', 'mana esports'],
@@ -59,7 +59,9 @@ TEAM_SYNONYMS = {
     '500': ['500'],
     'AM Gaming': ['am gaming'],
     'Dynamo Eclot': ['dynamo eclot'],
-    'm0nesy team': ['m0nesy']
+    'm0nesy team': ['m0nesy'],
+    'Betera Esports': ['betera'],
+    'SPARTA': ['sparta']
 }
 
 TEAM_LOGOS = {
@@ -75,7 +77,9 @@ TEAM_LOGOS = {
     'TheMongolz': 'https://liquipedia.net/commons/images/thumb/4/47/TheMongolz_allmode.png/150px-TheMongolz_allmode.png',
     '9z Team': 'https://liquipedia.net/commons/images/thumb/f/f2/9z_Team_2021.png/150px-9z_Team_2021.png',
     'G2 Ares': 'https://liquipedia.net/commons/images/thumb/5/5e/G2_Esports_2020.png/150px-G2_Esports_2020.png',
-    '3DMAX': 'https://liquipedia.net/commons/images/thumb/4/4a/3DMAX_2024.png/150px-3DMAX_2024.png'
+    '3DMAX': 'https://liquipedia.net/commons/images/thumb/4/4a/3DMAX_2024.png/150px-3DMAX_2024.png',
+    'Betera Esports': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png',
+    'SPARTA': 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 }
 
 def find_team_match(input_team):
@@ -87,11 +91,9 @@ def find_team_match(input_team):
 
 def get_team_logo(team_name):
     """Find logo with better team name matching"""
-    # Direct match
     if team_name in TEAM_LOGOS:
         return TEAM_LOGOS[team_name]
     
-    # Fuzzy match for similar names
     team_lower = team_name.lower()
     for logo_team, logo_url in TEAM_LOGOS.items():
         if (team_lower in logo_team.lower() or 
@@ -99,7 +101,6 @@ def get_team_logo(team_name):
             any(word in team_lower for word in logo_team.lower().split())):
             return logo_url
     
-    # Fallback to default CS2 logo
     return 'https://liquipedia.net/commons/images/thumb/f/f7/CS2_Default_icon.png/150px-CS2_Default_icon.png'
 
 # =========================
@@ -133,7 +134,7 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.values())} teams")
 
 # =========================
-# PANDASCORE API - MIT ZEITZONEN FIX!
+# PANDASCORE API - MIT KORREKTER ZEITZONE!
 # =========================
 async def fetch_pandascore_matches():
     """Fetch real matches from PandaScore API"""
@@ -141,7 +142,6 @@ async def fetch_pandascore_matches():
     
     try:
         async with aiohttp.ClientSession() as session:
-            # Upcoming matches
             url = "https://api.pandascore.co/csgo/matches/upcoming"
             headers = {
                 'Authorization': f'Bearer {PANDASCORE_TOKEN}',
@@ -168,18 +168,17 @@ async def fetch_pandascore_matches():
                                 team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    # Parse match time - ✅ ZEITZONEN FIX!
+                                    # ✅ KORREKTE ZEITZONEN-UMRECHNUNG
                                     begin_at = match_data.get('begin_at')
                                     if begin_at:
                                         match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
-                                        # ✅ UTC zu lokaler Zeit umrechnen
+                                        # ✅ Automatisch zur lokalen Zeitzone des Servers
                                         local_dt = match_dt.astimezone()
                                         time_string = local_dt.strftime("%H:%M")
                                     else:
                                         continue
                                     
-                                    # Get tournament info
                                     league = match_data.get('league', {})
                                     event = league.get('name', 'CS2 Tournament')
                                     
@@ -209,13 +208,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - NEUES EMBED DESIGN!
+# ALERT SYSTEM - NEUES MAXIMALES EMBED DESIGN!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - MIT NEUEM EMBED DESIGN!"""
+    """Send match alerts - MIT NEUEM MAXIMALEN EMBED DESIGN!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -243,9 +242,6 @@ async def send_alerts():
                     correct_name, found = find_team_match(subscribed_team)
                     team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
                     
-                    # DEBUG: Print matching attempt
-                    print(f"🔍 Checking {subscribed_team} vs {match['team1']} / {match['team2']}")
-                    
                     if (match['team1'].lower() in team_variants or 
                         match['team2'].lower() in team_variants or
                         any(variant in match['team1'].lower() for variant in team_variants) or
@@ -254,73 +250,57 @@ async def send_alerts():
                         time_until = (match['unix_time'] - current_time) / 60
                         alert_id = f"{guild_id}_{match['team1']}_{match['team2']}"
                         
-                        print(f"🎯 Match found! {match['team1']} vs {match['team2']} in {time_until:.1f}min (Alert: {ALERT_TIME}min)")
-                        
-                        # ✅ FIXED: Bessere Time-Window Prüfung
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ NEUES EMBED DESIGN - Teams untereinander mit VS-Emoji
+                            # ✅ NEUES MAXIMALES EMBED DESIGN
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
-                                title=f"🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮",
+                                title=f"\n\n🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n\n",
                                 color=0x00ff00
                             )
                             
-                            # Teams untereinander mit VS-Emoji
-                            embed.add_field(
-                                name=f"**{match['team1']}**", 
-                                value="⚔️",  # VS-Emoji zwischen Teams
-                                inline=True
-                            )
-                            embed.add_field(
-                                name=f"**{match['team2']}**", 
-                                value="\u200b",  # Unsichtbarer Platzhalter
-                                inline=True
-                            )
+                            # ✅ TEAMS UNTEREINANDER - MAXIMAL GROSS & ZENTRIERT
+                            team_display = f"\n\n# {match['team1']}\n\n\n**🆚**\n\n\n# {match['team2']}\n\n"
                             embed.add_field(
                                 name="\u200b", 
-                                value="\u200b",  # Leeres Field für Layout
+                                value=team_display, 
+                                inline=False
+                            )
+                            
+                            # ✅ TOURNAMENT INFO MIT ABSTÄNDEN
+                            embed.add_field(
+                                name="\n\n🏆 **TOURNAMENT**", 
+                                value=f"\n\n**{match['event']}**\n", 
                                 inline=True
                             )
                             
-                            # Tournament Info
+                            # ✅ STARTZEIT
                             embed.add_field(
-                                name="🏆 **TOURNAMENT**", 
-                                value=f"**{match['event']}**", 
+                                name="\n\n⏰ **STARTS IN**", 
+                                value=f"\n\n**{int(time_until)} MINUTES**\n", 
                                 inline=True
                             )
                             
-                            # Startzeit
+                            # ✅ UHRZEIT RECHTS UNTEN
                             embed.add_field(
-                                name="⏰ **STARTS IN**", 
-                                value=f"**{int(time_until)} MINUTES**", 
-                                inline=True
-                            )
-                            
-                            # Uhrzeit rechts unten - ✅ FIXED POSITION
-                            embed.add_field(
-                                name="🕐 **TIME**", 
-                                value=f"**{match['time_string']}**", 
+                                name="\n\n🕐 **TIME**", 
+                                value=f"\n\n**{match['time_string']}**\n\n", 
                                 inline=True
                             )
                             
                             embed.set_thumbnail(url=team1_logo)
-                            embed.set_footer(text="CS2 Match Alert • PandaScore API")
+                            embed.set_footer(text="\n\nCS2 Match Alert • PandaScore API\n\n")
                             
-                            # ✅ FIXED: SICHERER CHANNEL PING!
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
                                 if role:
-                                    ping_msg = await channel.send(f"🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
-                                    print(f"✅ Role ping sent: {ping_msg.id}")
+                                    await channel.send(f"🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
                                 else:
-                                    ping_msg = await channel.send(f"🔔 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
-                                    print(f"✅ Ping sent: {ping_msg.id}")
+                                    await channel.send(f"🔔 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
                                 
-                                embed_msg = await channel.send(embed=embed)
-                                print(f"✅ Embed sent: {embed_msg.id}")
+                                await channel.send(embed=embed)
                                 
                             except Exception as e:
                                 print(f"❌ Failed to send message: {e}")
@@ -338,7 +318,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS - CASE INSENSITIVE!
+# BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -459,53 +439,44 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert with new design"""
-    # ✅ NEUES TEST EMBED DESIGN
+    """Test alert with new maximal design"""
+    # ✅ NEUES MAXIMALES TEST EMBED
     embed = discord.Embed(
-        title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
+        title="\n\n🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮\n\n",
         color=0x00ff00
     )
     
-    # Teams untereinander mit VS-Emoji
-    embed.add_field(
-        name="**Natus Vincere**", 
-        value="⚔️", 
-        inline=True
-    )
-    embed.add_field(
-        name="**FaZe Clan**", 
-        value="\u200b", 
-        inline=True
-    )
+    # ✅ TEAMS UNTEREINANDER - MAXIMAL GROSS & ZENTRIERT
+    team_display = f"\n\n# BETERA ESPORTS\n\n\n**🆚**\n\n\n# SPARTA\n\n"
     embed.add_field(
         name="\u200b", 
-        value="\u200b", 
-        inline=True
+        value=team_display, 
+        inline=False
     )
     
-    # Tournament Info
+    # ✅ TOURNAMENT INFO MIT ABSTÄNDEN
     embed.add_field(
-        name="🏆 **TOURNAMENT**", 
-        value="**TEST EVENT**", 
+        name="\n\n🏆 **TOURNAMENT**", 
+        value="\n\n**TEST EVENT**\n", 
         inline=True
     )
     
-    # Startzeit
+    # ✅ STARTZEIT
     embed.add_field(
-        name="⏰ **STARTS IN**", 
-        value="**15 MINUTES**", 
+        name="\n\n⏰ **STARTS IN**", 
+        value="\n\n**15 MINUTES**\n", 
         inline=True
     )
     
-    # Uhrzeit rechts unten
+    # ✅ UHRZEIT RECHTS UNTEN
     embed.add_field(
-        name="🕐 **TIME**", 
-        value="**16:00**", 
+        name="\n\n🕐 **TIME**", 
+        value="\n\n**16:00**\n\n", 
         inline=True
     )
     
-    embed.set_thumbnail(url=get_team_logo('Natus Vincere'))
-    embed.set_footer(text="CS2 Match Alert • PandaScore API")
+    embed.set_thumbnail(url=get_team_logo('BETERA ESPORTS'))
+    embed.set_footer(text="\n\nCS2 Match Alert • PandaScore API\n\n")
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
@@ -547,7 +518,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 FIXED Alert system started - CASE INSENSITIVE COMMANDS & ZEITZONEN FIX!")
+    print("🔔 MAXIMALES ALERT SYSTEM GESTARTET!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
