@@ -9,15 +9,19 @@ from flask import Flask, jsonify
 import threading
 import aiohttp
 from bs4 import BeautifulSoup
+import socket
+import requests
 
 print("🚀 Starting Discord CS2 Bot with HLTV Scraping...")
 
 # =========================
-# FLASK STATUS SERVER
+# FLASK STATUS SERVER MIT PORT-FALLBACK
 # =========================
 app = Flask(__name__)
 start_time = datetime.datetime.now(timezone.utc)
 last_check_time = datetime.datetime.now(timezone.utc)
+flask_port = None
+flask_status = "starting"
 
 # =========================
 # DISCORD BOT SETUP
@@ -176,22 +180,29 @@ def parse_match_time(time_str):
         return int((datetime.datetime.now(timezone.utc) + datetime.timedelta(hours=1)).timestamp())
 
 # =========================
-# FLASK ROUTES
+# FLASK ROUTES - VERBESSERTE ÜBERWACHUNG
 # =========================
 @app.route('/')
 def home():
+    global flask_status
+    flask_status = "healthy"
     return "✅ Discord CS2 Bot - ONLINE"
 
 @app.route('/ping')
 def ping():
+    global flask_status
+    flask_status = "healthy"
     return jsonify({
         "status": "online",
         "bot_ready": bot.is_ready(),
-        "alerts_running": send_alerts.is_running(),
+        "alerts_running": send_alerts.is_running() if 'send_alerts' in globals() else False,
         "uptime": str(datetime.datetime.now(timezone.utc) - start_time),
         "monitored_teams": sum(len(teams) for teams in TEAMS.values()),
         "monitored_guilds": len(TEAMS),
-        "alert_time": ALERT_TIME
+        "alert_time": ALERT_TIME,
+        "flask_port": flask_port,
+        "flask_status": flask_status,
+        "timestamp": datetime.datetime.now(timezone.utc).isoformat()
     })
 
 @app.route('/test')
@@ -200,23 +211,93 @@ def test():
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "healthy"})
+    global flask_status
+    flask_status = "healthy"
+    return jsonify({
+        "status": "healthy",
+        "service": "discord_cs2_bot",
+        "last_check": last_check_time.isoformat(),
+        "teams_count": sum(len(teams) for teams in TEAMS.values()),
+        "alert_time": ALERT_TIME,
+        "servers_count": len(TEAMS),
+        "flask_port": flask_port,
+        "flask_status": flask_status
+    })
 
 @app.route('/status')
 def status():
+    global flask_status
+    flask_status = "healthy"
     return jsonify({
         "status": "online",
         "last_check": last_check_time.isoformat(),
         "teams_count": sum(len(teams) for teams in TEAMS.values()),
         "alert_time": ALERT_TIME,
-        "servers_count": len(TEAMS)
+        "servers_count": len(TEAMS),
+        "flask_port": flask_port,
+        "flask_status": flask_status,
+        "bot_ready": bot.is_ready()
     })
 
+@app.route('/debug')
+def debug():
+    """Detaillierte Debug-Informationen"""
+    return jsonify({
+        "flask_port": flask_port,
+        "flask_status": flask_status,
+        "environment_port": os.environ.get("PORT"),
+        "bot_ready": bot.is_ready(),
+        "alerts_running": send_alerts.is_running() if 'send_alerts' in globals() else False,
+        "start_time": start_time.isoformat(),
+        "current_time": datetime.datetime.now(timezone.utc).isoformat(),
+        "uptime_seconds": (datetime.datetime.now(timezone.utc) - start_time).total_seconds(),
+        "monitored_servers": len(TEAMS),
+        "monitored_teams": sum(len(teams) for teams in TEAMS.values())
+    })
+
+def is_port_available(port):
+    """Prüft ob ein Port verfügbar ist"""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('0.0.0.0', port))
+            return True
+    except OSError:
+        return False
+
 def run_flask():
-    """Startet Flask Server"""
-    port = int(os.environ.get("PORT", 10000))
-    print(f"🌐 Flask starting on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    """Startet Flask Server mit intelligentem Port-Fallback"""
+    global flask_port, flask_status
+    
+    # Port Priorität: 1. Environment, 2. 1000, 3. 10000
+    potential_ports = []
+    
+    # Environment Port
+    env_port = os.environ.get("PORT")
+    if env_port and env_port.isdigit():
+        potential_ports.append(int(env_port))
+    
+    # Standard Ports für Render.com
+    potential_ports.append(1000)   # Render.com Standard
+    potential_ports.append(10000)  # Unser ursprünglicher Port
+    
+    # Finde verfügbaren Port
+    for port in potential_ports:
+        if is_port_available(port):
+            flask_port = port
+            break
+    else:
+        # Fallback: Nimm irgendeinen verfügbaren Port
+        flask_port = 0  # 0 = automatisch verfügbarer Port
+    
+    print(f"🔍 Port Check: Environment PORT = {env_port}")
+    print(f"🌐 Flask starting on port {flask_port}")
+    
+    try:
+        flask_status = "running"
+        app.run(host='0.0.0.0', port=flask_port, debug=False, use_reloader=False)
+    except Exception as e:
+        flask_status = f"error: {e}"
+        print(f"❌ Flask Server crashed: {e}")
 
 # Flask starten
 flask_thread = threading.Thread(target=run_flask, daemon=True)
@@ -458,6 +539,8 @@ async def status(ctx):
     embed.add_field(name="Server", value=f"{len(TEAMS)}", inline=True)
     embed.add_field(name="Teams", value=f"{sum(len(teams) for teams in TEAMS.values())}", inline=True)
     embed.add_field(name="Alert-Time", value=f"{ALERT_TIME} min", inline=True)
+    embed.add_field(name="Flask Status", value=flask_status, inline=True)
+    embed.add_field(name="Flask Port", value=f"{flask_port}", inline=True)
     
     await ctx.send(embed=embed)
 
@@ -472,12 +555,33 @@ async def health(ctx):
         embed.add_field(name="Alerts", value="✅ Aktiv" if send_alerts.is_running() else "❌ Inaktiv", inline=True)
         embed.add_field(name="HLTV", value=f"✅ {len(matches)} Matches", inline=True)
         embed.add_field(name="Daten", value="✅ Persistente Speicherung", inline=True)
-        embed.add_field(name="Flask", value="✅ Läuft", inline=True)
+        embed.add_field(name="Flask", value=f"✅ {flask_status} (Port {flask_port})", inline=True)
         embed.add_field(name="Teams", value=f"✅ {sum(len(teams) for teams in TEAMS.values())}", inline=True)
         
         await ctx.send(embed=embed)
     except Exception as e:
         await ctx.send(f"❌ Health Check failed: {e}")
+
+@bot.command()
+async def flask_info(ctx):
+    """Zeigt detaillierte Flask-Informationen"""
+    try:
+        # Versuche Flask-Server zu erreichen
+        if flask_port:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f'http://localhost:{flask_port}/debug', timeout=5) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        embed = discord.Embed(title="🌐 Flask Server Info", color=0x00ff00)
+                        for key, value in data.items():
+                            embed.add_field(name=key, value=str(value)[:100], inline=False)
+                        await ctx.send(embed=embed)
+                        return
+        
+        await ctx.send(f"❌ Flask Server nicht erreichbar. Status: {flask_status}, Port: {flask_port}")
+    except Exception as e:
+        await ctx.send(f"❌ Flask Info Fehler: {e}")
 
 @bot.command()
 async def ping(ctx):
@@ -492,6 +596,9 @@ async def on_ready():
     """Bot Startup - Lädt alle gespeicherten Daten"""
     print(f'✅ {bot.user} ist online!')
     
+    # Warte kurz bis Flask gestartet ist
+    await asyncio.sleep(2)
+    
     # Alert System starten
     if not send_alerts.is_running():
         send_alerts.start()
@@ -499,6 +606,7 @@ async def on_ready():
     
     print(f"📊 Geladene Daten: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
     print(f"⏰ Alert-Time: {ALERT_TIME} Minuten")
+    print(f"🌐 Flask Port: {flask_port}, Status: {flask_status}")
     print("💾 Alle Daten persistent gespeichert")
 
 # =========================
