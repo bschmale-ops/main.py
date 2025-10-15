@@ -11,7 +11,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import socket
 
-print("🚀 Starting Discord CS2 Bot - OPTIMIZED HLTV...")
+print("🚀 Starting Discord CS2 Bot - ENHANCED VISUALS & OPTIMIZED...")
 
 # =========================
 # FLASK STATUS SERVER
@@ -152,7 +152,7 @@ for guild_id_str, channel_id in data.get("CHANNELS", {}).items():
 print(f"📊 System geladen: {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams, Alert-Time: {ALERT_TIME}min")
 
 # =========================
-# OPTIMIZED HLTV SCRAPING - DAS WAS GESTERN FUNKTIONIERT HAT!
+# OPTIMIZED HLTV SCRAPING
 # =========================
 async def fetch_hltv_matches():
     """Holt ECHTE Matches von HLTV - optimierte Version"""
@@ -262,7 +262,7 @@ def parse_match_time(time_str):
 def home():
     global flask_status
     flask_status = "healthy"
-    return "✅ Discord CS2 Bot - OPTIMIZED HLTV"
+    return "✅ Discord CS2 Bot - ENHANCED VISUALS"
 
 @app.route('/ping')
 def ping():
@@ -286,7 +286,7 @@ def health():
     flask_status = "healthy"
     return jsonify({
         "status": "healthy",
-        "service": "discord_cs2_bot_optimized",
+        "service": "discord_cs2_bot_enhanced",
         "last_check": last_check_time.isoformat(),
         "teams_count": sum(len(teams) for teams in TEAMS.values()),
         "servers_count": len(TEAMS),
@@ -338,13 +338,13 @@ flask_thread.start()
 print("✅ Flask server started")
 
 # =========================
-# OPTIMIZED ALERT SYSTEM - DAS WAS GESTERN FUNKTIONIERT HAT!
+# ENHANCED ALERT SYSTEM - MIT VISUAL VERBESSERUNGEN!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=3)
 async def send_alerts():
-    """Sendet Alerts für Matches - optimierte Version"""
+    """Sendet Alerts für Matches - MIT VISUAL VERBESSERUNGEN!"""
     global last_check_time
     try:
         last_check_time = datetime.datetime.now(timezone.utc)
@@ -389,29 +389,30 @@ async def send_alerts():
                             # Alert wenn Match innerhalb der Alert-Time startet
                             if 0 <= time_until_match <= ALERT_TIME and alert_id not in sent_alerts:
                                 
-                                # Bestimme Farbe basierend auf Zeit
+                                # 🎨 VISUAL VERBESSERUNGEN - GRÖSSERE ELEMENTE!
                                 if time_until_match <= 5:
                                     color = 0xff9900  # Orange - sehr bald
-                                    urgency = "⚡ STARTET BALD"
+                                    title = "🔔 ⚡ MATCH STARTET BALD! ⚡"
                                 else:
                                     color = 0x00ff00  # Grün - geplant
-                                    urgency = "⏰ MATCH REMINDER"
+                                    title = f"🔔 ⏰ MATCH REMINDER ({int(time_until_match)}min) ⏰"
                                 
+                                # 🎨 VERBESSERTES EMBED MIT GRÖSSERER SCHRIFT & MEHR EMOJIS
                                 embed = discord.Embed(
-                                    title=f"🎯 {urgency}",
-                                    description=f"**{match['team1']}** vs **{match['team2']}**",
+                                    title=title,
+                                    description=f"# 🎮 **{match['team1']}**  🆚  **{match['team2']}** 🎮",
                                     color=color,
                                     url=match['link']
                                 )
-                                embed.add_field(name="Event", value=match['event'], inline=True)
-                                embed.add_field(name="Start in", value=f"**{int(time_until_match)} Minuten**", inline=True)
-                                embed.add_field(name="Zeit", value=match['time_string'], inline=True)
-                                embed.add_field(name="Link", value=f"[HLTV]({match['link']})", inline=False)
+                                embed.add_field(name="**📅 EVENT**", value=f"**{match['event']}**", inline=True)
+                                embed.add_field(name="**⏰ START IN**", value=f"**{int(time_until_match)} MINUTEN**", inline=True)
+                                embed.add_field(name="**🕐 ZEIT**", value=f"**{match['time_string']}**", inline=True)
+                                embed.add_field(name="**🔗 LINK**", value=f"[📺 Match ansehen]({match['link']})", inline=False)
                                 
-                                # 🔔 PING FÜR ALLE ALERTS!
+                                # 🎨 VERBESSERTER PING MIT GRÖSSERER SCHRIFT
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
                                 if role:
-                                    await channel.send(f"📢 {role.mention} **Match starting in {int(time_until_match)} minutes!** 🎮")
+                                    await channel.send(f"🔔 {role.mention} **MATCH STARTING IN {int(time_until_match)} MINUTES!** 🎮")
                                 await channel.send(embed=embed)
                                 
                                 sent_alerts.add(alert_id)
@@ -430,7 +431,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS
+# BOT COMMANDS - MIT VISUAL VERBESSERUNGEN!
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -447,11 +448,11 @@ async def subscribe(ctx, *, team):
             if found_match:
                 variants = get_team_variants(correct_name)
                 variants_text = ", ".join([f"`{v}`" for v in variants[:3]])
-                await ctx.send(f"✅ **{correct_name}** für Alerts hinzugefügt! 🎯\nErkennbare Namen: {variants_text}")
+                await ctx.send(f"✅ **{correct_name}** für Alerts hinzugefügt! 🎯\n**Erkennbare Namen:** {variants_text}")
             else:
                 await ctx.send(f"✅ **{correct_name}** hinzugefügt! ⚠️")
         else:
-            await ctx.send(f"⚠️ Speichern fehlgeschlagen!")
+            await ctx.send(f"⚠️ **Speichern fehlgeschlagen!**")
     else:
         await ctx.send(f"⚠️ **{correct_name}** bereits abonniert!")
 
@@ -463,11 +464,11 @@ async def settime(ctx, minutes: int):
         old_time = ALERT_TIME
         ALERT_TIME = minutes
         if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"⏰ Alert-Zeit von **{old_time}** auf **{minutes} Minuten** geändert! 🔔")
+            await ctx.send(f"⏰ **ALERT-ZEIT VON {old_time} AUF {minutes} MINUTEN GESETZT!** 🔔")
         else:
-            await ctx.send(f"⚠️ Zeit gesetzt, aber Speichern fehlgeschlagen!")
+            await ctx.send(f"⚠️ **Zeit gesetzt, aber Speichern fehlgeschlagen!**")
     else:
-        await ctx.send("❌ Bitte 1-240 Minuten angeben!")
+        await ctx.send("❌ **Bitte 1-240 Minuten angeben!**")
 
 @bot.command()
 async def matches(ctx):
@@ -476,33 +477,35 @@ async def matches(ctx):
         matches = await fetch_hltv_matches()
         
         if matches:
+            # 🎨 VERBESSERTES MATCHES EMBED MIT GRÖSSERER SCHRIFT
             match_list = ""
             for i, match in enumerate(matches[:8], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                match_list += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
-                match_list += f"   ⏰ {int(time_until)}min | 📅 {match['event']}\n"
-                match_list += f"   🕐 {match['time_string']}\n\n"
+                match_list += f"{i}. **{match['team1']}** 🆚 **{match['team2']}**\n"
+                match_list += f"   ⏰ **{int(time_until)}min** | 📅 **{match['event']}**\n"
+                match_list += f"   🕐 **{match['time_string']}**\n\n"
             
             embed = discord.Embed(
-                title="🎯 Verfügbare CS2 Matches",
+                title="🎯 📅 VERFÜGBARE CS2 MATCHES 📅",
                 description=match_list,
                 color=0x0099ff
             )
+            embed.set_footer(text=f"🔔 Alert-Time: {ALERT_TIME}min | ⏰ Check: alle 3min")
             await ctx.send(embed=embed)
         else:
-            await ctx.send("❌ Keine Matches auf HLTV gefunden")
+            await ctx.send("❌ **Keine Matches auf HLTV gefunden**")
             
     except Exception as e:
-        await ctx.send(f"❌ Fehler: {e}")
+        await ctx.send(f"❌ **Fehler:** {e}")
 
 @bot.command()
 async def setchannel(ctx, channel: discord.TextChannel):
     """Setze den Alert-Channel"""
     CHANNELS[ctx.guild.id] = channel.id
     if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-        await ctx.send(f"📡 Channel auf {channel.mention} gesetzt! ✅")
+        await ctx.send(f"📡 **CHANNEL AUF {channel.mention} GESETZT!** ✅")
     else:
-        await ctx.send(f"⚠️ Channel gesetzt, aber Speichern fehlgeschlagen!")
+        await ctx.send(f"⚠️ **Channel gesetzt, aber Speichern fehlgeschlagen!**")
 
 @bot.command()
 async def status(ctx):
@@ -511,35 +514,57 @@ async def status(ctx):
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
     
-    embed = discord.Embed(title="🤖 Bot Status", color=0x00ff00)
-    embed.add_field(name="Status", value="✅ Online", inline=True)
-    embed.add_field(name="Uptime", value=f"{hours}h {minutes}m", inline=True)
-    embed.add_field(name="Alerts", value="✅ Aktiv", inline=True)
-    embed.add_field(name="Alert-Time", value=f"{ALERT_TIME}min", inline=True)
-    embed.add_field(name="Teams", value=f"{sum(len(teams) for teams in TEAMS.values())}", inline=True)
+    # 🎨 VERBESSERTER STATUS MIT GRÖSSERER SCHRIFT
+    embed = discord.Embed(title="🤖 📊 BOT STATUS 📊", color=0x00ff00)
+    embed.add_field(name="**🟢 STATUS**", value="**✅ ONLINE**", inline=True)
+    embed.add_field(name="**⏰ UPTIME**", value=f"**{hours}h {minutes}m**", inline=True)
+    embed.add_field(name="**🔔 ALERTS**", value="**✅ AKTIV**", inline=True)
+    embed.add_field(name="**⏱️ ALERT-TIME**", value=f"**{ALERT_TIME}min**", inline=True)
+    embed.add_field(name="**👥 TEAMS**", value=f"**{sum(len(teams) for teams in TEAMS.values())}**", inline=True)
+    embed.add_field(name="**🔄 INTERVAL**", value="**3 Minuten**", inline=True)
     
     await ctx.send(embed=embed)
 
 @bot.command()
 async def force_check(ctx):
     """Erzwingt eine sofortige Überprüfung"""
-    await ctx.send("🔍 Erzwinge sofortige Match-Überprüfung...")
+    await ctx.send("🔍 **ERZwinge sofortige Match-Überprüfung...**")
     await send_alerts()
-    await ctx.send("✅ Überprüfung abgeschlossen!")
+    await ctx.send("✅ **ÜBERPRÜFUNG ABGESCHLOSSEN!**")
+
+@bot.command()
+async def test_alert(ctx):
+    """Testet einen Alert"""
+    # 🎨 VERBESSERTER TEST ALERT
+    embed = discord.Embed(
+        title="🔔 🎮 TEST ALERT 🎮",
+        description="# 🎮 **Natus Vincere**  🆚  **FaZe Clan** 🎮",
+        color=0x00ff00
+    )
+    embed.add_field(name="**📅 EVENT**", value="**TEST EVENT**", inline=True)
+    embed.add_field(name="**⏰ START IN**", value="**15 MINUTEN**", inline=True)
+    embed.add_field(name="**🕐 ZEIT**", value="**Today 20:00**", inline=True)
+    
+    role = discord.utils.get(ctx.guild.roles, name="CS2")
+    if role:
+        await ctx.send(f"🔔 {role.mention} **TEST ALERT! MATCH STARTING IN 15 MINUTES!** 🎮")
+    await ctx.send(embed=embed)
+    await ctx.send("✅ **TEST ALERT GESENDET!**")
 
 @bot.event
 async def on_ready():
     """Bot Startup"""
-    print(f'✅ {bot.user} ist online! - OPTIMIZED HLTV')
+    print(f'✅ {bot.user} ist online! - ENHANCED VISUALS')
     
     await asyncio.sleep(2)
     
     if not send_alerts.is_running():
         send_alerts.start()
-        print("🔔 Optimized Alert system started")
+        print("🔔 Enhanced Alert system started")
     
     print(f"📊 {len(TEAMS)} Server, {sum(len(teams) for teams in TEAMS.values())} Teams")
     print(f"⏰ Alert-Time: {ALERT_TIME}min")
+    print(f"🎨 Enhanced Visuals aktiviert!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
