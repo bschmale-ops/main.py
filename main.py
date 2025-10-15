@@ -20,7 +20,7 @@ app = Flask(__name__)
 start_time = datetime.datetime.now(timezone.utc)
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix='/', intents=intents)
+bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)  # ✅ Case-insensitive hinzugefügt
 
 # =========================
 # CONFIGURATION
@@ -133,7 +133,7 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.values())} teams")
 
 # =========================
-# PANDASCORE API
+# PANDASCORE API - MIT ZEITZONEN FIX!
 # =========================
 async def fetch_pandascore_matches():
     """Fetch real matches from PandaScore API"""
@@ -168,12 +168,14 @@ async def fetch_pandascore_matches():
                                 team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    # Parse match time
+                                    # Parse match time - ✅ ZEITZONEN FIX!
                                     begin_at = match_data.get('begin_at')
                                     if begin_at:
                                         match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
-                                        time_string = match_dt.strftime("%H:%M")
+                                        # ✅ UTC zu lokaler Zeit umrechnen
+                                        local_dt = match_dt.astimezone()
+                                        time_string = local_dt.strftime("%H:%M")
                                     else:
                                         continue
                                     
@@ -207,13 +209,13 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - FIXED CHANNEL PING!
+# ALERT SYSTEM - NEUES EMBED DESIGN!
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - FIXED CHANNEL PING!"""
+    """Send match alerts - MIT NEUEM EMBED DESIGN!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -258,30 +260,63 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # Create alert embed
+                            # ✅ NEUES EMBED DESIGN - Teams untereinander mit VS-Emoji
                             team1_logo = get_team_logo(match['team1'])
                             
                             embed = discord.Embed(
-                                title="\n🔔 🎮 **MATCH STARTING SOON!** 🎮\n",
-                                description=f"\n## **{match['team1']}**\n\n   🆚   \n\n## **{match['team2']}**\n",
+                                title=f"🎮 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮",
                                 color=0x00ff00
                             )
                             
-                            embed.set_author(name=f"\n{match['team1']} vs {match['team2']}\n", icon_url=team1_logo)
-                            embed.set_thumbnail(url=team1_logo)
+                            # Teams untereinander mit VS-Emoji
+                            embed.add_field(
+                                name=f"**{match['team1']}**", 
+                                value="⚔️",  # VS-Emoji zwischen Teams
+                                inline=True
+                            )
+                            embed.add_field(
+                                name=f"**{match['team2']}**", 
+                                value="\u200b",  # Unsichtbarer Platzhalter
+                                inline=True
+                            )
+                            embed.add_field(
+                                name="\u200b", 
+                                value="\u200b",  # Leeres Field für Layout
+                                inline=True
+                            )
                             
-                            embed.add_field(name="\n**🏆 TOURNAMENT**", value=f"\n**{match['event']}**\n", inline=True)
-                            embed.add_field(name="\n**⏰ STARTS IN**", value=f"\n**{int(time_until)} MINUTES**\n", inline=True)
-                            embed.add_field(name="\n**🕐 TIME**", value=f"\n**{match['time_string']}**\n", inline=True)
+                            # Tournament Info
+                            embed.add_field(
+                                name="🏆 **TOURNAMENT**", 
+                                value=f"**{match['event']}**", 
+                                inline=True
+                            )
+                            
+                            # Startzeit
+                            embed.add_field(
+                                name="⏰ **STARTS IN**", 
+                                value=f"**{int(time_until)} MINUTES**", 
+                                inline=True
+                            )
+                            
+                            # Uhrzeit rechts unten - ✅ FIXED POSITION
+                            embed.add_field(
+                                name="🕐 **TIME**", 
+                                value=f"**{match['time_string']}**", 
+                                inline=True
+                            )
+                            
+                            embed.set_thumbnail(url=team1_logo)
+                            embed.set_footer(text="CS2 Match Alert • PandaScore API")
                             
                             # ✅ FIXED: SICHERER CHANNEL PING!
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
                                 if role:
-                                    ping_msg = await channel.send(f"\n🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n")
+                                    ping_msg = await channel.send(f"🔔 {role.mention} **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
                                     print(f"✅ Role ping sent: {ping_msg.id}")
                                 else:
-                                    ping_msg = await channel.send(f"\n🔔 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮\n")
+                                    ping_msg = await channel.send(f"🔔 **MATCH STARTING IN {int(time_until)} MINUTES!** 🎮")
                                     print(f"✅ Ping sent: {ping_msg.id}")
                                 
                                 embed_msg = await channel.send(embed=embed)
@@ -303,7 +338,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS (ENGLISH)
+# BOT COMMANDS - CASE INSENSITIVE!
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -424,16 +459,53 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert"""
+    """Test alert with new design"""
+    # ✅ NEUES TEST EMBED DESIGN
     embed = discord.Embed(
-        title="\n🔔 **TEST ALERT**\n",
-        description=f"\n## **Natus Vincere**\n\n   🆚   \n\n## **FaZe Clan**\n",
+        title="🎮 **TEST MATCH STARTING IN 15 MINUTES!** 🎮",
         color=0x00ff00
     )
+    
+    # Teams untereinander mit VS-Emoji
+    embed.add_field(
+        name="**Natus Vincere**", 
+        value="⚔️", 
+        inline=True
+    )
+    embed.add_field(
+        name="**FaZe Clan**", 
+        value="\u200b", 
+        inline=True
+    )
+    embed.add_field(
+        name="\u200b", 
+        value="\u200b", 
+        inline=True
+    )
+    
+    # Tournament Info
+    embed.add_field(
+        name="🏆 **TOURNAMENT**", 
+        value="**TEST EVENT**", 
+        inline=True
+    )
+    
+    # Startzeit
+    embed.add_field(
+        name="⏰ **STARTS IN**", 
+        value="**15 MINUTES**", 
+        inline=True
+    )
+    
+    # Uhrzeit rechts unten
+    embed.add_field(
+        name="🕐 **TIME**", 
+        value="**16:00**", 
+        inline=True
+    )
+    
     embed.set_thumbnail(url=get_team_logo('Natus Vincere'))
-    embed.set_author(name="\nNatus Vincere vs FaZe Clan\n", icon_url=get_team_logo('Natus Vincere'))
-    embed.add_field(name="\n**🏆 TOURNAMENT**", value="\n**TEST EVENT**\n", inline=True)
-    embed.add_field(name="**⏰ STARTS IN**", value="**15 MINUTES**", inline=True)
+    embed.set_footer(text="CS2 Match Alert • PandaScore API")
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
@@ -475,7 +547,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 FIXED Alert system started - DEBUG MODE ACTIVE!")
+    print("🔔 FIXED Alert system started - CASE INSENSITIVE COMMANDS & ZEITZONEN FIX!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
