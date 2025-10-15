@@ -437,6 +437,51 @@ async def send_alerts():
 # BOT COMMANDS - ALLE MIT SOFORTIGER SPEICHERUNG
 # =========================
 @bot.command()
+async def test_hltv(ctx):
+    """Testet HLTV Verbindung direkt"""
+    try:
+        await ctx.send("🔍 Testing HLTV connection...")
+        
+        matches = await fetch_hltv_matches()
+        
+        if matches:
+            match_list = ""
+            for i, match in enumerate(matches[:5], 1):
+                match_list += f"{i}. **{match['team1']}** vs **{match['team2']}**\n"
+                match_list += f"   🕐 {match['time_string']} | 📅 {match['event']}\n\n"
+            
+            embed = discord.Embed(
+                title="✅ HLTV Test Successful",
+                description=match_list,
+                color=0x00ff00
+            )
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("❌ No matches found. HLTV structure might have changed.")
+            
+    except Exception as e:
+        await ctx.send(f"❌ HLTV Test failed: {e}")
+
+@bot.command()
+async def hltv_raw(ctx):
+    """Zeigt rohe HLTV Daten für Debugging"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+            async with session.get('https://www.hltv.org/matches', headers=headers) as response:
+                if response.status == 200:
+                    html = await response.text()
+                    # Zeige erste 500 Zeichen zur Analyse
+                    preview = html[:500].replace('\n', ' ').replace('  ', ' ')
+                    await ctx.send(f"📄 HTML Preview: ```{preview}...```")
+                else:
+                    await ctx.send(f"❌ Status: {response.status}")
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
+
+@bot.command()
 async def subscribe(ctx, *, team):
     """Abonniere ein Team für Alerts - SOFORT GESPEICHERT"""
     guild_id = ctx.guild.id
