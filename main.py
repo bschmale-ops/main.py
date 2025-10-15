@@ -37,22 +37,22 @@ AUTO_SUBSCRIBE_TEAMS = [
     'G2', 'Aurora', 'Liquid', 'M80'
 ]
 
-# Team Display Names mit Emojis (mit korrekten Emoji-IDs)
+# Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
-    'Falcons': '<:falcons:1428089350217793616> **FALCONS**',
-    'MOUZ': '<:mouz:1428089555340361799> **MOUZ**',
-    'Team Spirit': '<:spirit:1428089687905402950> **TEAM SPIRIT**',
-    'Team Vitality': '<:vitality:1428089770554298600> **TEAM VITALITY**',
-    'The Mongolz': '<:themongolz:1428089834467229821> **THE MONGOLZ**',
-    'FURIA': '<:furia:1428089888686870699> **FURIA**',
-    'Natus Vincere': '<:navi:1428089945041666160> **NATUS VINCERE**',
-    'FaZe': '<:faze:1428089989392109711> **FAZE**',
-    '3DMAX': '<:3dmax:1428090044345749515> **3DMAX**',
-    'Astralis': '<:astralis:1428090097349165066> **ASTRALIS**',
-    'G2': '<:g2:1428090150835064875> **G2**',
-    'Aurora': '<:aurora:1428090193705173022> **AURORA**',
-    'Liquid': '<:liquid:1428090244997189663> **LIQUID**',
-    'M80': '<:m80:1428090295341420664> **M80**'
+    'Falcons': '<:falcons:1428075105615085598> **FALCONS**',
+    'MOUZ': '<:mouz:1428075167850041425> **MOUZ**',
+    'Team Spirit': '<:spirit:1428075208564019302> **TEAM SPIRIT**',
+    'Team Vitality': '<:vitality:1428075243510956113> **TEAM VITALITY**',
+    'The Mongolz': '<:themongolz:1428075231939133581> **THE MONGOLZ**',
+    'FURIA': '<:furia:1428075132156641471> **FURIA**',
+    'Natus Vincere': '<:navi:1428075186976194691> **NATUS VINCERE**',
+    'FaZe': '<:faze:1428075117753401414> **FAZE**',
+    '3DMAX': '<:3dmax:1428075077408133262> **3DMAX**',
+    'Astralis': '<:astralis:1428075043526672394> **ASTRALIS**',
+    'G2': '<:g2:1428075144240431154> **G2**',
+    'Aurora': '<:aurora:1428075062287798272> **AURORA**',
+    'Liquid': '<:liquid:1428075155456000122> **LIQUID**',
+    'M80': '<:m80:1428076593028530236> **M80**'
 }
 
 # =========================
