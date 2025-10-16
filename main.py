@@ -8,6 +8,7 @@ import asyncio
 from flask import Flask, jsonify
 import threading
 import aiohttp
+import re
 
 print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
 
@@ -34,8 +35,9 @@ AUTO_SUBSCRIBE_TEAMS = [
     'G2', 'Aurora', 'Liquid', 'M80'
 ]
 
-# Team Display Names mit korrekten Emoji-IDs
+# Team Display Names mit ALLEN Emoji-IDs
 TEAM_DISPLAY_NAMES = {
+    # Original Teams
     'Falcons': '<:falcons:1428075105615085598> FALCONS',
     'MOUZ': '<:mouz:1428075167850041425> MOUZ',
     'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
@@ -49,7 +51,24 @@ TEAM_DISPLAY_NAMES = {
     'G2': '<:g2:1428075144240431154> G2',
     'Aurora': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
-    'M80': '<:m80:1428076593028530236> M80'
+    'M80': '<:m80:1428076593028530236> M80',
+    
+    # Neue Teams
+    'B8': '<:b8:1428264645042503761> B8',
+    'BetBoom': '<:betboom:1428264669533048932> BETBOOM',
+    'Complexity': '<:complexity:1428264681222439023> COMPLEXITY',
+    'FlyQuest': '<:flyquest:1428264694795472896> FLYQUEST',
+    'Fnatic': '<:fnatic:1428265467201458289> FNATIC',
+    'GamerLegion': '<:gamerlegion:1428264709613686865> GAMERLEGION',
+    'Heroic': '<:heroic:1428264721269915668> HEROIC',
+    'Imperial': '<:imperial:1428264741532602399> IMPERIAL',
+    'Lynn Vision': '<:lynnvision:1428264754064916510> LYNN VISION',
+    'MIBR': '<:mibr:1428264767784751226> MIBR',
+    'Ninjas in Pyjamas': '<:nip:1428264779507830824> NINJAS IN PYJAMAS',
+    'paiN': '<:pain:1428264796012417077> PAIN',
+    'SAW': '<:saw:1428264807496417341> SAW',
+    'TYLOO': '<:tyloo:1428264914367021198> TYLOO',
+    'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO'
 }
 
 # =========================
@@ -67,7 +86,13 @@ TEAM_SYNONYMS = {
     'Astralis': ['astralis'],
     'Aurora': ['aurora'],
     'Liquid': ['liquid'],
-    'M80': ['m80']
+    'M80': ['m80'],
+    'Complexity': ['complexity', 'col'],
+    'Heroic': ['heroic'],
+    'Fnatic': ['fnatic'],
+    'Virtus.pro': ['virtus pro', 'vp'],
+    'Ninjas in Pyjamas': ['nip'],
+    'paiN': ['pain']
 }
 
 def find_team_match(input_team):
@@ -81,14 +106,29 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Dynamische Zentrierung mit Emoji-IDs"""
-    lines = [team1, separator, team2]
-    max_len = max(len(line) for line in lines)
-    padding = 6
-    centered_lines = []
-    for line in lines:
-        centered_lines.append(f"# {line.center(max_len + padding)}")
-    return "\n".join(centered_lines)
+    """Dynamische Zentrierung basierend auf Textlänge"""
+    # Textlängen berechnen (ohne Emoji-Formatierung für Länge)
+    def get_visual_length(text):
+        # Entferne <:name:ID> Formatierung für Längenberechnung
+        clean_text = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', 'TEAM', text)
+        return len(clean_text)
+    
+    team1_len = get_visual_length(team1)
+    team2_len = get_visual_length(team2)
+    separator_len = get_visual_length(separator)
+    
+    # Maximale Länge finden
+    max_len = max(team1_len, team2_len, separator_len)
+    
+    # Zusatz-Padding für bessere Darstellung
+    padding = 10
+    
+    # Zentriere jede Zeile
+    team1_line = f"# {team1.center(max_len + padding)}"
+    team2_line = f"# {team2.center(max_len + padding)}"
+    vs_line = f"# {separator.center(max_len + padding)}"
+    
+    return f"{team1_line}\n{vs_line}\n{team2_line}"
 
 def create_centered_teams_display(team1, team2):
     team1_display = get_display_name(team1)
@@ -227,7 +267,7 @@ async def send_alerts():
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
                             
                             match_content = (
-                                f"\n\n{centered_display}\n\n\n\n"
+                                f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
                                 f"*🏆 {match['event']}*\n"
                                 f"*⏰ Starts in {int(time_until)} minutes{' ' * 20}🕐 {match['time_string']}*"
                             )
@@ -393,7 +433,7 @@ async def test(ctx):
     centered_display = create_centered_teams_display("Falcons", "Team Vitality")
     
     test_content = (
-        f"\n\n{centered_display}\n\n\n\n"
+        f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
         f"*🏆 NODWIN Clutch Series*\n"
         f"*⏰ Starts in 15 minutes{' ' * 20}🕐 16:00*"
     )
