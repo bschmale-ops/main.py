@@ -1,7 +1,6 @@
 import os
 import discord
 from discord.ext import commands, tasks
-from discord.ui import Button, View
 import datetime
 from datetime import timezone, timedelta
 import json
@@ -9,9 +8,6 @@ import asyncio
 from flask import Flask, jsonify
 import threading
 import aiohttp
-from bs4 import BeautifulSoup
-import socket
-import re
 
 print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
 
@@ -65,31 +61,8 @@ TEAM_SYNONYMS = {
     'Team Vitality': ['vitality'],
     'G2 Esports': ['g2'],
     'MOUZ': ['mouz'],
-    'Heroic': ['heroic'],
-    'Cloud9': ['cloud9', 'c9'],
     'Team Spirit': ['spirit'],
     'FURIA': ['furia'],
-    'OG': ['og'],
-    'Virtus.pro': ['virtus pro', 'vp'],
-    'ENCE': ['ence'],
-    'Complexity': ['complexity', 'col'],
-    'BIG': ['big'],
-    'Eternal Fire': ['eternal fire', 'ef'],
-    'Monte': ['monte'],
-    'The Mongolz': ['the mongolz', 'mongolz'],
-    '9z Team': ['9z', '9z team'],
-    'G2 Esports': ['g2 ares', 'g2'],
-    'MANA eSports': ['mana', 'mana esports'],
-    '3DMAX': ['3dmax'],
-    'Lynn Vision': ['lynn vision', 'lynn'],
-    'Team Novaq': ['novaq'],
-    'AMKAL ESPORTS': ['amkal'],
-    'ARCRED': ['arcred'],
-    '500': ['500'],
-    'AM Gaming': ['am gaming'],
-    'Dynamo Eclot': ['dynamo eclot'],
-    'm0nesy team': ['m0nesy'],
-    'Betera Esports': ['betera'],
     'Falcons': ['falcons'],
     'Astralis': ['astralis'],
     'Aurora': ['aurora'],
@@ -105,44 +78,24 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_display_name(team_name):
-    """Get team name with emoji for display"""
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
-
-def validate_team_display():
-    """Validate the structure of TEAM_DISPLAY_NAMES and log potential issues"""
-    for team, display in TEAM_DISPLAY_NAMES.items():
-        if ' ' not in display:
-            print(f"⚠️ Warning: Team '{team}' has an invalid display format: '{display}' (no space between emoji and name)")
-        elif not display.startswith('<:') and not display.startswith('<a:'):
-            print(f"⚠️ Warning: Team '{team}' has an invalid emoji format: '{display}' (does not start with <: or <a:)")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
     """Dynamische Zentrierung mit Emoji-IDs"""
-    # Liste der Zeilen mit vollständigen Emoji-IDs
     lines = [team1, separator, team2]
-    
-    # Maximale Textlänge ermitteln (der längste Text bestimmt die Breite)
     max_len = max(len(line) for line in lines)
-    
-    # Zusatzbreite für besseren Rand
     padding = 6
-    
-    # Alles schön zentriert ausgeben
     centered_lines = []
     for line in lines:
         centered_lines.append(f"# {line.center(max_len + padding)}")
-    
     return "\n".join(centered_lines)
 
 def create_centered_teams_display(team1, team2):
-    """Erstelle perfekt zentrierte Team-Anzeige"""
     team1_display = get_display_name(team1)
     team2_display = get_display_name(team2)
-    centered_display = center_vs(team1_display, team2_display)
-    return centered_display
+    return center_vs(team1_display, team2_display)
 
 def create_frame(title, content):
-    """Erstelle einen Rahmen für Textnachrichten"""
     separator = "─────────────────────────────"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
@@ -160,11 +113,7 @@ def load_data():
                 return data
         print(f"📄 No {DATA_FILE} found, starting fresh")
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON error in {DATA_FILE}: {e} - resetting to default")
-        return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
-    except Exception as e:
-        print(f"❌ Load error: {e}")
+    except:
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
 
 def save_data():
@@ -174,7 +123,7 @@ def save_data():
         print(f"✅ Saved data to {DATA_FILE}: {len(TEAMS)} servers")
         return True
     except Exception as e:
-        print(f"❌ Save error in {DATA_FILE}: {e}")
+        print(f"❌ Save error: {e}")
         return False
 
 # Load initial data
@@ -185,14 +134,10 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 
 print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.values())} teams")
 
-# Validate team display names on startup
-validate_team_display()
-
 # =========================
 # PANDASCORE API
 # =========================
 async def fetch_pandascore_matches():
-    """Fetch real matches from PandaScore API"""
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
@@ -215,21 +160,19 @@ async def fetch_pandascore_matches():
                                     if begin_at:
                                         match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
-                                        german_tz = timezone(timedelta(hours=2))  # Sommerzeit
+                                        german_tz = timezone(timedelta(hours=2))
                                         local_dt = match_dt.astimezone(german_tz)
                                         time_string = local_dt.strftime("%H:%M")
-                                    else:
-                                        continue
-                                    league = match_data.get('league', {})
-                                    event = league.get('name', 'CS2 Tournament')
-                                    matches.append({
-                                        'team1': team1, 'team2': team2, 'unix_time': unix_time,
-                                        'event': event, 'time_string': time_string, 'is_live': False,
-                                        'source': 'PandaScore'
-                                    })
-                                    print(f"✅ Found: {team1} vs {team2} at {time_string}")
-                        except Exception as e:
-                            print(f"⚠️ Error parsing match: {e}")
+                                        
+                                        league = match_data.get('league', {})
+                                        event = league.get('name', 'CS2 Tournament')
+                                        
+                                        matches.append({
+                                            'team1': team1, 'team2': team2, 'unix_time': unix_time,
+                                            'event': event, 'time_string': time_string
+                                        })
+                                        print(f"✅ Found: {team1} vs {team2} at {time_string}")
+                        except:
                             continue
                     print(f"🎯 PandaScore: {len(matches)} matches found")
                     return matches
@@ -241,13 +184,12 @@ async def fetch_pandascore_matches():
         return []
 
 # =========================
-# ALERT SYSTEM - ALS NORMALE TEXTNACHRICHTEN MIT RAHMEN!
+# ALERT SYSTEM
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
-    """Send match alerts - ALS NORMALE TEXTNACHRICHTEN!"""
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
@@ -260,22 +202,17 @@ async def send_alerts():
                 
             channel_id = CHANNELS.get(guild_id)
             if not channel_id:
-                print(f"❌ No channel set for guild {guild_id}")
                 continue
 
             channel = bot.get_channel(channel_id)
             if not channel:
-                print(f"❌ Channel {channel_id} not found for guild {guild_id}")
                 continue
-
-            print(f"✅ Channel found: #{channel.name} in {channel.guild.name}")
 
             for match in matches:
                 for subscribed_team in subscribed_teams:
                     correct_name, found = find_team_match(subscribed_team)
                     team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
                     
-                    # VERBESSERTES MATCHING
                     if (match['team1'].lower() in team_variants or 
                         match['team2'].lower() in team_variants or
                         any(variant in match['team1'].lower() for variant in team_variants) or
@@ -287,13 +224,12 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            # ✅ ALS NORMALE TEXTNACHRICHT MIT RAHMEN!
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
                             
                             match_content = (
-                                f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
+                                f"\n\n{centered_display}\n\n\n\n"
                                 f"*🏆 {match['event']}*\n"
-                                f"*⏰ Starts in {int(time_until)} minutes{' ' * 20}🕐 {match['time_string']}*"  # Zeit rechts
+                                f"*⏰ Starts in {int(time_until)} minutes{' ' * 20}🕐 {match['time_string']}*"
                             )
                             
                             framed_message = create_frame(
@@ -308,35 +244,30 @@ async def send_alerts():
                                 else:
                                     await channel.send(framed_message)
                                 
+                                sent_alerts.add(alert_id)
+                                print(f"✅ Alert sent: {match['team1']} vs {match['team2']} in {int(time_until)}min")
+                                
+                                if len(sent_alerts) > 50:
+                                    sent_alerts.clear()
+                                    
                             except Exception as e:
                                 print(f"❌ Failed to send message: {e}")
-                                continue
-                            
-                            sent_alerts.add(alert_id)
-                            print(f"✅ Alert sent and tracked: {match['team1']} vs {match['team2']} in {int(time_until)}min")
-                            
-                            if len(sent_alerts) > 50:
-                                sent_alerts.clear()
-                                
                             break
         
     except Exception as e:
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS - ALLE ALS NORMALE TEXTNACHRICHTEN!
+# BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
-    """Subscribe to a team for alerts"""
     guild_id = str(ctx.guild.id)
-    print(f"Debug subscribe: guild_id={guild_id}, team_input={team}")
     
     if guild_id not in TEAMS:
         TEAMS[guild_id] = []
     
     correct_name, found = find_team_match(team)
-    print(f"Debug subscribe: correct_name={correct_name}, found={found}")
     
     if correct_name not in TEAMS[guild_id]:
         TEAMS[guild_id].append(correct_name)
@@ -349,7 +280,6 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def unsubscribe(ctx, *, team):
-    """Unsubscribe from a team"""
     guild_id = str(ctx.guild.id)
     correct_name, found = find_team_match(team)
     
@@ -364,24 +294,18 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams as a text list (untereinander)"""
     guild_id = str(ctx.guild.id)
-    print(f"Debug list: guild_id={guild_id}, raw TEAMS={TEAMS.get(guild_id, [])}")
-    
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        print(f"Debug list: Found {len(teams)} teams")
         team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
         framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
         await ctx.send(framed_message)
     else:
-        print(f"Debug list: No teams for guild {guild_id}")
         await ctx.send("❌ **No teams subscribed yet!**")
 
 @bot.command()
 async def settime(ctx, minutes: int):
-    """Set alert time in minutes"""
     global ALERT_TIME
     if 1 <= minutes <= 240:
         ALERT_TIME = minutes
@@ -394,7 +318,6 @@ async def settime(ctx, minutes: int):
 
 @bot.command()
 async def matches(ctx):
-    """Show available matches - ALS NORMALE TEXTNACHRICHT!"""
     try:
         matches = await fetch_pandascore_matches()
         
@@ -416,7 +339,6 @@ async def matches(ctx):
 
 @bot.command()
 async def setchannel(ctx, channel: discord.TextChannel):
-    """Set alert channel"""
     CHANNELS[str(ctx.guild.id)] = channel.id
     if save_data():
         await ctx.send(f"📡 **Alert channel set to {channel.mention}!** ✅")
@@ -425,10 +347,8 @@ async def setchannel(ctx, channel: discord.TextChannel):
 
 @bot.command()
 async def autosetup(ctx):
-    """Auto-Subscribe Teams"""
     guild_id = str(ctx.guild.id)
     
-    # Auto-Subscribe Teams
     if guild_id not in TEAMS:
         TEAMS[guild_id] = []
     
@@ -449,7 +369,6 @@ async def autosetup(ctx):
 
 @bot.command()
 async def status(ctx):
-    """Show bot status"""
     uptime = datetime.datetime.now(timezone.utc) - start_time
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -471,13 +390,12 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert - ALS NORMALE TEXTNACHRICHT!"""
     centered_display = create_centered_teams_display("Falcons", "Team Vitality")
     
     test_content = (
-        f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
+        f"\n\n{centered_display}\n\n\n\n"
         f"*🏆 NODWIN Clutch Series*\n"
-        f"*⏰ Starts in 15 minutes{' ' * 20}🕐 16:00*"  # Zeit rechts
+        f"*⏰ Starts in 15 minutes{' ' * 20}🕐 16:00*"
     )
     
     framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
@@ -489,34 +407,11 @@ async def test(ctx):
         await ctx.send(framed_message)
 
 @bot.command()
-async def debug(ctx):
-    """Debug: Test Zentrierung und Emojis"""
-    centered_display = create_centered_teams_display("Team Spirit", "The Mongolz")
-    await ctx.send(f"**Debug Output:**\n{centered_display}")
-
-@bot.command()
-async def debug_matches(ctx):
-    """Debug: Zeige alle gefundenen Matches"""
-    matches = await fetch_pandascore_matches()
-    if matches:
-        for i, match in enumerate(matches[:5]):
-            time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-            await ctx.send(
-                f"**Match {i+1}:** {match['team1']} vs {match['team2']}\n"
-                f"**Event:** {match['event']}\n"
-                f"**In:** {int(time_until)}min\n"
-                f"**Time:** {match['time_string']}"
-            )
-    else:
-        await ctx.send("❌ **No matches found**")
-
-@bot.command()
 async def ping(ctx):
-    """Ping command"""
     await ctx.send('🏓 **PONG!** 🎯')
 
 # =========================
-# FLASK & STARTUP - AUTO SUBSCRIBE ONLY!
+# FLASK & STARTUP
 # =========================
 @app.route('/')
 def home():
@@ -543,11 +438,9 @@ flask_thread.start()
 async def on_ready():
     print(f'✅ {bot.user} is online! - PANDASCORE API')
     
-    # Auto-Subscribe für alle Server
     for guild in bot.guilds:
         guild_id = str(guild.id)
         
-        # Auto-Subscribe Teams
         if guild_id not in TEAMS:
             TEAMS[guild_id] = []
         
@@ -556,16 +449,13 @@ async def on_ready():
                 TEAMS[guild_id].append(team)
                 print(f"✅ Auto-subscribed {team} for guild {guild.name}")
     
-    # ✅ KORREKT SPEICHERN
     if save_data():
         print("✅ Auto-subscribe data saved successfully!")
-    else:
-        print("❌ Failed to save auto-subscribe data!")
     
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    print("🔔 AUTO-SUBSCRIBE COMPLETE! Alert system started!")
+    print("🔔 Alert system started!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
