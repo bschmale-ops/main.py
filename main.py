@@ -153,8 +153,9 @@ def center_vs(team1, team2):
     return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
 
 def create_frame(title, content):
-    """Erstelle Rahmen mit Strich ÜBER dem Tournament"""
+    """Erstelle Rahmen OHNE Code-Blöcke"""
     separator = "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
     
     # Teile den Content in Teams und Tournament
     # Füge Strich NUR vor dem Tournament-Teil hinzu
