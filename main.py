@@ -459,19 +459,15 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert - MIT RAHMEN und korrekter Formatierung"""
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
     
-    # Teams UND VS mit # für große Schrift, mit LEERZEILE nach team2
     centered_display = (
         f"# {team1_display}\n"
         f"# <:VS:1428145739443208305>\n"
-        f"# {team2_display}\n"  # Leerzeichen nach # hinzugefügt
-        f"\n"  # Leere Zeile ohne #
+        f"#  {team2_display}\n"
     )
     
-    # Tournament und Zeit OHNE # aber FETT mit Emojis
     test_content = (
         f"\n{centered_display}\n\n"
         f"**🏆 NODWIN Clutch Series**\n"
