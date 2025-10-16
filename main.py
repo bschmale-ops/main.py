@@ -134,7 +134,7 @@ def get_team_name_only(team_name):
 
 def center_vs(team1, team2):
     """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
-    return f"#      {team1}\n#          <:VS:1428106772312227984>\n#        {team2}"
+    return f"# {team1}\n# <:VS:1428106772312227984>\n# {team2}"
 
 def create_frame(title, content):
     """Erstelle Rahmen OHNE Code-Blöcke"""
@@ -258,17 +258,14 @@ async def send_alerts():
                             team2_display = get_display_name(match['team2'])
                             centered_display = center_vs(team1_display, team2_display)
                             
-                            # MIT # für größere Schrift und rechtsbündiger Zeit
+                            # Finale Formatierung
                             match_content = (
-                                f"\n{centered_display}\n"
-                                f"# 🏆 {match['event']}\n"
-                                f"# ⏰ Starts in {int(time_until)} minutes{' ':>15}🕐 {match['time_string']}"
+                                f"\n{centered_display}\n\n"
+                                f"**{match['event']}**\n"
+                                f"**Starts in {int(time_until)} minutes{' ':>15}{match['time_string']}**"
                             )
                             
-                            framed_message = create_frame(
-                                f"🎮 MATCH ALERT • {int(time_until)} MINUTES",
-                                match_content
-                            )
+                            framed_message = create_frame(f"**MATCH ALERT • {int(time_until)} MINUTES**", match_content)
                             
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
@@ -318,7 +315,7 @@ async def daily_dm_reminder():
         print(f"❌ Daily DM error: {e}")
 
 # =========================
-# BOT COMMANDS - OHNE EMBEDS!
+# BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -463,21 +460,21 @@ async def test(ctx):
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
     
-    # Korrekt zentrierte Anzeige MIT # und KORREKTER VS ID
+    # Teams UND VS mit # für große Schrift
     centered_display = (
-        f"#      {team1_display}\n"
-        f"#          <:VS:1428106772312227984>\n"
-        f"#        {team2_display}"
+        f"# {team1_display}\n"
+        f"# <:VS:1428106772312227984>\n"
+        f"# {team2_display}"
     )
     
-    # Zeit rechtsbündig
+    # Tournament und Zeit OHNE # aber FETT
     test_content = (
-        f"\n{centered_display}\n"
-        f"# 🏆 NODWIN Clutch Series\n"
-        f"# ⏰ Starts in 15 minutes{' ':>15}🕐 16:00"
+        f"\n{centered_display}\n\n"
+        f"**NODWIN Clutch Series**\n"
+        f"**Starts in 15 minutes{' ':>15}16:00**"
     )
     
-    framed_message = create_frame("🎮 TEST ALERT • 15 MINUTES", test_content)
+    framed_message = create_frame("**TEST ALERT • 15 MINUTES**", test_content)
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
