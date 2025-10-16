@@ -460,17 +460,17 @@ async def test(ctx):
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
     
-    # Teams UND VS mit # für große Schrift
+    # Teams UND VS mit # für große Schrift, mit LEERZEILE nach team2
     centered_display = (
         f"# {team1_display}\n"
         f"# <:VS:1428145739443208305>\n"
-        f"#  {team2_display}"
-        
+        f"# {team2_display}\n"
+        f"\n"  # Zusätzliche leere Zeile nach team2
     )
     
     # Tournament und Zeit OHNE # aber FETT mit Emojis und 2 LEERZEILEN
     test_content = (
-        f"\n{centered_display}\n\n\n"
+        f"\n{centered_display}\n\n"  # Reduziert auf zwei \n, da die zusätzliche Leere Zeile bereits in centered_display ist
         f"**🏆 NODWIN Clutch Series**\n"
         f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
     )
@@ -482,7 +482,7 @@ async def test(ctx):
         await ctx.send(f"🔔 {role.mention}\n{framed_message}")
     else:
         await ctx.send(framed_message)
-
+        
 @bot.command()
 async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
