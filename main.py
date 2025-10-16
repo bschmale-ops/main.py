@@ -133,8 +133,8 @@ def get_team_name_only(team_name):
     return display
 
 def center_vs(team1, team2):
-    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID + LEERE ZEILE"""
-    return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}\n"
+    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
+    return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
 
 def create_frame(title, content):
     """Erstelle Rahmen OHNE Code-Blöcke"""
@@ -460,17 +460,17 @@ async def test(ctx):
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
     
-    # Teams UND VS mit # für große Schrift
+    # Teams UND VS mit # für große Schrift + LEERE ZEILE
     centered_display = (
         f"# {team1_display}\n"
         f"# <:VS:1428145739443208305>\n"
-        f"#  {team2_display}"
+        f"#  {team2_display}\n"
+        f"** **"  # Unsichtbare Zeile mit Leerzeichen zwischen **
     )
     
-    # Tournament und Zeit OHNE # aber FETT mit Emojis + LEERE ZEILE
+    # Tournament und Zeit OHNE # aber FETT mit Emojis
     test_content = (
         f"\n{centered_display}\n\n"
-        f"** **\n"  # ← DIESE Zeile erzeugt den Absatz!
         f"**🏆 NODWIN Clutch Series**\n"
         f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
     )
@@ -481,7 +481,7 @@ async def test(ctx):
     if role:
         await ctx.send(f"🔔 {role.mention}\n{framed_message}")
     else:
-        await ctx.send(framed_message))
+        await ctx.send(framed_message)
         
 @bot.command()
 async def ping(ctx):
