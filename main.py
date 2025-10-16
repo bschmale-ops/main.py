@@ -105,7 +105,7 @@ TEAM_SYNONYMS = {
     'Fnatic': ['fnatic'],
     'Virtus.pro': ['virtus pro', 'vp'],
     'Ninjas in Pyjamas': ['nip', 'ninjas in pyjamas', 'ninjas in pyjamas impact', 'ninjas in pyjamas'],
-    'NINJAS IN PYJAMAS': ['nip impact', 'ninjas impact'],
+    'NINJAS IN PYJAMAS IMPACT': ['nip impact', 'ninjas impact'],
     'paiN': ['pain'],
     'Legacy': ['legacy']
 }
@@ -118,6 +118,10 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_display_name(team_name):
+    # Prüfe auf Teil-Übereinstimmungen für Teams wie "NINJAS IN PYJAMAS IMPACT"
+    for display_name in TEAM_DISPLAY_NAMES:
+        if display_name.upper() in team_name.upper() or team_name.upper() in display_name.upper():
+            return TEAM_DISPLAY_NAMES[display_name]
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
@@ -331,7 +335,7 @@ async def list(ctx):
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
+        team_list = "\n".join([f"• **{get_display_name(team)}**" for team in teams])
         framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
         await ctx.send(framed_message)
     else:
@@ -359,9 +363,9 @@ async def matches(ctx):
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 match_list += f"{i}. {get_display_name(match['team1'])} <:VS:1428145739443208305> {get_display_name(match['team2'])}\n"
-                match_list += f"   *⏰ {int(time_until)}min | 🏆 {match['event']}*\n\n"
+                match_list += f"   ⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
-            footer = f"*🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min*"
+            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
             framed_message = create_frame("🎯 **AVAILABLE CS2 MATCHES**", f"{match_list}{footer}")
             await ctx.send(framed_message)
         else:
