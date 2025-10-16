@@ -137,10 +137,9 @@ def center_vs(team1, team2):
     return f"#      {team1}\n#          <:VS:1428106772312227984>\n#        {team2}"
 
 def create_frame(title, content):
-    """Erstelle Rahmen MIT Code-Blöcken"""
-    rahmen_laenge = 35
-    linie = "━" * rahmen_laenge
-    return f"```{linie}\n{title}\n{linie}\n{content}\n{linie}```"
+    """Erstelle Rahmen OHNE Code-Blöcke"""
+    separator = "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
 # =========================
 # DATA MANAGEMENT
@@ -290,7 +289,36 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS - MIT RAHMEN!
+# DAILY DM REMINDER
+# =========================
+@tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))  # 12:30 German Time
+async def daily_dm_reminder():
+    """Tägliche DM um 12:30 Uhr"""
+    try:
+        message = create_frame(
+            "🌞 DAILY REMINDER • 12:30",
+            f"#      🕛 NOVA FUTTER 🕛\n"
+            f"#\n"
+            f"#\n"
+            f"#   Viel Erfolg heute! 🚀\n"
+            f"#\n"
+            f"#   {datetime.datetime.now().strftime('%d.%m.%Y')}"
+        )
+        
+        target_user_id = 238376746230087682
+        
+        try:
+            user = await bot.fetch_user(target_user_id)
+            await user.send(message)
+            print(f"✅ Daily DM sent to {user.name}")
+        except Exception as e:
+            print(f"❌ Failed to send daily DM: {e}")
+            
+    except Exception as e:
+        print(f"❌ Daily DM error: {e}")
+
+# =========================
+# BOT COMMANDS - OHNE EMBEDS!
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -504,7 +532,10 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
+    if not daily_dm_reminder.is_running():
+        daily_dm_reminder.start()
     print("🔔 Alert system started!")
+    print("⏰ Daily DM reminder started!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
