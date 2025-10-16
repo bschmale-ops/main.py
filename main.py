@@ -133,13 +133,14 @@ def get_team_name_only(team_name):
     return display
 
 def center_vs(team1, team2):
-    """Einfache Zentrierung für Alerts"""
-    return f"      {team1}\n          <:VS:1428106772312227984>\n        {team2}"
+    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
+    return f"#      {team1}\n#          <:VS:1428106772312227984>\n#        {team2}"
 
 def create_frame(title, content):
-    """Erstelle Rahmen OHNE Code-Blöcke"""
-    separator = "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
+    """Erstelle Rahmen MIT Code-Blöcken"""
+    rahmen_laenge = 35
+    linie = "━" * rahmen_laenge
+    return f"```{linie}\n{title}\n{linie}\n{content}\n{linie}```"
 
 # =========================
 # DATA MANAGEMENT
@@ -258,10 +259,11 @@ async def send_alerts():
                             team2_display = get_display_name(match['team2'])
                             centered_display = center_vs(team1_display, team2_display)
                             
+                            # MIT # für größere Schrift und rechtsbündiger Zeit
                             match_content = (
-                                f"\n{centered_display}\n\n"
-                                f"🏆 {match['event']}\n"
-                                f"⏰ Starts in {int(time_until)} minutes{' ':>15}🕐 {match['time_string']}"
+                                f"\n{centered_display}\n"
+                                f"# 🏆 {match['event']}\n"
+                                f"# ⏰ Starts in {int(time_until)} minutes{' ':>15}🕐 {match['time_string']}"
                             )
                             
                             framed_message = create_frame(
@@ -288,7 +290,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS - OHNE EMBEDS!
+# BOT COMMANDS - MIT RAHMEN!
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -324,14 +326,14 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams - OHNE EMBED"""
+    """Show subscribed teams - MIT RAHMEN"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
     
     if teams:
         team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
-        message = f"**📋 SUBSCRIBED TEAMS**\n{team_list}"
-        await ctx.send(message)
+        framed_message = create_frame("📋 SUBSCRIBED TEAMS", team_list)
+        await ctx.send(framed_message)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
 
@@ -349,7 +351,7 @@ async def settime(ctx, minutes: int):
 
 @bot.command()
 async def matches(ctx):
-    """Show available matches - OHNE EMBED"""
+    """Show available matches - MIT RAHMEN"""
     try:
         matches = await fetch_pandascore_matches()
         
@@ -363,11 +365,13 @@ async def matches(ctx):
                 team2_emoji = get_team_emoji(match['team2'])
                 team2_name = get_team_name_only(match['team2'])
                 
+                # KOMPLETTE Teamnamen in FETT
                 match_list += f"{team1_emoji} **{team1_name}** <:VS:1428106772312227984> {team2_emoji} **{team2_name}**\n"
                 match_list += f"⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
-            message = f"**🎯 AVAILABLE CS2 MATCHES**\n\n{match_list}🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
-            await ctx.send(message)
+            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
+            framed_message = create_frame("🎯 AVAILABLE CS2 MATCHES", f"{match_list}{footer}")
+            await ctx.send(framed_message)
         else:
             await ctx.send("❌ **No matches found**")
         
@@ -414,34 +418,35 @@ async def status(ctx):
     subscribed_count = len(TEAMS.get(guild_id, []))
     
     status_content = (
-        f"**🟢 STATUS:** **✅ ONLINE**\n"
-        f"**⏰ UPTIME:** **{hours}h {minutes}m**\n"
-        f"**🔔 ALERTS:** **✅ ACTIVE**\n"
-        f"**⏱️ ALERT TIME:** **{ALERT_TIME}min**\n"
-        f"**👥 SUBSCRIBED:** **{subscribed_count} TEAMS**\n"
-        f"**🌐 SOURCE:** **PANDASCORE API**"
+        f"🟢 STATUS: ✅ ONLINE\n"
+        f"⏰ UPTIME: {hours}h {minutes}m\n"
+        f"🔔 ALERTS: ✅ ACTIVE\n"
+        f"⏱️ ALERT TIME: {ALERT_TIME}min\n"
+        f"👥 SUBSCRIBED: {subscribed_count} TEAMS\n"
+        f"🌐 SOURCE: PANDASCORE API"
     )
     
-    await ctx.send(f"**🤖 BOT STATUS**\n{status_content}")
+    framed_message = create_frame("🤖 BOT STATUS", status_content)
+    await ctx.send(framed_message)
 
 @bot.command()
 async def test(ctx):
-    """Test alert - OHNE EMBED mit korrekter Zentrierung und rechtsbündiger Zeit"""
+    """Test alert - MIT RAHMEN und korrekter Formatierung"""
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
     
-    # Korrekt zentrierte Anzeige
+    # Korrekt zentrierte Anzeige MIT # und KORREKTER VS ID
     centered_display = (
-        f"      {team1_display}\n"
-        f"          <:VS:1428106772312227984>\n"
-        f"        {team2_display}"
+        f"#      {team1_display}\n"
+        f"#          <:VS:1428106772312227984>\n"
+        f"#        {team2_display}"
     )
     
     # Zeit rechtsbündig
     test_content = (
-        f"\n{centered_display}\n\n"
-        f"🏆 NODWIN Clutch Series\n"
-        f"⏰ Starts in 15 minutes{' ':>15}🕐 16:00"
+        f"\n{centered_display}\n"
+        f"# 🏆 NODWIN Clutch Series\n"
+        f"# ⏰ Starts in 15 minutes{' ':>15}🕐 16:00"
     )
     
     framed_message = create_frame("🎮 TEST ALERT • 15 MINUTES", test_content)
