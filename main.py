@@ -133,8 +133,8 @@ def get_team_name_only(team_name):
     return display
 
 def center_vs(team1, team2):
-    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID + LEERZEILE"""
-    return f"# {team1}\n# <:VS:1428145739443208305>\n# {team2}\n"
+    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID + LEERE ZEILE OHNE #"""
+    return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}\n"
 
 def create_frame(title, content):
     """Erstelle Rahmen OHNE Code-Blöcke"""
