@@ -8,7 +8,6 @@ import asyncio
 from flask import Flask, jsonify
 import threading
 import aiohttp
-import re
 
 print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
 
@@ -68,8 +67,10 @@ TEAM_DISPLAY_NAMES = {
     'paiN': '<:pain:1428264796012417077> PAIN',
     'SAW': '<:saw:1428264807496417341> SAW',
     'TYLOO': '<:tyloo:1428264914367021198> TYLOO',
-    'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO'
-    'Legacy': '<:legacy:1428269690001821766> LEGACY' 
+    'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO',
+    
+    # Neuestes Emoji
+    'Legacy': '<:legacy:1428269690001821766> LEGACY'
 }
 
 # =========================
@@ -93,7 +94,8 @@ TEAM_SYNONYMS = {
     'Fnatic': ['fnatic'],
     'Virtus.pro': ['virtus pro', 'vp'],
     'Ninjas in Pyjamas': ['nip'],
-    'paiN': ['pain']
+    'paiN': ['pain'],
+    'Legacy': ['legacy']
 }
 
 def find_team_match(input_team):
@@ -107,27 +109,11 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Dynamische Zentrierung basierend auf Textlänge"""
-    # Textlängen berechnen (ohne Emoji-Formatierung für Länge)
-    def get_visual_length(text):
-        # Entferne <:name:ID> Formatierung für Längenberechnung
-        clean_text = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', 'TEAM', text)
-        return len(clean_text)
-    
-    team1_len = get_visual_length(team1)
-    team2_len = get_visual_length(team2)
-    separator_len = get_visual_length(separator)
-    
-    # Maximale Länge finden
-    max_len = max(team1_len, team2_len, separator_len)
-    
-    # Zusatz-Padding für bessere Darstellung
-    padding = 10
-    
-    # Zentriere jede Zeile
-    team1_line = f"# {team1.center(max_len + padding)}"
-    team2_line = f"# {team2.center(max_len + padding)}"
-    vs_line = f"# {separator.center(max_len + padding)}"
+    """Manuelle Zentrierung mit festen Spaces"""
+    # Feste Positionierung für konsistente Darstellung
+    team1_line = f"# {team1}"
+    team2_line = f"#           {team2}"  # Team2 etwas nach rechts
+    vs_line = f"#                     {separator}"  # VS in der Mitte
     
     return f"{team1_line}\n{vs_line}\n{team2_line}"
 
