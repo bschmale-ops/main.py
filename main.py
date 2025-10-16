@@ -293,6 +293,35 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
+# DAILY DM REMINDER ← HIER EINGEFÜGT!
+# =========================
+@tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))
+async def daily_dm_reminder():
+    """Tägliche DM um 12:30 Uhr"""
+    try:
+        message = create_frame(
+            "🌞 DAILY REMINDER • 12:30",
+            f"#      🕛 NOVA FUTTER 🕛\n"
+            f"#\n"
+            f"#\n"
+            f"#   Viel Erfolg heute! 🚀\n"
+            f"#\n"
+            f"#   {datetime.datetime.now().strftime('%d.%m.%Y')}"
+        )
+        
+        target_user_id = 238376746230087682
+        
+        try:
+            user = await bot.fetch_user(target_user_id)
+            await user.send(message)
+            print(f"✅ Daily DM sent to {user.name}")
+        except Exception as e:
+            print(f"❌ Failed to send daily DM: {e}")
+            
+    except Exception as e:
+        print(f"❌ Daily DM error: {e}")
+
+# =========================
 # BOT COMMANDS
 # =========================
 @bot.command()
