@@ -64,13 +64,24 @@ TEAM_DISPLAY_NAMES = {
     'Lynn Vision': '<:lynnvision:1428264754064916510> LYNN VISION',
     'MIBR': '<:mibr:1428264767784751226> MIBR',
     'Ninjas in Pyjamas': '<:nip:1428264779507830824> NINJAS IN PYJAMAS',
+    'NINJAS IN PYJAMAS': '<:nip:1428264779507830824> NINJAS IN PYJAMAS',
+    'NINJAS IN PYJAMAS IMPACT': '<:nip:1428264779507830824> NINJAS IN PYJAMAS IMPACT',
     'paiN': '<:pain:1428264796012417077> PAIN',
     'SAW': '<:saw:1428264807496417341> SAW',
     'TYLOO': '<:tyloo:1428264914367021198> TYLOO',
     'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO',
+    'Legacy': '<:legacy:1428269690001821766> LEGACY',
     
-    # Neuestes Emoji
-    'Legacy': '<:legacy:1428269690001821766> LEGACY'
+    # Neue Teams aus Matches
+    'TEAM NOVAQ': 'TEAM NOVAQ',
+    'GENONE': 'GENONE',
+    'FISH123': 'FISH123',
+    'ARCRED': 'ARCRED',
+    'KONO.ECF': 'KONO.ECF',
+    'AM GAMING': 'AM GAMING',
+    'MASONIC': 'MASONIC',
+    'MINDFREAK': 'MINDFREAK',
+    'ROOSTER': 'ROOSTER'
 }
 
 # =========================
@@ -93,7 +104,8 @@ TEAM_SYNONYMS = {
     'Heroic': ['heroic'],
     'Fnatic': ['fnatic'],
     'Virtus.pro': ['virtus pro', 'vp'],
-    'Ninjas in Pyjamas': ['nip'],
+    'Ninjas in Pyjamas': ['nip', 'ninjas in pyjamas', 'ninjas in pyjamas impact', 'ninjas in pyjamas'],
+    'NINJAS IN PYJAMAS': ['nip impact', 'ninjas impact'],
     'paiN': ['pain'],
     'Legacy': ['legacy']
 }
@@ -109,25 +121,16 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Exakte Zentrierung basierend auf 29 Zeichen Rahmen"""
-    # VS genau in der Mitte (Position 14 von 29)
-    vs_position = 14
-    vs_line = f"# {' ' * vs_position}{separator}"
-    
-    # Teams symmetrisch positionieren
-    team1_line = f"#          {team1}"    # 10 Spaces
-    team2_line = f"#        {team2}"      # 8 Spaces
-    
-    return f"{team1_line}\n{vs_line}\n{team2_line}"
-
-def create_centered_teams_display(team1, team2):
-    team1_display = get_display_name(team1)
-    team2_display = get_display_name(team2)
-    return center_vs(team1_display, team2_display)
+    """Einfache Zentrierung"""
+    team1_line = f"#{team1:^27}"[:29]
+    vs_line = f"#{separator:^27}"[:29]
+    team2_line = f"#{team2:^27}"[:29]
+    return f"{team1_line}\n{vs_line}\n{team2_line}\n#\n#"
 
 def create_frame(title, content):
-    separator = "─────────────────────────────"
-    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
+    rahmen_laenge = 29
+    linie = "━" * rahmen_laenge
+    return f"{linie}\n{title}\n{linie}\n{content}\n{linie}"
 
 # =========================
 # DATA MANAGEMENT
@@ -254,12 +257,12 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            centered_display = create_centered_teams_display(match['team1'], match['team2'])
+                            centered_display = center_vs(get_display_name(match['team1']), get_display_name(match['team2']))
                             
                             match_content = (
-                                f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
-                                f"*🏆 {match['event']}*\n"
-                                f"*⏰ Starts in {int(time_until)} minutes{' ' * 20}🕐 {match['time_string']}*"
+                                f"\n{centered_display}\n"
+                                f"# 🏆 {match['event']}\n"
+                                f"# ⏰ Starts in {int(time_until)} minutes{' ' * 15}🕐 {match['time_string']}"
                             )
                             
                             framed_message = create_frame(
@@ -420,12 +423,12 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    centered_display = create_centered_teams_display("Falcons", "Team Vitality")
+    centered_display = center_vs(get_display_name("Falcons"), get_display_name("Team Vitality"))
     
     test_content = (
-        f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
-        f"*🏆 NODWIN Clutch Series*\n"
-        f"*⏰ Starts in 15 minutes{' ' * 20}🕐 16:00*"
+        f"\n{centered_display}\n"
+        f"# 🏆 NODWIN Clutch Series\n"
+        f"# ⏰ Starts in 15 minutes{' ' * 15}🕐 16:00"
     )
     
     framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
