@@ -153,13 +153,20 @@ def center_vs(team1, team2):
     return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
 
 def create_frame(title, content):
-    """Erstelle Rahmen mit zusätzlichem Strich vor dem Tournament"""
+    """Erstelle Rahmen mit Strich ÜBER dem Tournament"""
     separator = "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    # Füge zusätzlichen Strich vor dem Tournament-Inhalt hinzu
-    framed_content = f"{separator}\n{content}"
+    # Teile den Content in Teams und Tournament
+    # Füge Strich NUR vor dem Tournament-Teil hinzu
+    if "🏆" in content:
+        parts = content.split("🏆", 1)
+        teams_part = parts[0]
+        tournament_part = "🏆" + parts[1]
+        content_with_separator = f"{teams_part}{separator}\n{tournament_part}"
+    else:
+        content_with_separator = content
     
-    return f"{separator}\n{title}\n{framed_content}\n{separator}"
+    return f"{separator}\n{title}\n{separator}\n{content_with_separator}\n{separator}"
 
 # =========================
 # DATA MANAGEMENT
