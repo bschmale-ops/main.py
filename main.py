@@ -464,13 +464,13 @@ async def test(ctx):
     centered_display = (
         f"# {team1_display}\n"
         f"# <:VS:1428145739443208305>\n"
-        f"# {team2_display}\n"
-        f"\n"  # Zusätzliche leere Zeile nach team2
+        f"#  {team2_display}\n"
+        f"#"
     )
     
-    # Tournament und Zeit OHNE # aber FETT mit Emojis und 2 LEERZEILEN
+    # Tournament und Zeit OHNE # aber FETT mit Emojis
     test_content = (
-        f"\n{centered_display}\n\n"  # Reduziert auf zwei \n, da die zusätzliche Leere Zeile bereits in centered_display ist
+        f"\n{centered_display}\n\n"
         f"**🏆 NODWIN Clutch Series**\n"
         f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
     )
