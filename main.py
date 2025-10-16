@@ -117,8 +117,22 @@ def validate_team_display():
             print(f"⚠️ Warning: Team '{team}' has an invalid emoji format: '{display}' (does not start with <: or <a:)")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Perfekte manuelle Zentrierung wie gewünscht"""
-    return f"# {team1}\n#                                           {separator}\n#      {team2}"
+    """Dynamische Zentrierung mit Emoji-IDs"""
+    # Liste der Zeilen mit vollständigen Emoji-IDs
+    lines = [team1, separator, team2]
+    
+    # Maximale Textlänge ermitteln (der längste Text bestimmt die Breite)
+    max_len = max(len(line) for line in lines)
+    
+    # Zusatzbreite für besseren Rand
+    padding = 6
+    
+    # Alles schön zentriert ausgeben
+    centered_lines = []
+    for line in lines:
+        centered_lines.append(f"# {line.center(max_len + padding)}")
+    
+    return "\n".join(centered_lines)
 
 def create_centered_teams_display(team1, team2):
     """Erstelle perfekt zentrierte Team-Anzeige"""
@@ -277,10 +291,9 @@ async def send_alerts():
                             centered_display = create_centered_teams_display(match['team1'], match['team2'])
                             
                             match_content = (
-                                f"\n\n{centered_display}\n\n\n"
+                                f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
                                 f"*🏆 {match['event']}*\n"
-                                f"*⏰ Starts in {int(time_until)} minutes*\n"
-                                f"*🕐 {match['time_string']}*"
+                                f"*⏰ Starts in {int(time_until)} minutes{' ' * 20}🕐 {match['time_string']}*"  # Zeit rechts
                             )
                             
                             framed_message = create_frame(
@@ -462,10 +475,9 @@ async def test(ctx):
     centered_display = create_centered_teams_display("Falcons", "Team Vitality")
     
     test_content = (
-        f"\n\n{centered_display}\n\n\n"
+        f"\n\n{centered_display}\n\n\n\n"  # 4 Leerzeilen nach Teams
         f"*🏆 NODWIN Clutch Series*\n"
-        f"*⏰ Starts in 15 minutes*\n"
-        f"*🕐 16:00*"
+        f"*⏰ Starts in 15 minutes{' ' * 20}🕐 16:00*"  # Zeit rechts
     )
     
     framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
