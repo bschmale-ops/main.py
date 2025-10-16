@@ -261,8 +261,7 @@ async def send_alerts():
                             match_content = (
                                 f"\n{centered_display}\n\n"
                                 f"🏆 {match['event']}\n"
-                                f"⏰ Starts in {int(time_until)} minutes\n"
-                                f"🕐 {match['time_string']}"
+                                f"⏰ Starts in {int(time_until)} minutes{' ':>15}🕐 {match['time_string']}"
                             )
                             
                             framed_message = create_frame(
@@ -427,16 +426,22 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert - OHNE EMBED"""
+    """Test alert - OHNE EMBED mit korrekter Zentrierung und rechtsbündiger Zeit"""
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
-    centered_display = center_vs(team1_display, team2_display)
     
+    # Korrekt zentrierte Anzeige
+    centered_display = (
+        f"      {team1_display}\n"
+        f"          <:VS:1428106772312227984>\n"
+        f"        {team2_display}"
+    )
+    
+    # Zeit rechtsbündig
     test_content = (
         f"\n{centered_display}\n\n"
         f"🏆 NODWIN Clutch Series\n"
-        f"⏰ Starts in 15 minutes\n"
-        f"🕐 16:00"
+        f"⏰ Starts in 15 minutes{' ':>15}🕐 16:00"
     )
     
     framed_message = create_frame("🎮 TEST ALERT • 15 MINUTES", test_content)
