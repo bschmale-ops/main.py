@@ -8,6 +8,7 @@ import asyncio
 from flask import Flask, jsonify
 import threading
 import aiohttp
+import re
 
 print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
 
@@ -84,9 +85,9 @@ TEAM_DISPLAY_NAMES = {
 # =========================
 TEAM_SYNONYMS = {
     'Natus Vincere': ['navi'],
-    'FaZe Clan': ['faze'], 
+    'FaZe': ['faze', 'faze clan'], 
     'Team Vitality': ['vitality'],
-    'G2 Esports': ['g2'],
+    'G2': ['g2'],
     'MOUZ': ['mouz'],
     'Team Spirit': ['spirit'],
     'FURIA': ['furia'],
@@ -126,11 +127,13 @@ def get_team_emoji(team_name):
     return ""
 
 def get_team_name_only(team_name):
-    """Get only the name part"""
+    """Get only the name part - komplett nach dem Emoji"""
     display = get_display_name(team_name)
-    if ' ' in display:
-        return display[display.index(' ') + 1:]
-    return display
+    
+    # Entferne Custom Emojis (Format: <:name:ID>) und gebe den REST zurück
+    display_without_emoji = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', '', display).strip()
+    
+    return display_without_emoji
 
 def center_vs(team1, team2):
     """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
@@ -293,7 +296,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# DAILY DM REMINDER ← HIER EINGEFÜGT!
+# DAILY DM REMINDER
 # =========================
 @tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))
 async def daily_dm_reminder():
