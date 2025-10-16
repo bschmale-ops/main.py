@@ -125,10 +125,12 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Einfache Zentrierung"""
-    team1_line = f"#{team1:^27}"[:29]
-    vs_line = f"#{separator:^27}"[:29]
-    team2_line = f"#{team2:^27}"[:29]
+    """Zentrierung die funktioniert"""
+    # Einfache manuelle Zentrierung für bessere Kontrolle
+    team1_line = f"#      {team1}           "[:29]
+    vs_line =    f"#             {separator} "[:29]
+    team2_line = f"#        {team2}         "[:29]
+    
     return f"{team1_line}\n{vs_line}\n{team2_line}\n#\n#"
 
 def create_frame(title, content):
@@ -295,6 +297,36 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
+# DAILY DM REMINDER
+# =========================
+@tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))  # 12:30 German Time
+async def daily_dm_reminder():
+    """Tägliche DM um 12:30 Uhr"""
+    try:
+        message = create_frame(
+            "🌞 **DAILY REMINDER** • 12:30",
+            f"#      🕛 NOVA FUTTER 🕛\n"
+            f"#\n"
+            f"#\n"
+            f"#   Viel Erfolg heute! 🚀\n"
+            f"#\n"
+            f"#   {datetime.datetime.now().strftime('%d.%m.%Y')}"
+        )
+        
+        # HIER DEINE DISCORD USER ID EINTRAGEN!
+        target_user_id = 123456789012345678  # ⚠️ ERSETZE DIESE ID MIT DEINER USER ID!
+        
+        try:
+            user = await bot.fetch_user(target_user_id)
+            await user.send(message)
+            print(f"✅ Daily DM sent to {user.name}")
+        except Exception as e:
+            print(f"❌ Failed to send daily DM: {e}")
+            
+    except Exception as e:
+        print(f"❌ Daily DM error: {e}")
+
+# =========================
 # BOT COMMANDS
 # =========================
 @bot.command()
@@ -362,7 +394,9 @@ async def matches(ctx):
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
+                # Team vs Team in einer Zeile
                 match_list += f"{i}. {get_display_name(match['team1'])} <:VS:1428145739443208305> {get_display_name(match['team2'])}\n"
+                # Zeit + Tournament in neuer Zeile
                 match_list += f"   ⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
@@ -427,7 +461,11 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    centered_display = center_vs(get_display_name("Falcons"), get_display_name("Team Vitality"))
+    # Verwende die richtigen Team-Namen mit Display Names
+    team1_display = get_display_name("Falcons")
+    team2_display = get_display_name("Team Vitality")
+    
+    centered_display = center_vs(team1_display, team2_display)
     
     test_content = (
         f"\n{centered_display}\n"
@@ -492,7 +530,10 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
+    if not daily_dm_reminder.is_running():
+        daily_dm_reminder.start()
     print("🔔 Alert system started!")
+    print("⏰ Daily DM reminder started!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
