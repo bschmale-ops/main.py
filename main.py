@@ -260,7 +260,7 @@ async def send_alerts():
                             
                             # Finale Formatierung mit Emojis
                             match_content = (
-                                f"\n{centered_display}\n\n"
+                                f"\n{centered_display}\n\n\n"
                                 f"**🏆 {match['event']}**\n"
                                 f"**⏰ Starts in {int(time_until)} minutes{' ':>15}🕐 {match['time_string']}**"
                             )
@@ -467,10 +467,10 @@ async def test(ctx):
         f"#  {team2_display}"
     )
     
-    # Tournament und Zeit OHNE # aber FETT mit Emojis und 2 Leerzeichen vor Tournament
+    # Tournament und Zeit OHNE # aber FETT mit Emojis und 2 LEERZEILEN
     test_content = (
-        f"\n{centered_display}\n\n"
-        f"  **🏆 NODWIN Clutch Series**\n"
+        f"\n{centered_display}\n\n\n"
+        f"**🏆 NODWIN Clutch Series**\n"
         f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
     )
     
