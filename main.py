@@ -256,9 +256,16 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             team1_display = get_display_name(match['team1'])
                             team2_display = get_display_name(match['team2'])
-                            centered_display = center_vs(team1_display, team2_display)
                             
-                            # Finale Formatierung mit Emojis
+                            # Teams UND VS mit # für große Schrift + LEERE ZEILE (wie in /test)
+                            centered_display = (
+                                f"# {team1_display}\n"
+                                f"# <:VS:1428145739443208305>\n"
+                                f"#  {team2_display}\n"
+                                f"** **"  # Unsichtbare Zeile mit Leerzeichen zwischen **
+                            )
+                            
+                            # Finale Formatierung mit Emojis und ABSATZ
                             match_content = (
                                 f"\n{centered_display}\n\n"
                                 f"**🏆 {match['event']}**\n"
@@ -284,35 +291,6 @@ async def send_alerts():
         
     except Exception as e:
         print(f"❌ Alert error: {e}")
-
-# =========================
-# DAILY DM REMINDER
-# =========================
-@tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))  # 12:30 German Time
-async def daily_dm_reminder():
-    """Tägliche DM um 12:30 Uhr"""
-    try:
-        message = create_frame(
-            "🌞 DAILY REMINDER • 12:30",
-            f"#      🕛 NOVA FUTTER 🕛\n"
-            f"#\n"
-            f"#\n"
-            f"#   Viel Erfolg heute! 🚀\n"
-            f"#\n"
-            f"#   {datetime.datetime.now().strftime('%d.%m.%Y')}"
-        )
-        
-        target_user_id = 238376746230087682
-        
-        try:
-            user = await bot.fetch_user(target_user_id)
-            await user.send(message)
-            print(f"✅ Daily DM sent to {user.name}")
-        except Exception as e:
-            print(f"❌ Failed to send daily DM: {e}")
-            
-    except Exception as e:
-        print(f"❌ Daily DM error: {e}")
 
 # =========================
 # BOT COMMANDS
