@@ -120,14 +120,10 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def get_team_emoji(team_name):
-    """Get only the emoji part - mit Regex für Emojis"""
+    """Get only the emoji part"""
     display = get_display_name(team_name)
-    
-    # Finde Custom Emojis (Format: <:name:ID>)
-    import re
-    emoji_match = re.search(r'<:[a-zA-Z0-9_]+:\d+>', display)
-    if emoji_match:
-        return emoji_match.group()
+    if ' ' in display:
+        return display[:display.index(' ')]
     return ""
 
 def get_team_name_only(team_name):
@@ -500,6 +496,41 @@ async def test(ctx):
 @bot.command()
 async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
+
+# =========================
+# DEBUG COMMANDS
+# =========================
+@bot.command()
+async def debug(ctx, *, team):
+    """Debug command um Team-Namen zu checken"""
+    display = get_display_name(team)
+    emoji = get_team_emoji(team)
+    name_only = get_team_name_only(team)
+    
+    await ctx.send(
+        f"**Input:** {team}\n"
+        f"**Display:** {display}\n"
+        f"**Emoji:** {emoji}\n"
+        f"**Name Only:** {name_only}"
+    )
+
+@bot.command()
+async def rawmatches(ctx):
+    """Zeigt rohe PandaScore Daten"""
+    matches = await fetch_pandascore_matches()
+    
+    if not matches:
+        await ctx.send("❌ **No matches found**")
+        return
+        
+    for match in matches[:3]:  # Nur erste 3 Matches
+        await ctx.send(
+            f"**Team1:** `{match['team1']}`\n"
+            f"**Team2:** `{match['team2']}`\n"
+            f"**Event:** {match['event']}\n"
+            f"**Time:** {match['time_string']}\n"
+            f"---"
+        )
 
 # =========================
 # FLASK & STARTUP
