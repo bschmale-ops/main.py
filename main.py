@@ -69,6 +69,7 @@ TEAM_DISPLAY_NAMES = {
     'SAW': '<:saw:1428264807496417341> SAW',
     'TYLOO': '<:tyloo:1428264914367021198> TYLOO',
     'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO'
+    'Legacy': '<:legacy:1428269690001821766> LEGACY' 
 }
 
 # =========================
