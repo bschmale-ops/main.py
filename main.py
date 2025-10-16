@@ -8,7 +8,6 @@ import asyncio
 from flask import Flask, jsonify
 import threading
 import aiohttp
-import re
 
 print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
 
@@ -110,28 +109,16 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Dynamische Zentrierung - berücksichtigt visuelle Länge"""
-    # Liste der Zeilen
-    lines = [team1, separator, team2]
+    """Exakte Zentrierung basierend auf 29 Zeichen Rahmen"""
+    # VS genau in der Mitte (Position 14 von 29)
+    vs_position = 14
+    vs_line = f"# {' ' * vs_position}{separator}"
     
-    # Visuelle Länge berechnen (Emojis als 2 Zeichen zählen)
-    def get_visual_length(text):
-        # Ersetze Emoji-Codes durch Platzhalter
-        clean_text = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', 'TE', text)
-        return len(clean_text)
+    # Teams symmetrisch positionieren
+    team1_line = f"#          {team1}"    # 10 Spaces
+    team2_line = f"#        {team2}"      # 8 Spaces
     
-    # Maximale visuelle Länge finden
-    max_len = max(get_visual_length(line) for line in lines)
-    
-    # Padding für besseren Rand
-    padding = 6
-    
-    # Alles zentriert ausgeben
-    centered_lines = []
-    for line in lines:
-        centered_lines.append(f"# {line.center(max_len + padding)}")
-    
-    return "\n".join(centered_lines)
+    return f"{team1_line}\n{vs_line}\n{team2_line}"
 
 def create_centered_teams_display(team1, team2):
     team1_display = get_display_name(team1)
