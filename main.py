@@ -134,7 +134,7 @@ def get_team_name_only(team_name):
 
 def center_vs(team1, team2):
     """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
-    return f"# {team1}\n# <:VS:1428106772312227984>\n# {team2}"
+    return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
 
 def create_frame(title, content):
     """Erstelle Rahmen OHNE Code-Blöcke"""
@@ -258,14 +258,14 @@ async def send_alerts():
                             team2_display = get_display_name(match['team2'])
                             centered_display = center_vs(team1_display, team2_display)
                             
-                            # Finale Formatierung
+                            # Finale Formatierung mit Emojis
                             match_content = (
                                 f"\n{centered_display}\n\n"
-                                f"**{match['event']}**\n"
-                                f"**Starts in {int(time_until)} minutes{' ':>15}{match['time_string']}**"
+                                f"**🏆 {match['event']}**\n"
+                                f"**⏰ Starts in {int(time_until)} minutes{' ':>15}🕐 {match['time_string']}**"
                             )
                             
-                            framed_message = create_frame(f"**MATCH ALERT • {int(time_until)} MINUTES**", match_content)
+                            framed_message = create_frame(f"🎮 **MATCH ALERT • {int(time_until)} MINUTES**", match_content)
                             
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
@@ -351,12 +351,12 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams - MIT RAHMEN"""
+    """Show subscribed teams - MIT RAHMEN und FETTEN Teamnamen"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
+        team_list = "\n".join([f"• **{get_display_name(team)}**" for team in teams])
         framed_message = create_frame("📋 SUBSCRIBED TEAMS", team_list)
         await ctx.send(framed_message)
     else:
@@ -390,8 +390,8 @@ async def matches(ctx):
                 team2_emoji = get_team_emoji(match['team2'])
                 team2_name = get_team_name_only(match['team2'])
                 
-                # KOMPLETTE Teamnamen in FETT
-                match_list += f"{team1_emoji} **{team1_name}** <:VS:1428106772312227984> {team2_emoji} **{team2_name}**\n"
+                # KOMPLETTE Teamnamen in FETT mit ** am Anfang und Ende
+                match_list += f"{team1_emoji} **{team1_name}** <:VS:1428145739443208305> {team2_emoji} **{team2_name}**\n"
                 match_list += f"⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
@@ -463,18 +463,18 @@ async def test(ctx):
     # Teams UND VS mit # für große Schrift
     centered_display = (
         f"# {team1_display}\n"
-        f"# <:VS:1428106772312227984>\n"
-        f"# {team2_display}"
+        f"# <:VS:1428145739443208305>\n"
+        f"#  {team2_display}"
     )
     
-    # Tournament und Zeit OHNE # aber FETT
+    # Tournament und Zeit OHNE # aber FETT mit Emojis
     test_content = (
         f"\n{centered_display}\n\n"
-        f"**NODWIN Clutch Series**\n"
-        f"**Starts in 15 minutes{' ':>15}16:00**"
+        f"**🏆 NODWIN Clutch Series**\n"
+        f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
     )
     
-    framed_message = create_frame("**TEST ALERT • 15 MINUTES**", test_content)
+    framed_message = create_frame("🎮 **TEST ALERT • 15 MINUTES**", test_content)
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
