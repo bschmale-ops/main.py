@@ -460,12 +460,17 @@ async def test(ctx):
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
     
-    # center_vs Funktion verwenden (hat jetzt die leere Zeile)
-    centered_display = center_vs(team1_display, team2_display)
+    # Teams UND VS mit # für große Schrift
+    centered_display = (
+        f"# {team1_display}\n"
+        f"# <:VS:1428145739443208305>\n"
+        f"#  {team2_display}"
+    )
     
-    # Tournament und Zeit OHNE # aber FETT mit Emojis
+    # Tournament und Zeit OHNE # aber FETT mit Emojis + LEERE ZEILE
     test_content = (
         f"\n{centered_display}\n\n"
+        f"** **\n"  # ← DIESE Zeile erzeugt den Absatz!
         f"**🏆 NODWIN Clutch Series**\n"
         f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
     )
@@ -476,7 +481,7 @@ async def test(ctx):
     if role:
         await ctx.send(f"🔔 {role.mention}\n{framed_message}")
     else:
-        await ctx.send(framed_message)
+        await ctx.send(framed_message))
         
 @bot.command()
 async def ping(ctx):
