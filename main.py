@@ -120,10 +120,14 @@ def get_display_name(team_name):
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def get_team_emoji(team_name):
-    """Get only the emoji part"""
+    """Get only the emoji part - mit Regex für Emojis"""
     display = get_display_name(team_name)
-    if ' ' in display:
-        return display[:display.index(' ')]
+    
+    # Finde Custom Emojis (Format: <:name:ID>)
+    import re
+    emoji_match = re.search(r'<:[a-zA-Z0-9_]+:\d+>', display)
+    if emoji_match:
+        return emoji_match.group()
     return ""
 
 def get_team_name_only(team_name):
