@@ -128,7 +128,22 @@ def get_display_name(team_name):
             return TEAM_DISPLAY_NAMES[display_name]
     
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+def get_team_emoji(team_name):
+    """Get only the emoji part"""
+    display = get_display_name(team_name)
+    if ' ' in display:
+        return display[:display.index(' ')]
+    return ""
 
+def get_team_name_only(team_name):
+    """Get only the name part - komplett nach dem Emoji"""
+    display = get_display_name(team_name)
+    
+    # Entferne Custom Emojis (Format: <:name:ID>) und gebe den REST zurück
+    display_without_emoji = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', '', display).strip()
+    
+    return display_without_emoji
+    
 def center_vs(team1, team2):
     """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
     return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
