@@ -124,14 +124,21 @@ def get_display_name(team_name):
             return TEAM_DISPLAY_NAMES[display_name]
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
-def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Zentrierung die funktioniert"""
-    # Einfache manuelle Zentrierung für bessere Kontrolle
-    team1_line = f"#      {team1}           "[:29]
-    vs_line =    f"#             {separator} "[:29]
-    team2_line = f"#        {team2}         "[:29]
+def center_vs(team1, team2, separator="<:VS:1428106772312227984>"):
+    """Einfache, zuverlässige Zentrierung"""
+    # Feste Positionierung die garantiert funktioniert
+    team1_line = f"#      {team1}" + " " * 20
+    vs_line =    f"#          {separator}" + " " * 10  
+    team2_line = f"#        {team2}" + " " * 20
     
-    return f"{team1_line}\n{vs_line}\n{team2_line}\n#\n#"
+    # Sicher auf 29 Zeichen kürzen
+    return f"{team1_line[:29]}\n{vs_line[:29]}\n{team2_line[:29]}\n#\n#"
+
+def create_centered_teams_display(team1, team2):
+    """Erstelle Team-Anzeige mit korrekten Display-Namen"""
+    team1_display = get_display_name(team1)
+    team2_display = get_display_name(team2)
+    return center_vs(team1_display, team2_display)
 
 def create_frame(title, content):
     rahmen_laenge = 29
@@ -263,7 +270,7 @@ async def send_alerts():
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
                             print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
                             
-                            centered_display = center_vs(get_display_name(match['team1']), get_display_name(match['team2']))
+                            centered_display = create_centered_teams_display(match['team1'], match['team2'])
                             
                             match_content = (
                                 f"\n{centered_display}\n"
@@ -314,7 +321,7 @@ async def daily_dm_reminder():
         )
         
         # HIER DEINE DISCORD USER ID EINTRAGEN!
-        target_user_id = 123456789012345678  # ⚠️ ERSETZE DIESE ID MIT DEINER USER ID!
+        target_user_id = 238376746230087682  # ⚠️ ERSETZE DIESE ID MIT DEINER USER ID!
         
         try:
             user = await bot.fetch_user(target_user_id)
@@ -394,9 +401,9 @@ async def matches(ctx):
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                # Team vs Team in einer Zeile
-                match_list += f"{i}. {get_display_name(match['team1'])} <:VS:1428145739443208305> {get_display_name(match['team2'])}\n"
-                # Zeit + Tournament in neuer Zeile
+                # Team vs Team in EINER Zeile - FETT
+                match_list += f"{i}. **{get_display_name(match['team1'])}** <:VS:1428106772312227984> **{get_display_name(match['team2'])}**\n"
+                # Uhrzeit + Tournament in NEUER Zeile darunter
                 match_list += f"   ⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
@@ -461,11 +468,8 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    # Verwende die richtigen Team-Namen mit Display Names
-    team1_display = get_display_name("Falcons")
-    team2_display = get_display_name("Team Vitality")
-    
-    centered_display = center_vs(team1_display, team2_display)
+    """Test alert mit korrekten Team-Logos und Namen"""
+    centered_display = create_centered_teams_display("Falcons", "Team Vitality")
     
     test_content = (
         f"\n{centered_display}\n"
