@@ -40,19 +40,19 @@ AUTO_SUBSCRIBE_TEAMS = [
 
 # Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
-    'Falcons': '<:falcons:1428075105615085598> Falcons',
+    'Falcons': '<:falcons:1428075105615085598> FALCONS',
     'MOUZ': '<:mouz:1428075167850041425> MOUZ',
-    'Team Spirit': '<:spirit:1428075208564019302> Team Spirit',
-    'Team Vitality': '<:vitality:1428075243510956113> Team Vitality',
-    'The Mongolz': '<:themongolz:1428075231939133581> The Mongolz',
+    'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
+    'Team Vitality': '<:vitality:1428075243510956113> TEAM VITALITY',
+    'The Mongolz': '<:themongolz:1428075231939133581> THE MONGOLZ',
     'FURIA': '<:furia:1428075132156641471> FURIA',
-    'Natus Vincere': '<:navi:1428075186976194691> Natus Vincere',
-    'FaZe': '<:faze:1428075117753401414> FaZe',
+    'Natus Vincere': '<:navi:1428075186976194691> NATUS VINCERE',
+    'FaZe': '<:faze:1428075117753401414> FAZE',
     '3DMAX': '<:3dmax:1428075077408133262> 3DMAX',
-    'Astralis': '<:astralis:1428075043526672394> Astralis',
+    'Astralis': '<:astralis:1428075043526672394> ASTRALIS',
     'G2': '<:g2:1428075144240431154> G2',
-    'Aurora': '<:aurora:1428075062287798272> Aurora',
-    'Liquid': '<:liquid:1428075155456000122> Liquid',
+    'Aurora': '<:aurora:1428075062287798272> AURORA',
+    'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80'
 }
 
@@ -97,9 +97,6 @@ TEAM_SYNONYMS = {
     'M80': ['m80']
 }
 
-# Temporäre Teams (nur während Laufzeit)
-TEMP_TEAMS = []
-
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
     for correct_name, variants in TEAM_SYNONYMS.items():
@@ -108,12 +105,8 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_display_name(team_name):
-    """Get team name with emoji for display, with fallback if emoji fails"""
-    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name}")
-    if ' ' in display and not display.startswith('<'):
-        print(f"⚠️ Emoji for {team_name} might be invalid: {display}")
-        return team_name  # Fallback auf reinen Namen
-    return display
+    """Get team name with emoji for display"""
+    return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def validate_team_display():
     """Validate the structure of TEAM_DISPLAY_NAMES and log potential issues"""
@@ -123,31 +116,9 @@ def validate_team_display():
         elif not display.startswith('<:') and not display.startswith('<a:'):
             print(f"⚠️ Warning: Team '{team}' has an invalid emoji format: '{display}' (does not start with <: or <a:)")
 
-def get_team_emoji(team_name):
-    """Get only the emoji part of the display name"""
-    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name}")
-    if ' ' in display:
-        return display[:display.index(' ')]
-    return ""
-
-def get_team_name(team_name):
-    """Get only the name part of the display name, handling multiple words"""
-    display = TEAM_DISPLAY_NAMES.get(team_name, f"{team_name}")
-    if ' ' in display:
-        return display[display.index(' ') + 1:]
-    return display
-
 def center_vs(team1, team2, separator="<:VS:1428145739443208305>"):
-    """Perfekte Zentrierung für Teams mit Custom Emojis - FIXED VERSION"""
-    # Feste Breite für konsistente Zentrierung
-    fixed_width = 35
-    
-    # Jede Zeile separat zentrieren
-    line1 = f"**{team1}**".center(fixed_width)
-    line2 = separator.center(fixed_width)
-    line3 = f"**{team2}**".center(fixed_width)
-    
-    return f"{line1}\n{line2}\n{line3}"
+    """Perfekte manuelle Zentrierung wie gewünscht"""
+    return f"# {team1}\n#                                           {separator}\n#      {team2}"
 
 def create_centered_teams_display(team1, team2):
     """Erstelle perfekt zentrierte Team-Anzeige"""
@@ -160,25 +131,6 @@ def create_frame(title, content):
     """Erstelle einen Rahmen für Textnachrichten"""
     separator = "─────────────────────────────"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
-
-# =========================
-# TEXT-BASED LIST FOR /list (untereinander wie eine Liste)
-# =========================
-def create_subscribed_list(teams, temp_teams):
-    """Erstelle eine textbasierte Liste der abonierten Teams (untereinander)"""
-    all_teams = teams + [t for t in temp_teams if t not in teams]
-    if not all_teams:
-        return "❌ No teams subscribed."
-    
-    team_list = ""
-    for team in all_teams:
-        team_display = get_display_name(team)
-        if team in temp_teams:
-            team_list += f"• {team_display} (temporär)\n"
-        else:
-            team_list += f"• {team_display}\n"
-    
-    return team_list
 
 # =========================
 # DATA MANAGEMENT
@@ -201,11 +153,11 @@ def load_data():
         print(f"❌ Load error: {e}")
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
 
-def save_data(data):
+def save_data():
     try:
         with open(DATA_FILE, "w", encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"✅ Saved data to {DATA_FILE}: {len(data.get('TEAMS', {}))} servers")
+            json.dump({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}, f, indent=2, ensure_ascii=False)
+        print(f"✅ Saved data to {DATA_FILE}: {len(TEAMS)} servers")
         return True
     except Exception as e:
         print(f"❌ Save error in {DATA_FILE}: {e}")
@@ -304,12 +256,12 @@ async def send_alerts():
 
             print(f"✅ Channel found: #{channel.name} in {channel.guild.name}")
 
-            all_teams = subscribed_teams + [t for t in TEMP_TEAMS if t not in subscribed_teams]
             for match in matches:
-                for subscribed_team in all_teams:
+                for subscribed_team in subscribed_teams:
                     correct_name, found = find_team_match(subscribed_team)
                     team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
                     
+                    # VERBESSERTES MATCHING
                     if (match['team1'].lower() in team_variants or 
                         match['team2'].lower() in team_variants or
                         any(variant in match['team1'].lower() for variant in team_variants) or
@@ -363,25 +315,24 @@ async def send_alerts():
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
-    """Subscribe to a team for alerts (temporär oder persistent)"""
+    """Subscribe to a team for alerts"""
     guild_id = str(ctx.guild.id)
     print(f"Debug subscribe: guild_id={guild_id}, team_input={team}")
     
     if guild_id not in TEAMS:
         TEAMS[guild_id] = []
-        print(f"Debug subscribe: Created new list for guild {guild_id}")
     
     correct_name, found = find_team_match(team)
     print(f"Debug subscribe: correct_name={correct_name}, found={found}")
     
-    if correct_name not in TEAMS[guild_id] and correct_name not in TEMP_TEAMS:
-        TEMP_TEAMS.append(correct_name)
-        print(f"Debug subscribe: Added {correct_name} to TEMP_TEAMS, list now: {TEMP_TEAMS}")
-        await ctx.send(f"✅ **{get_display_name(correct_name)}** added for alerts (temporär)! 🎯")
-    elif correct_name in TEAMS[guild_id]:
-        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already permanently subscribed!")
+    if correct_name not in TEAMS[guild_id]:
+        TEAMS[guild_id].append(correct_name)
+        if save_data():
+            await ctx.send(f"✅ **{get_display_name(correct_name)}** added for alerts! 🎯")
+        else:
+            await ctx.send("⚠️ **Save failed!**")
     else:
-        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already temporarily subscribed!")
+        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already subscribed!")
 
 @bot.command()
 async def unsubscribe(ctx, *, team):
@@ -389,14 +340,10 @@ async def unsubscribe(ctx, *, team):
     guild_id = str(ctx.guild.id)
     correct_name, found = find_team_match(team)
     
-    if correct_name in TEMP_TEAMS:
-        TEMP_TEAMS.remove(correct_name)
-        print(f"Debug unsubscribe: Removed {correct_name} from TEMP_TEAMS, list now: {TEMP_TEAMS}")
-        await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from temporary alerts!")
-    elif guild_id in TEAMS and correct_name in TEAMS[guild_id]:
+    if guild_id in TEAMS and correct_name in TEAMS[guild_id]:
         TEAMS[guild_id].remove(correct_name)
-        if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
-            await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from permanent alerts!")
+        if save_data():
+            await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from alerts!")
         else:
             await ctx.send("⚠️ **Save failed!**")
     else:
@@ -406,13 +353,13 @@ async def unsubscribe(ctx, *, team):
 async def list(ctx):
     """Show subscribed teams as a text list (untereinander)"""
     guild_id = str(ctx.guild.id)
-    print(f"Debug list: guild_id={guild_id}, raw TEAMS={TEAMS.get(guild_id, [])}, TEMP_TEAMS={TEMP_TEAMS}")
+    print(f"Debug list: guild_id={guild_id}, raw TEAMS={TEAMS.get(guild_id, [])}")
     
     teams = TEAMS.get(guild_id, [])
     
-    if teams or TEMP_TEAMS:
-        print(f"Debug list: Found {len(teams)} permanent + {len(TEMP_TEAMS)} temporary teams")
-        team_list = create_subscribed_list(teams, TEMP_TEAMS)
+    if teams:
+        print(f"Debug list: Found {len(teams)} teams")
+        team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
         framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
         await ctx.send(framed_message)
     else:
@@ -425,7 +372,7 @@ async def settime(ctx, minutes: int):
     global ALERT_TIME
     if 1 <= minutes <= 240:
         ALERT_TIME = minutes
-        if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+        if save_data():
             await ctx.send(f"⏰ **Alert time set to {minutes} minutes!** 🔔")
         else:
             await ctx.send("⚠️ **Save failed!**")
@@ -458,7 +405,7 @@ async def matches(ctx):
 async def setchannel(ctx, channel: discord.TextChannel):
     """Set alert channel"""
     CHANNELS[str(ctx.guild.id)] = channel.id
-    if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+    if save_data():
         await ctx.send(f"📡 **Alert channel set to {channel.mention}!** ✅")
     else:
         await ctx.send("⚠️ **Save failed!**")
@@ -478,7 +425,7 @@ async def autosetup(ctx):
             TEAMS[guild_id].append(team)
             added_teams.append(team)
     
-    if save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}):
+    if save_data():
         if added_teams:
             team_list = "\n".join([f"• {get_display_name(team)}" for team in added_teams])
             await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**\n{team_list}")
@@ -495,7 +442,7 @@ async def status(ctx):
     minutes, seconds = divmod(remainder, 60)
     
     guild_id = str(ctx.guild.id)
-    subscribed_count = len(TEAMS.get(guild_id, [])) + len([t for t in TEMP_TEAMS if t not in TEAMS.get(guild_id, [])])
+    subscribed_count = len(TEAMS.get(guild_id, []))
     
     status_content = (
         f"**🟢 STATUS:** **✅ ONLINE**\n"
@@ -536,6 +483,22 @@ async def debug(ctx):
     await ctx.send(f"**Debug Output:**\n{centered_display}")
 
 @bot.command()
+async def debug_matches(ctx):
+    """Debug: Zeige alle gefundenen Matches"""
+    matches = await fetch_pandascore_matches()
+    if matches:
+        for i, match in enumerate(matches[:5]):
+            time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
+            await ctx.send(
+                f"**Match {i+1}:** {match['team1']} vs {match['team2']}\n"
+                f"**Event:** {match['event']}\n"
+                f"**In:** {int(time_until)}min\n"
+                f"**Time:** {match['time_string']}"
+            )
+    else:
+        await ctx.send("❌ **No matches found**")
+
+@bot.command()
 async def ping(ctx):
     """Ping command"""
     await ctx.send('🏓 **PONG!** 🎯')
@@ -551,7 +514,7 @@ def home():
 def health():
     return jsonify({
         "status": "online", 
-        "teams": sum(len(teams) for teams in TEAMS.values()) + len(TEMP_TEAMS),
+        "teams": sum(len(teams) for teams in TEAMS.values()),
         "servers": len(TEAMS)
     })
 
@@ -581,8 +544,11 @@ async def on_ready():
                 TEAMS[guild_id].append(team)
                 print(f"✅ Auto-subscribed {team} for guild {guild.name}")
     
-    # Daten speichern
-    save_data({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME})
+    # ✅ KORREKT SPEICHERN
+    if save_data():
+        print("✅ Auto-subscribe data saved successfully!")
+    else:
+        print("❌ Failed to save auto-subscribe data!")
     
     await asyncio.sleep(2)
     if not send_alerts.is_running():
