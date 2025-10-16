@@ -465,6 +465,7 @@ async def test(ctx):
         f"# {team1_display}\n"
         f"# <:VS:1428145739443208305>\n"
         f"#  {team2_display}"
+        
     )
     
     # Tournament und Zeit OHNE # aber FETT mit Emojis und 2 LEERZEILEN
