@@ -118,14 +118,29 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_display_name(team_name):
+    """Get team name with emoji for display"""
     # Prüfe auf Teil-Übereinstimmungen für Teams wie "NINJAS IN PYJAMAS IMPACT"
     for display_name in TEAM_DISPLAY_NAMES:
         if display_name.upper() in team_name.upper() or team_name.upper() in display_name.upper():
             return TEAM_DISPLAY_NAMES[display_name]
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
+def get_team_emoji(team_name):
+    """Get only the emoji part of the display name"""
+    display = get_display_name(team_name)
+    if ' ' in display:
+        return display[:display.index(' ')]
+    return ""
+
+def get_team_name_only(team_name):
+    """Get only the name part (for /matches bold formatting)"""
+    display = get_display_name(team_name)
+    if ' ' in display:
+        return display[display.index(' ') + 1:]
+    return display
+
 def center_vs(team1, team2, separator="<:VS:1428106772312227984>"):
-    """Einfache, zuverlässige Zentrierung"""
+    """Einfache, zuverlässige Zentrierung für Alerts"""
     # Feste Positionierung die garantiert funktioniert
     team1_line = f"#      {team1}" + " " * 20
     vs_line =    f"#          {separator}" + " " * 10  
@@ -135,15 +150,16 @@ def center_vs(team1, team2, separator="<:VS:1428106772312227984>"):
     return f"{team1_line[:29]}\n{vs_line[:29]}\n{team2_line[:29]}\n#\n#"
 
 def create_centered_teams_display(team1, team2):
-    """Erstelle Team-Anzeige mit korrekten Display-Namen"""
+    """Erstelle Team-Anzeige mit korrekten Display-Namen für Alerts"""
     team1_display = get_display_name(team1)
     team2_display = get_display_name(team2)
     return center_vs(team1_display, team2_display)
 
 def create_frame(title, content):
+    """Erstelle Rahmen mit Code-Blöcken für perfekte Formatierung"""
     rahmen_laenge = 29
     linie = "━" * rahmen_laenge
-    return f"{linie}\n{title}\n{linie}\n{content}\n{linie}"
+    return f"```{linie}\n{title}\n{linie}\n{content}\n{linie}```"
 
 # =========================
 # DATA MANAGEMENT
@@ -304,36 +320,6 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# DAILY DM REMINDER
-# =========================
-@tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))  # 12:30 German Time
-async def daily_dm_reminder():
-    """Tägliche DM um 12:30 Uhr"""
-    try:
-        message = create_frame(
-            "🌞 **DAILY REMINDER** • 12:30",
-            f"#      🕛 NOVA FUTTER 🕛\n"
-            f"#\n"
-            f"#\n"
-            f"#   Viel Erfolg heute! 🚀\n"
-            f"#\n"
-            f"#   {datetime.datetime.now().strftime('%d.%m.%Y')}"
-        )
-        
-        # HIER DEINE DISCORD USER ID EINTRAGEN!
-        target_user_id = 238376746230087682  # ⚠️ ERSETZE DIESE ID MIT DEINER USER ID!
-        
-        try:
-            user = await bot.fetch_user(target_user_id)
-            await user.send(message)
-            print(f"✅ Daily DM sent to {user.name}")
-        except Exception as e:
-            print(f"❌ Failed to send daily DM: {e}")
-            
-    except Exception as e:
-        print(f"❌ Daily DM error: {e}")
-
-# =========================
 # BOT COMMANDS
 # =========================
 @bot.command()
@@ -394,6 +380,7 @@ async def settime(ctx, minutes: int):
 
 @bot.command()
 async def matches(ctx):
+    """Show available matches - NEUES FORMAT mit Team-Logos und fett"""
     try:
         matches = await fetch_pandascore_matches()
         
@@ -401,10 +388,17 @@ async def matches(ctx):
             match_list = ""
             for i, match in enumerate(matches[:6], 1):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                # Team vs Team in EINER Zeile - FETT
-                match_list += f"{i}. **{get_display_name(match['team1'])}** <:VS:1428106772312227984> **{get_display_name(match['team2'])}**\n"
-                # Uhrzeit + Tournament in NEUER Zeile darunter
-                match_list += f"   ⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
+                
+                # Team-Emojis und Namen in FETT - in EINER Zeile
+                team1_emoji = get_team_emoji(match['team1'])
+                team1_name = get_team_name_only(match['team1'])
+                team2_emoji = get_team_emoji(match['team2'])
+                team2_name = get_team_name_only(match['team2'])
+                
+                # Teams in einer Zeile mit VS Emoji
+                match_list += f"{team1_emoji} **{team1_name}** <:VS:1428106772312227984> {team2_emoji} **{team2_name}**\n"
+                # Zeit und Tournament in neuer Zeile darunter
+                match_list += f"⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
             framed_message = create_frame("🎯 **AVAILABLE CS2 MATCHES**", f"{match_list}{footer}")
@@ -468,7 +462,7 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert mit korrekten Team-Logos und Namen"""
+    """Test alert mit korrekten Team-Logos und Namen - WIE GEWÜNSCHT"""
     centered_display = create_centered_teams_display("Falcons", "Team Vitality")
     
     test_content = (
@@ -534,10 +528,7 @@ async def on_ready():
     await asyncio.sleep(2)
     if not send_alerts.is_running():
         send_alerts.start()
-    if not daily_dm_reminder.is_running():
-        daily_dm_reminder.start()
     print("🔔 Alert system started!")
-    print("⏰ Daily DM reminder started!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
