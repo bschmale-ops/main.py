@@ -34,9 +34,8 @@ AUTO_SUBSCRIBE_TEAMS = [
     'G2', 'Aurora', 'Liquid', 'M80'
 ]
 
-# Team Display Names mit ALLEN Emoji-IDs
+# Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
-    # Original Teams
     'Falcons': '<:falcons:1428075105615085598> FALCONS',
     'MOUZ': '<:mouz:1428075167850041425> MOUZ',
     'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
@@ -52,7 +51,6 @@ TEAM_DISPLAY_NAMES = {
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
     
-    # Neue Teams
     'B8': '<:b8:1428264645042503761> B8',
     'BetBoom': '<:betboom:1428264669533048932> BETBOOM',
     'Complexity': '<:complexity:1428264681222439023> COMPLEXITY',
@@ -64,15 +62,12 @@ TEAM_DISPLAY_NAMES = {
     'Lynn Vision': '<:lynnvision:1428264754064916510> LYNN VISION',
     'MIBR': '<:mibr:1428264767784751226> MIBR',
     'Ninjas in Pyjamas': '<:nip:1428264779507830824> NINJAS IN PYJAMAS',
-    'NINJAS IN PYJAMAS': '<:nip:1428264779507830824> NINJAS IN PYJAMAS',
-    'NINJAS IN PYJAMAS IMPACT': '<:nip:1428264779507830824> NINJAS IN PYJAMAS IMPACT',
     'paiN': '<:pain:1428264796012417077> PAIN',
     'SAW': '<:saw:1428264807496417341> SAW',
     'TYLOO': '<:tyloo:1428264914367021198> TYLOO',
     'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO',
     'Legacy': '<:legacy:1428269690001821766> LEGACY',
     
-    # Neue Teams aus Matches
     'TEAM NOVAQ': 'TEAM NOVAQ',
     'GENONE': 'GENONE',
     'FISH123': 'FISH123',
@@ -104,8 +99,7 @@ TEAM_SYNONYMS = {
     'Heroic': ['heroic'],
     'Fnatic': ['fnatic'],
     'Virtus.pro': ['virtus pro', 'vp'],
-    'Ninjas in Pyjamas': ['nip', 'ninjas in pyjamas', 'ninjas in pyjamas impact', 'ninjas in pyjamas'],
-    'NINJAS IN PYJAMAS IMPACT': ['nip impact', 'ninjas impact'],
+    'Ninjas in Pyjamas': ['nip', 'ninjas in pyjamas'],
     'paiN': ['pain'],
     'Legacy': ['legacy']
 }
@@ -119,47 +113,33 @@ def find_team_match(input_team):
 
 def get_display_name(team_name):
     """Get team name with emoji for display"""
-    # Prüfe auf Teil-Übereinstimmungen für Teams wie "NINJAS IN PYJAMAS IMPACT"
     for display_name in TEAM_DISPLAY_NAMES:
         if display_name.upper() in team_name.upper() or team_name.upper() in display_name.upper():
             return TEAM_DISPLAY_NAMES[display_name]
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def get_team_emoji(team_name):
-    """Get only the emoji part of the display name"""
+    """Get only the emoji part"""
     display = get_display_name(team_name)
     if ' ' in display:
         return display[:display.index(' ')]
     return ""
 
 def get_team_name_only(team_name):
-    """Get only the name part (for /matches bold formatting)"""
+    """Get only the name part"""
     display = get_display_name(team_name)
     if ' ' in display:
         return display[display.index(' ') + 1:]
     return display
 
-def center_vs(team1, team2, separator="<:VS:1428106772312227984>"):
-    """Einfache, zuverlässige Zentrierung für Alerts"""
-    # Feste Positionierung die garantiert funktioniert
-    team1_line = f"#      {team1}" + " " * 20
-    vs_line =    f"#          {separator}" + " " * 10  
-    team2_line = f"#        {team2}" + " " * 20
-    
-    # Sicher auf 29 Zeichen kürzen
-    return f"{team1_line[:29]}\n{vs_line[:29]}\n{team2_line[:29]}\n#\n#"
-
-def create_centered_teams_display(team1, team2):
-    """Erstelle Team-Anzeige mit korrekten Display-Namen für Alerts"""
-    team1_display = get_display_name(team1)
-    team2_display = get_display_name(team2)
-    return center_vs(team1_display, team2_display)
+def center_vs(team1, team2):
+    """Einfache Zentrierung für Alerts"""
+    return f"      {team1}\n          <:VS:1428106772312227984>\n        {team2}"
 
 def create_frame(title, content):
-    """Erstelle Rahmen mit Code-Blöcken für perfekte Formatierung"""
-    rahmen_laenge = 29
-    linie = "━" * rahmen_laenge
-    return f"```{linie}\n{title}\n{linie}\n{content}\n{linie}```"
+    """Erstelle Rahmen OHNE Code-Blöcke"""
+    separator = "━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
 # =========================
 # DATA MANAGEMENT
@@ -171,9 +151,8 @@ def load_data():
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, "r", encoding='utf-8') as f:
                 data = json.load(f)
-                print(f"✅ Loaded data from {DATA_FILE}: {len(data.get('TEAMS', {}))} servers")
+                print(f"✅ Loaded data from {DATA_FILE}")
                 return data
-        print(f"📄 No {DATA_FILE} found, starting fresh")
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
     except:
         return {"TEAMS": {}, "CHANNELS": {}, "ALERT_TIME": 30}
@@ -181,8 +160,7 @@ def load_data():
 def save_data():
     try:
         with open(DATA_FILE, "w", encoding='utf-8') as f:
-            json.dump({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}, f, indent=2, ensure_ascii=False)
-        print(f"✅ Saved data to {DATA_FILE}: {len(TEAMS)} servers")
+            json.dump({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}, f, indent=2)
         return True
     except Exception as e:
         print(f"❌ Save error: {e}")
@@ -194,7 +172,7 @@ TEAMS = data.get("TEAMS", {})
 CHANNELS = data.get("CHANNELS", {})
 ALERT_TIME = data.get("ALERT_TIME", 30)
 
-print(f"📊 Loaded: {len(TEAMS)} servers, {sum(len(teams) for teams in TEAMS.values())} teams")
+print(f"📊 Loaded: {len(TEAMS)} servers")
 
 # =========================
 # PANDASCORE API
@@ -204,11 +182,10 @@ async def fetch_pandascore_matches():
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api.pandascore.co/csgo/matches/upcoming"
-            headers = {'Authorization': f'Bearer {PANDASCORE_TOKEN}', 'Accept': 'application/json'}
+            headers = {'Authorization': f'Bearer {PANDASCORE_TOKEN}'}
             params = {'sort': 'begin_at', 'page[size]': 20}
-            print("🌐 Fetching PandaScore API...")
+            
             async with session.get(url, headers=headers, params=params, timeout=15) as response:
-                print(f"📡 PandaScore Response: {response.status}")
                 if response.status == 200:
                     data = await response.json()
                     for match_data in data:
@@ -233,16 +210,13 @@ async def fetch_pandascore_matches():
                                             'team1': team1, 'team2': team2, 'unix_time': unix_time,
                                             'event': event, 'time_string': time_string
                                         })
-                                        print(f"✅ Found: {team1} vs {team2} at {time_string}")
                         except:
                             continue
-                    print(f"🎯 PandaScore: {len(matches)} matches found")
                     return matches
                 else:
-                    print(f"❌ PandaScore API error: {response.status}")
                     return []
     except Exception as e:
-        print(f"❌ PandaScore connection error: {e}")
+        print(f"❌ PandaScore error: {e}")
         return []
 
 # =========================
@@ -255,8 +229,6 @@ async def send_alerts():
     try:
         matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
-        
-        print(f"🔍 Checking {len(matches)} matches for alerts...")
         
         for guild_id, subscribed_teams in TEAMS.items():
             if not subscribed_teams:
@@ -276,26 +248,25 @@ async def send_alerts():
                     team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
                     
                     if (match['team1'].lower() in team_variants or 
-                        match['team2'].lower() in team_variants or
-                        any(variant in match['team1'].lower() for variant in team_variants) or
-                        any(variant in match['team2'].lower() for variant in team_variants)):
+                        match['team2'].lower() in team_variants):
                         
                         time_until = (match['unix_time'] - current_time) / 60
                         alert_id = f"{guild_id}_{match['team1']}_{match['team2']}"
                         
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
-                            print(f"🚨 SENDING ALERT for {match['team1']} vs {match['team2']}!")
-                            
-                            centered_display = create_centered_teams_display(match['team1'], match['team2'])
+                            team1_display = get_display_name(match['team1'])
+                            team2_display = get_display_name(match['team2'])
+                            centered_display = center_vs(team1_display, team2_display)
                             
                             match_content = (
-                                f"\n{centered_display}\n"
-                                f"# 🏆 {match['event']}\n"
-                                f"# ⏰ Starts in {int(time_until)} minutes{' ' * 15}🕐 {match['time_string']}"
+                                f"\n{centered_display}\n\n"
+                                f"🏆 {match['event']}\n"
+                                f"⏰ Starts in {int(time_until)} minutes\n"
+                                f"🕐 {match['time_string']}"
                             )
                             
                             framed_message = create_frame(
-                                f"🎮 **MATCH ALERT** • {int(time_until)} MINUTES",
+                                f"🎮 MATCH ALERT • {int(time_until)} MINUTES",
                                 match_content
                             )
                             
@@ -307,20 +278,18 @@ async def send_alerts():
                                     await channel.send(framed_message)
                                 
                                 sent_alerts.add(alert_id)
-                                print(f"✅ Alert sent: {match['team1']} vs {match['team2']} in {int(time_until)}min")
-                                
                                 if len(sent_alerts) > 50:
                                     sent_alerts.clear()
                                     
                             except Exception as e:
-                                print(f"❌ Failed to send message: {e}")
+                                print(f"❌ Send error: {e}")
                             break
         
     except Exception as e:
         print(f"❌ Alert error: {e}")
 
 # =========================
-# BOT COMMANDS
+# BOT COMMANDS - OHNE EMBEDS!
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -356,13 +325,14 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
+    """Show subscribed teams - OHNE EMBED"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        team_list = "\n".join([f"• **{get_display_name(team)}**" for team in teams])
-        framed_message = create_frame("📋 **SUBSCRIBED TEAMS**", team_list)
-        await ctx.send(framed_message)
+        team_list = "\n".join([f"• {get_display_name(team)}" for team in teams])
+        message = f"**📋 SUBSCRIBED TEAMS**\n{team_list}"
+        await ctx.send(message)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
 
@@ -380,29 +350,25 @@ async def settime(ctx, minutes: int):
 
 @bot.command()
 async def matches(ctx):
-    """Show available matches - NEUES FORMAT mit Team-Logos und fett"""
+    """Show available matches - OHNE EMBED"""
     try:
         matches = await fetch_pandascore_matches()
         
         if matches:
             match_list = ""
-            for i, match in enumerate(matches[:6], 1):
+            for match in matches[:6]:
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 
-                # Team-Emojis und Namen in FETT - in EINER Zeile
                 team1_emoji = get_team_emoji(match['team1'])
                 team1_name = get_team_name_only(match['team1'])
                 team2_emoji = get_team_emoji(match['team2'])
                 team2_name = get_team_name_only(match['team2'])
                 
-                # Teams in einer Zeile mit VS Emoji
                 match_list += f"{team1_emoji} **{team1_name}** <:VS:1428106772312227984> {team2_emoji} **{team2_name}**\n"
-                # Zeit und Tournament in neuer Zeile darunter
                 match_list += f"⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
-            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
-            framed_message = create_frame("🎯 **AVAILABLE CS2 MATCHES**", f"{match_list}{footer}")
-            await ctx.send(framed_message)
+            message = f"**🎯 AVAILABLE CS2 MATCHES**\n\n{match_list}🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
+            await ctx.send(message)
         else:
             await ctx.send("❌ **No matches found**")
         
@@ -457,21 +423,23 @@ async def status(ctx):
         f"**🌐 SOURCE:** **PANDASCORE API**"
     )
     
-    framed_message = create_frame("🤖 **BOT STATUS**", status_content)
-    await ctx.send(framed_message)
+    await ctx.send(f"**🤖 BOT STATUS**\n{status_content}")
 
 @bot.command()
 async def test(ctx):
-    """Test alert mit korrekten Team-Logos und Namen - WIE GEWÜNSCHT"""
-    centered_display = create_centered_teams_display("Falcons", "Team Vitality")
+    """Test alert - OHNE EMBED"""
+    team1_display = get_display_name("Falcons")
+    team2_display = get_display_name("Team Vitality")
+    centered_display = center_vs(team1_display, team2_display)
     
     test_content = (
-        f"\n{centered_display}\n"
-        f"# 🏆 NODWIN Clutch Series\n"
-        f"# ⏰ Starts in 15 minutes{' ' * 15}🕐 16:00"
+        f"\n{centered_display}\n\n"
+        f"🏆 NODWIN Clutch Series\n"
+        f"⏰ Starts in 15 minutes\n"
+        f"🕐 16:00"
     )
     
-    framed_message = create_frame("🎮 **TEST ALERT** • 15 MINUTES", test_content)
+    framed_message = create_frame("🎮 TEST ALERT • 15 MINUTES", test_content)
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
@@ -520,10 +488,8 @@ async def on_ready():
         for team in AUTO_SUBSCRIBE_TEAMS:
             if team not in TEAMS[guild_id]:
                 TEAMS[guild_id].append(team)
-                print(f"✅ Auto-subscribed {team} for guild {guild.name}")
     
-    if save_data():
-        print("✅ Auto-subscribe data saved successfully!")
+    save_data()
     
     await asyncio.sleep(2)
     if not send_alerts.is_running():
