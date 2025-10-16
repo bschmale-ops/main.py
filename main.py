@@ -48,6 +48,7 @@ TEAM_DISPLAY_NAMES = {
     '3DMAX': '<:3dmax:1428075077408133262> 3DMAX',
     'Astralis': '<:astralis:1428075043526672394> ASTRALIS',
     'G2': '<:g2:1428075144240431154> G2',
+    'G2 Ares': '<:g2:1428075144240431154> G2 ARES',  # NEU für Academy Team
     'Aurora': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
@@ -88,6 +89,7 @@ TEAM_SYNONYMS = {
     'FaZe': ['faze', 'faze clan'], 
     'Team Vitality': ['vitality'],
     'G2': ['g2'],
+    'G2 Ares': ['g2 ares', 'g2 academy'],  # NEU für Academy Team
     'MOUZ': ['mouz'],
     'Team Spirit': ['spirit'],
     'FURIA': ['furia'],
