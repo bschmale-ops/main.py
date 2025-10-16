@@ -133,7 +133,11 @@ def get_team_name_only(team_name):
     return display
 
 def center_vs(team1, team2):
-    return f"# {team1}\n# <:VS:1428145739443208305>\n# {team2}\n\u200b\n"
+    """Erzeugt Teamzeilen mit echter Leerzeile unter Team 2 (mit unsichtbarem Platzhalter)"""
+    invisible = "ㅤ"  # U+3164 Hangul Filler – bleibt garantiert erhalten
+    return f"# {team1}\n# <:VS:1428145739443208305>\n# {team2}\n{invisible}\n"
+
+
 
 def create_frame(title, content):
     """Erstelle Rahmen OHNE Code-Blöcke"""
