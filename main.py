@@ -390,8 +390,8 @@ async def matches(ctx):
                 team2_emoji = get_team_emoji(match['team2'])
                 team2_name = get_team_name_only(match['team2'])
                 
-                # KOMPLETTE Teamnamen in FETT mit ** am Anfang und Ende
-                match_list += f"{team1_emoji} **{team1_name}** <:VS:1428145739443208305> {team2_emoji} **{team2_name}**\n"
+                # Team vs Team Zeile komplett in FETT mit ** am Anfang und Ende
+                match_list += f"**{team1_emoji} {team1_name} <:VS:1428145739443208305> {team2_emoji} {team2_name}**\n"
                 match_list += f"⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
@@ -467,10 +467,10 @@ async def test(ctx):
         f"#  {team2_display}"
     )
     
-    # Tournament und Zeit OHNE # aber FETT mit Emojis
+    # Tournament und Zeit OHNE # aber FETT mit Emojis und 2 Leerzeichen vor Tournament
     test_content = (
         f"\n{centered_display}\n\n"
-        f"**🏆 NODWIN Clutch Series**\n"
+        f"  **🏆 NODWIN Clutch Series**\n"
         f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
     )
     
