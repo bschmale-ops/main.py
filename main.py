@@ -231,6 +231,54 @@ def create_frame(title, content):
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
 # =========================
+# NEUE EMBED FUNKTION FÜR MATCH ALERTS
+# =========================
+def create_match_alert(match, time_until):
+    """Erstellt ein schickes Embed für Match-Alerts"""
+    team1_display = get_display_name(match['team1'], use_smart_lookup=False)
+    team2_display = get_display_name(match['team2'], use_smart_lookup=False)
+    
+    embed = discord.Embed(
+        title="🔔 CS2 MATCH ALERT",
+        description=f"# {team1_display}\n**VS**\n# {team2_display}",
+        color=0x00ff00 if time_until > 15 else 0xff9900,
+        timestamp=datetime.datetime.now()
+    )
+    
+    # CS2 Logo als Thumbnail
+    embed.set_thumbnail(url="https://i.imgur.com/3Qr7J2c.png")
+    
+    # Match Informationen
+    embed.add_field(
+        name="🏆 Turnier",
+        value=match['event'],
+        inline=True
+    )
+    
+    embed.add_field(
+        name="⏰ Startet in", 
+        value=f"**{int(time_until)} Minuten**",
+        inline=True
+    )
+    
+    embed.add_field(
+        name="🕐 Uhrzeit",
+        value=match['time_string'],
+        inline=True
+    )
+    
+    # Twitch Empfehlung
+    embed.add_field(
+        name="📺 Stream Tipp", 
+        value="[shiseii auf Twitch](https://twitch.tv/shiseii)",
+        inline=False
+    )
+    
+    embed.set_footer(text="🎮 CS2 Match Bot • Viel Spaß!")
+    
+    return embed
+
+# =========================
 # DATA MANAGEMENT
 # =========================
 DATA_FILE = "bot_data.json"
@@ -382,30 +430,15 @@ async def send_alerts():
                         alert_id = f"{guild_id}_{match['team1']}_{match['team2']}"
                         
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
-                            team1_display = get_display_name(match['team1'], use_smart_lookup=False)
-                            team2_display = get_display_name(match['team2'], use_smart_lookup=False)
-                            
-                            centered_display = (
-                                f"# {team1_display}\n"
-                                f"# <:VS:1428145739443208305>\n"
-                                f"#  {team2_display}\n"
-                                f"** **"
-                            )
-                            
-                            match_content = (
-                                f"\n{centered_display}\n\n"
-                                f"**🏆 {match['event']}**\n"
-                                f"**⏰ Starts in {int(time_until)} minutes{' ':>15}🕐 {match['time_string']}**"
-                            )
-                            
-                            framed_message = create_frame(f"🎮 **MATCH ALERT • {int(time_until)} MINUTES**", match_content)
+                            # NEUES EMBED DESIGN VERWENDEN
+                            embed = create_match_alert(match, time_until)
                             
                             try:
                                 role = discord.utils.get(channel.guild.roles, name="CS2")
                                 if role:
-                                    await channel.send(f"🔔 {role.mention}\n{framed_message}")
+                                    await channel.send(f"🔔 {role.mention}", embed=embed)
                                 else:
-                                    await channel.send(framed_message)
+                                    await channel.send(embed=embed)
                                 
                                 sent_alerts.add(alert_id)
                                 if len(sent_alerts) > 50:
@@ -589,6 +622,7 @@ async def subscribe(ctx, *, team):
             await ctx.send("⚠️ **Save failed!**")
     else:
         await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already subscribed!")
+
 @bot.command()
 async def debug(ctx):
     """Zeigt die Rohdaten der API Response"""
@@ -650,6 +684,7 @@ async def list(ctx):
         await ctx.send(framed_message)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
+
 @bot.command()
 async def statstest(ctx):
     """Testet die Stats Feed API mit x-api-key Header"""
@@ -783,29 +818,16 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    team1_display = get_display_name("Falcons")
-    team2_display = get_display_name("Team Vitality")
+    """Testet das neue Embed Design - zeigt Match Alert"""
+    test_match = {
+        'team1': 'Falcons',
+        'team2': 'Team Vitality', 
+        'event': 'BLAST Premier Fall Finals',
+        'time_string': '16:30'
+    }
     
-    centered_display = (
-        f"# {team1_display}\n"
-        f"# <:VS:1428145739443208305>\n"
-        f"#  {team2_display}\n"
-        f"** **"
-    )
-    
-    test_content = (
-        f"\n{centered_display}\n\n"
-        f"**🏆 NODWIN Clutch Series**\n"
-        f"**⏰ Starts in 15 minutes{' ':>15}🕐 16:00**"
-    )
-    
-    framed_message = create_frame("🎮 **TEST ALERT • 15 MINUTES**", test_content)
-    
-    role = discord.utils.get(ctx.guild.roles, name="CS2")
-    if role:
-        await ctx.send(f"🔔 {role.mention}\n{framed_message}")
-    else:
-        await ctx.send(framed_message)
+    embed = create_match_alert(test_match, 15)
+    await ctx.send("🎨 **NEUES EMBED DESIGN TEST:**", embed=embed)
         
 @bot.command()
 async def ping(ctx):
