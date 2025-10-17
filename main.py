@@ -336,7 +336,6 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # ✅ KORRIGIERTE LIVE-API URL
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
@@ -346,12 +345,17 @@ async def fetch_grid_matches():
             # ✅ KORREKTE QUERY FÜR LIVE-DATEN
             graphql_query = {
                 "query": """
-                query GetSeriesStateSchema {
-                    __type(name: "SeriesState") {
-                        name
-                        fields {
+                query GetLiveSeries {
+                    seriesState {
+                        id
+                        title
+                        teams {
                             name
                         }
+                        games
+                        startedAt
+                        started
+                        finished
                     }
                 }
                 """
@@ -366,14 +370,51 @@ async def fetch_grid_matches():
                         print(f"❌ GraphQL Errors: {data['errors']}")
                         return []
                     
-                    # Zeige verfügbare Felder für SeriesState
-                    if data.get('data', {}).get('__type'):
-                        fields = data['data']['__type']['fields']
-                        field_names = [f['name'] for f in fields]
-                        print(f"✅ SeriesState Felder: {field_names}")
+                    # Response verarbeiten
+                    series_data = data.get('data', {}).get('seriesState', [])
                     
-                    return []  # Temporär - wir müssen erst das Schema verstehen
+                    current_time = datetime.datetime.now(timezone.utc)
                     
+                    for series in series_data:
+                        try:
+                            # Nur Series die noch nicht gestartet oder beendet sind
+                            if series.get('started') or series.get('finished'):
+                                continue
+                                
+                            teams = series.get('teams', [])
+                            if len(teams) >= 2:
+                                team1 = teams[0].get('name', 'TBD')
+                                team2 = teams[1].get('name', 'TBD')
+                                
+                                if team1 != 'TBD' and team2 != 'TBD':
+                                    start_time = series.get('startedAt')
+                                    if start_time:
+                                        match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                                        unix_time = int(match_dt.timestamp())
+                                        
+                                        # Nur zukünftige Matches
+                                        if match_dt > current_time:
+                                            german_tz = timezone(timedelta(hours=2))
+                                            local_dt = match_dt.astimezone(german_tz)
+                                            time_string = local_dt.strftime("%H:%M")
+                                            
+                                            # Titel verwenden
+                                            event = series.get('title', 'CS2 Match')
+                                            
+                                            matches.append({
+                                                'team1': team1, 
+                                                'team2': team2, 
+                                                'unix_time': unix_time,
+                                                'event': event, 
+                                                'time_string': time_string
+                                            })
+                        except Exception as e:
+                            print(f"❌ Series parsing error: {e}")
+                            continue
+                    
+                    matches.sort(key=lambda x: x['unix_time'])
+                    print(f"✅ Gefundene Matches: {len(matches)}")
+                    return matches
                 else:
                     print(f"❌ Grid.gg API error: {response.status}")
                     return []
@@ -599,27 +640,27 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Erkundet das Schema der LIVE-Daten API"""
+    """Testet die echte Live-API mit korrekter Query"""
     try:
         async with aiohttp.ClientSession() as session:
-            # ✅ KORRIGIERTE LIVE-API URL
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # ✅ SCHEMA ERKUNDUNG FÜR LIVE-API
             graphql_query = {
                 "query": """
-                query GetLiveSchema {
-                    __schema {
-                        queryType {
-                            fields {
-                                name
-                                description
-                            }
+                query GetLiveSeries {
+                    seriesState {
+                        id
+                        title
+                        teams {
+                            name
                         }
+                        startedAt
+                        started
+                        finished
                     }
                 }
                 """
@@ -630,36 +671,33 @@ async def debug(ctx):
                 await ctx.send(f"🔍 API Status: {response.status}")
                 
                 if not data.get('errors'):
-                    await ctx.send("✅ **LIVE-API SCHEMA ERKUNDET**")
+                    await ctx.send("✅ **LIVE-DATEN FUNKTIONIEREN!** 🎉")
                     
-                    queries = data.get('data', {}).get('__schema', {}).get('queryType', {}).get('fields', [])
-                    query_names = [q['name'] for q in queries]
-                    await ctx.send(f"📋 **Verfügbare Queries:** {', '.join(query_names)}")
+                    series_data = data.get('data', {}).get('seriesState', [])
+                    await ctx.send(f"📊 **Live Series:** {len(series_data)}")
                     
-                    # Zeige SeriesState Schema
-                    schema_query = {
-                        "query": """
-                        query GetSeriesStateSchema {
-                            __type(name: "SeriesState") {
-                                name
-                                fields {
-                                    name
-                                    type {
-                                        name
-                                        kind
-                                    }
-                                }
-                            }
-                        }
-                        """
-                    }
+                    current_time = datetime.datetime.now(timezone.utc)
                     
-                    async with session.post(url, headers=headers, json=schema_query, timeout=15) as schema_response:
-                        schema_data = await schema_response.json()
-                        if schema_data.get('data', {}).get('__type'):
-                            fields = schema_data['data']['__type']['fields']
-                            field_names = [f['name'] for f in fields]
-                            await ctx.send(f"🔧 **SeriesState Felder:** {', '.join(field_names)}")
+                    for series in series_data[:5]:
+                        teams = series.get('teams', [])
+                        if len(teams) >= 2:
+                            team1 = teams[0].get('name', 'TBD')
+                            team2 = teams[1].get('name', 'TBD')
+                            title = series.get('title', 'Unbekannt')
+                            start_time = series.get('startedAt', 'Unbekannt')
+                            started = series.get('started', False)
+                            finished = series.get('finished', False)
+                            
+                            status = "🟢 UPCOMING"
+                            if started:
+                                status = "🟡 LIVE"
+                            if finished:
+                                status = "🔴 FINISHED"
+                            
+                            await ctx.send(f"⚔️ **{team1} vs {team2}**")
+                            await ctx.send(f"📺 {title}")
+                            await ctx.send(f"🕐 {start_time} | {status}")
+                            await ctx.send("---")
                 else:
                     await ctx.send(f"❌ Fehler: {data['errors'][0]['message']}")
                     
