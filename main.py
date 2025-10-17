@@ -239,20 +239,23 @@ def create_match_alert(match, time_until):
     
     embed = discord.Embed(
         title=f"CS2 MATCH ALERT{'\u2800' * 20}<:cs2:1298250987483697202>",
-        description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n\n",  # ⬅️ 2 Absätze nach Vitality
+        description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n\n",
         color=0x00ff00 if time_until > 15 else 0xff9900,
         timestamp=datetime.datetime.now()
     )
     
-    # Tournament und Time in einer Zeile - Time rechts mit Spacer
-    time_with_spacer = f"{'\u2800' * 25}🕐 {match['time_string']}"
+    # Zeile 1: "Tournament" und "🕐 Time 16:30" in einer Zeile (rechtsbündig)
+    header_line = f"🏆 Tournament{'\u2800' * 25}🕐 Time {match['time_string']}"
     
-    embed.add_field(name="🏆 Tournament", value=f"{match['event']}{time_with_spacer}", inline=False)
+    # Zeile 2: Nur Tournament-Name
+    content_line = f"{match['event']}"
+    
+    # Beide Zeilen in einem Field
+    embed.add_field(name=header_line, value=content_line, inline=False)
     embed.add_field(name="", value="", inline=False)  # Absatz
     embed.add_field(name="⏰ Starts in", value=f"**{int(time_until)} minutes**", inline=False)
     embed.add_field(name="", value="", inline=False)  # Absatz
     embed.add_field(name="📺 Stream Tip", value="[shiseii on Twitch](https://twitch.tv/shiseii)", inline=False)
-    # ⬅️ KEIN Absatz nach Twitch Link - Footer direkt darunter
     embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
     return embed
