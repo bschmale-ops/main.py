@@ -342,7 +342,7 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # KORREKTE QUERY MIT ALLEN SUBSELECTIONS
+            # ✅ KORREKTE QUERY OHNE TITLE
             graphql_query = {
                 "query": """
                 query GetUpcomingSeries {
@@ -350,9 +350,6 @@ async def fetch_grid_matches():
                         edges {
                             node {
                                 id
-                                title {
-                                    value
-                                }
                                 startTimeScheduled
                                 teams {
                                     team {
@@ -404,15 +401,9 @@ async def fetch_grid_matches():
                                             local_dt = match_dt.astimezone(german_tz)
                                             time_string = local_dt.strftime("%H:%M")
                                             
-                                            # Titel und Tournament korrekt auslesen
-                                            title_data = series.get('title', {})
-                                            event_title = title_data.get('value', 'CS2 Match')
-                                            
+                                            # Tournament Name verwenden
                                             tournament = series.get('tournament', {})
-                                            tournament_name = tournament.get('name', 'CS2 Tournament')
-                                            
-                                            # Verwende Titel falls vorhanden, sonst Tournament Name
-                                            event = event_title if event_title != 'CS2 Match' else tournament_name
+                                            event = tournament.get('name', 'CS2 Tournament')
                                             
                                             matches.append({
                                                 'team1': team1, 
