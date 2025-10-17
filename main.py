@@ -833,17 +833,25 @@ async def status(ctx):
     guild_id = str(ctx.guild.id)
     subscribed_count = len(TEAMS.get(guild_id, []))
     
+    # Status-Informationen im gleichen Design
     status_content = (
-        f"🟢 STATUS: ✅ ONLINE\n"
-        f"⏰ UPTIME: {hours}h {minutes}m\n"
-        f"🔔 ALERTS: ✅ ACTIVE\n"
-        f"⏱️ ALERT TIME: {ALERT_TIME}min\n"
-        f"👥 SUBSCRIBED: {subscribed_count} TEAMS\n"
-        f"🌐 SOURCE: GRID.GG LIVE-API"  # Geändert zu Live-API
+        f"# • **STATUS:** ✅ ONLINE\n"
+        f"# • **UPTIME:** {hours}h {minutes}m\n" 
+        f"# • **ALERTS:** ✅ ACTIVE\n"
+        f"# • **ALERT TIME:** {ALERT_TIME}min\n"
+        f"# • **SUBSCRIBED:** {subscribed_count} TEAMS\n"
+        f"# • **SOURCE:** GRID.GG LIVE-API"
     )
     
-    framed_message = create_frame("🤖 BOT STATUS", status_content)
-    await ctx.send(framed_message)
+    embed = discord.Embed(
+        title=f"BOT STATUS{'\u2800' * 28}🤖",
+        description=status_content,
+        color=0x00ff00
+    )
+    
+    embed.set_footer(text="🎮 CS2 Match Bot • Use /help for commands")
+    
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def test(ctx):
