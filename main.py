@@ -650,7 +650,47 @@ async def list(ctx):
         await ctx.send(framed_message)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
-
+@bot.command()
+async def statstest(ctx):
+    """Testet die Stats Feed API mit x-api-key Header"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://api-op.grid.gg/statistics-feed/graphql"
+            
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            query = {
+                "query": """
+                query {
+                    __schema {
+                        types {
+                            name
+                            fields {
+                                name
+                            }
+                        }
+                    }
+                }
+                """
+            }
+            
+            async with session.post(url, headers=headers, json=query) as response:
+                data = await response.json()
+                await ctx.send(f"🔍 Stats Feed API:\nStatus: {response.status}")
+                
+                if 'data' in data:
+                    types = data['data']['__schema']['types']
+                    match_types = [t for t in types if any(x in t['name'].lower() for x in ['match', 'series', 'team', 'tournament'])]
+                    await ctx.send(f"📋 Relevante Types: {[t['name'] for t in match_types[:10]]}")
+                else:
+                    await ctx.send(f"📄 Response: ```{json.dumps(data, indent=2)[:1000]}```")
+                
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
+        
 @bot.command()
 async def settime(ctx, minutes: int):
     global ALERT_TIME
