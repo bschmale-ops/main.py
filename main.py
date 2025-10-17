@@ -270,7 +270,6 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # KORREKTE GraphQL URL aus der Dokumentation:
             url = "https://api.grid.gg/live-data-feed/series-state/graphql"
             
             headers = {
@@ -278,13 +277,13 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # GraphQL Query für geplante Series/Match
+            # HIER DIE QUERY ERSETZEN:
             graphql_query = {
                 "query": """
-                query GetUpcomingSeries {
-                    series(status: "upcoming", game: "cs2") {
+                query GetUpcomingMatches {
+                    matches(status: "upcoming", game: "cs2") {
                         id
-                        scheduledStartTime
+                        scheduledAt
                         teams {
                             name
                         }
@@ -595,7 +594,7 @@ async def debug(ctx):
     """Zeigt die Rohdaten der API Response"""
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api.grid.gg/graphql"
+            url = "https://api.grid.gg/live-data-feed/series-state/graphql"  # Gleiche URL
             headers = {
                 'Authorization': f'Bearer {GRID_API_KEY}',
                 'Content-Type': 'application/json'
@@ -603,10 +602,10 @@ async def debug(ctx):
             
             graphql_query = {
                 "query": """
-                query GetUpcomingCS2Matches {
-                    matches(status: "upcoming", game: "cs2") {
+                query GetUpcomingSeries {
+                    series(status: "upcoming", game: "cs2") {
                         id
-                        scheduledAt
+                        scheduledStartTime
                         teams {
                             name
                         }
