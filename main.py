@@ -238,8 +238,8 @@ def create_match_alert(match, time_until):
     team2_display = get_display_name(match['team2'], use_smart_lookup=False)
     
     embed = discord.Embed(
-        title=f"CS2 MATCH ALERT{'\u2800' * 35}<:cs2:1298250987483697202>",
-        description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n\n\n\n\n",  # ⬅️ 5 Leerzeilen nach Vitality
+        title=f"CS2 MATCH ALERT{'\u2800' * 15}<:cs2:1298250987483697202>",
+        description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n",  # ⬅️ GENAU 1 Absatz nach Vitality
         color=0x00ff00 if time_until > 15 else 0xff9900,
         timestamp=datetime.datetime.now()
     )
