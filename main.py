@@ -177,34 +177,42 @@ def find_team_match(input_team):
     # 3. NEU: Wenn nicht gefunden, Team TROTZDEM verwenden - ABER mit Warnung!
     return input_team, True  # ⬅️ Hier True statt False - das ist der Schlüssel!
 
-def get_display_name(team_name):
-    """Get team name with emoji for display"""
-    # Zuerst nach EXAKTEN Matches suchen
+def get_display_name(team_name, use_smart_lookup=True):
+    """Get team name with emoji for display
+    use_smart_lookup=True: Für subscribe/list (intelligente Zuordnung)
+    use_smart_lookup=False: Für matches/alerts (exakte Anzeige)
+    """
+    
+    if not use_smart_lookup:
+        # FÜR MATCHES/ALERTS: Exakt anzeigen was PandaScore liefert
+        return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+    
+    # FÜR SUBSCRIBE/LIST: Intelligente Zuordnung
     if team_name in TEAM_DISPLAY_NAMES:
         return TEAM_DISPLAY_NAMES[team_name]
     
-    # Dann nach längeren Namen suchen (G2 Ares vor G2)
-    sorted_names = sorted(TEAM_DISPLAY_NAMES.keys(), key=len, reverse=True)
+    # NEU: Kürzeste Namen zuerst (Main Teams priorisieren)
+    sorted_names = sorted(TEAM_DISPLAY_NAMES.keys(), key=len)
     
     for display_name in sorted_names:
         if display_name.upper() in team_name.upper() or team_name.upper() in display_name.upper():
             return TEAM_DISPLAY_NAMES[display_name]
     
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
-def get_team_emoji(team_name):
+
+def get_team_emoji(team_name, use_smart_lookup=False):
     """Get only the emoji part - mit Regex für Emojis"""
-    display = get_display_name(team_name)
+    display = get_display_name(team_name, use_smart_lookup=use_smart_lookup)
     
     # Finde Custom Emojis (Format: <:name:ID>)
-    import re
     emoji_match = re.search(r'<:[a-zA-Z0-9_]+:\d+>', display)
     if emoji_match:
         return emoji_match.group()
     return ""
 
-def get_team_name_only(team_name):
+def get_team_name_only(team_name, use_smart_lookup=False):
     """Get only the name part - komplett nach dem Emoji"""
-    display = get_display_name(team_name)
+    display = get_display_name(team_name, use_smart_lookup=use_smart_lookup)
     
     # Entferne Custom Emojis (Format: <:name:ID>) und gebe den REST zurück
     display_without_emoji = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', '', display).strip()
@@ -333,8 +341,8 @@ async def send_alerts():
                         alert_id = f"{guild_id}_{match['team1']}_{match['team2']}"
                         
                         if 0 <= time_until <= ALERT_TIME and alert_id not in sent_alerts:
-                            team1_display = get_display_name(match['team1'])
-                            team2_display = get_display_name(match['team2'])
+                            team1_display = get_display_name(match['team1'], use_smart_lookup=False)
+                            team2_display = get_display_name(match['team2'], use_smart_lookup=False)
                             
                             centered_display = (
                                 f"# {team1_display}\n"
@@ -524,10 +532,10 @@ async def matches(ctx):
             for match in matches[:6]:
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 
-                team1_emoji = get_team_emoji(match['team1'])
-                team1_name = get_team_name_only(match['team1'])
-                team2_emoji = get_team_emoji(match['team2'])
-                team2_name = get_team_name_only(match['team2'])
+                team1_emoji = get_team_emoji(match['team1'], use_smart_lookup=False)
+                team1_name = get_team_name_only(match['team1'], use_smart_lookup=False)
+                team2_emoji = get_team_emoji(match['team2'], use_smart_lookup=False)
+                team2_name = get_team_name_only(match['team2'], use_smart_lookup=False)
                 
                 match_list += f"**{team1_emoji} {team1_name} <:VS:1428145739443208305> {team2_emoji} {team2_name}**\n"
                 match_list += f"__⏰ {int(time_until)}min | 🏆 {match['event']}__\n\n"
