@@ -429,7 +429,8 @@ async def subscribe(ctx, *, team):
                 f"*Verwende `/list` für alle Teams*"
             )
         else:
-            available_teams = "\n".join([f"• {get_display_name(name)}" for name in list(TEAM_DISPLAY_NAMES.keys())[:8]])
+            # FIX: KEINE get_display_name() hier verwenden!
+            available_teams = "\n".join([f"• {name}" for name in list(TEAM_DISPLAY_NAMES.keys())[:8]])
             await ctx.send(
                 f"❌ **Team '{team}' nicht gefunden!**\n\n"
                 f"**Verfügbare Teams:**\n{available_teams}\n"
