@@ -690,7 +690,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Testet die korrigierte allSeries Query"""
+    """Findet die korrekten Feldnamen für Series"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
@@ -699,23 +699,17 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            graphql_query = {
+            # SCHEMA EXPLORATION - Welche Felder hat Series?
+            schema_query = {
                 "query": """
-                query GetUpcomingSeries {
-                    allSeries {
-                        edges {
-                            node {
-                                id
-                                startDate
-                                participants {
-                                    team {
-                                        name
-                                    }
-                                }
-                                tournament {
-                                    name
-                                }
-                                status
+                query GetSeriesFields {
+                    __type(name: "Series") {
+                        name
+                        fields {
+                            name
+                            type {
+                                name
+                                kind
                             }
                         }
                     }
@@ -723,29 +717,51 @@ async def debug(ctx):
                 """
             }
             
-            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
+            await ctx.send("🔍 **Erkunde Series Felder...**")
+            
+            async with session.post(url, headers=headers, json=schema_query, timeout=15) as response:
                 data = await response.json()
-                await ctx.send(f"🔍 API Status: {response.status}")
                 
-                if data.get('data', {}).get('allSeries', {}).get('edges'):
-                    edges = data['data']['allSeries']['edges']
-                    series_count = len(edges)
-                    upcoming_count = len([e for e in edges if e.get('node', {}).get('status') == 'UPCOMING'])
+                if data.get('data', {}).get('__type'):
+                    series_fields = data['data']['__type']['fields']
+                    field_names = [f['name'] for f in series_fields]
+                    await ctx.send(f"✅ **Series Felder:** {', '.join(field_names)}")
                     
-                    await ctx.send(f"📊 **Statistik:** {series_count} Series total, {upcoming_count} upcoming")
+                    # Teste mit den gefundenen Feldern
+                    test_fields = ["id", "name", "startTime", "scheduledStartTime", "teams", "tournament"]
+                    available_fields = [f for f in test_fields if f in field_names]
                     
-                    # Zeige die ersten 3 upcoming matches
-                    upcoming_edges = [e for e in edges if e.get('node', {}).get('status') == 'UPCOMING'][:3]
-                    for edge in upcoming_edges:
-                        series = edge.get('node', {})
-                        teams = series.get('participants', [])
-                        if len(teams) >= 2:
-                            team1 = teams[0].get('team', {}).get('name', 'TBD')
-                            team2 = teams[1].get('team', {}).get('name', 'TBD')
-                            await ctx.send(f"⚔️ **{team1} vs {team2}** - {series.get('tournament', {}).get('name')}")
+                    await ctx.send(f"🧪 **Teste mit Feldern:** {', '.join(available_fields)}")
+                    
+                    # Test Query mit verfügbaren Feldern
+                    test_query = {
+                        "query": f"""
+                        query TestSeries {{
+                            allSeries {{
+                                edges {{
+                                    node {{
+                                        {" ".join(available_fields)}
+                                    }}
+                                }}
+                            }}
+                        }}
+                        """
+                    }
+                    
+                    async with session.post(url, headers=headers, json=test_query, timeout=15) as test_response:
+                        test_data = await test_response.json()
+                        if not test_data.get('errors'):
+                            await ctx.send("✅ **Query funktioniert!**")
+                            # Zeige ein Beispiel
+                            if test_data.get('data', {}).get('allSeries', {}).get('edges'):
+                                sample_edge = test_data['data']['allSeries']['edges'][0]
+                                await ctx.send(f"📄 **Beispiel:** ```{json.dumps(sample_edge, indent=2)[:800]}```")
+                        else:
+                            await ctx.send(f"❌ **Test Query Fehler:** {test_data['errors'][0]['message']}")
                 
-                await ctx.send(f"📄 Response Sample: ```{json.dumps(data, indent=2)[:1500]}```")
-                
+                else:
+                    await ctx.send(f"❌ Schema Error: ```{json.dumps(data, indent=2)[:1000]}```")
+                    
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
         
