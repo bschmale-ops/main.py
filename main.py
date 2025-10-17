@@ -336,7 +336,7 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
+            url = "https://api-op.grid.gg"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
@@ -643,7 +643,7 @@ async def debug(ctx):
     """Findet heraus wie man alle Series bekommt"""
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
+            url = "https://api-op.grid.gg"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
