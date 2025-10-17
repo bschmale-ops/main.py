@@ -27,15 +27,14 @@ async def setup_hook():
     print("✅ Persistent buttons setup!")
 
 # =========================
-# CONFIGURATION
+# CONFIGURATION FROM ENVIRONMENT
 # =========================
-GRID_API_KEY = "jmoLQscQ10EDnFgzBCosixLkTE31tVXStEoLESXw"  # ⚠️ SOFORT ERSETZEN!
-
-# =========================
-# TWITCH CONFIGURATION - EINFACHER WEG
-# =========================
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+TWITCH_CLIENT_ID = os.getenv("TWITCH_CLIENT_ID")
+TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET") 
+GRID_API_KEY = os.getenv("GRID_API_KEY")
 TWITCH_USERNAME = "shiseii"
-ANNOUNCEMENT_CHANNEL_ID = 1162297673920024667  # Dein Announcement Channel
+ANNOUNCEMENT_CHANNEL_ID = 1162297673920024667
 
 # =========================
 # AUTO-SUBSCRIBE TEAMS
@@ -45,6 +44,21 @@ AUTO_SUBSCRIBE_TEAMS = [
     'FURIA', 'Natus Vincere', 'FaZe', '3DMAX', 'Astralis', 
     'G2', 'Aurora', 'Liquid', 'M80'
 ]
+
+# Check ob alle Tokens vorhanden sind
+required_tokens = {
+    "DISCORD_TOKEN": DISCORD_TOKEN,
+    "GRID_API_KEY": GRID_API_KEY,
+    "TWITCH_CLIENT_ID": TWITCH_CLIENT_ID,
+    "TWITCH_CLIENT_SECRET": TWITCH_CLIENT_SECRET
+}
+
+for name, token in required_tokens.items():
+    if not token:
+        print(f"❌ {name} fehlt in Environment Variables!")
+        exit(1)
+
+print("✅ Alle Tokens erfolgreich geladen!")
 
 # Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
@@ -1021,8 +1035,7 @@ async def on_ready():
     print("📺 Twitch live checker started!")
 
 if __name__ == "__main__":
-    token = os.getenv("DISCORD_TOKEN")
-    if token:
-        bot.run(token)
+    if DISCORD_TOKEN:
+        bot.run(DISCORD_TOKEN)
     else:
-        print("❌ DISCORD_TOKEN not found!")
+        print("❌ DISCORD_TOKEN nicht gefunden!")
