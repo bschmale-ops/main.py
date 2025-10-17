@@ -271,7 +271,7 @@ async def fetch_grid_matches():
     try:
         async with aiohttp.ClientSession() as session:
             # GraphQL Endpoint (kann sein dass die URL anders ist - ggf. anpassen)
-            url = "https://api.grid.gg/graphql"
+            url = "https://data.grid.gg/graphql"
             
             headers = {
                 'Authorization': f'Bearer {GRID_API_KEY}',
