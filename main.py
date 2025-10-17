@@ -266,58 +266,32 @@ print(f"📊 Loaded: {len(TEAMS)} servers")
 async def fetch_hltv_matches():
     """Holt echte Live-Matches via Node.js HLTV Package"""
     try:
+        print("🚀 DEBUG: Starting Node.js HLTV bridge...")
+        
         # Node.js Script ausführen
         result = subprocess.run(
             ['node', 'hltv-scraper.js'],
             capture_output=True,
             text=True,
-            timeout=30  # Timeout nach 30 Sekunden
+            timeout=30
         )
         
-        if result.returncode == 0:
+        print(f"🔍 DEBUG: Node.js return code: {result.returncode}")
+        print(f"🔍 DEBUG: Node.js stdout: {result.stdout}")
+        if result.stderr:
+            print(f"🔍 DEBUG: Node.js stderr: {result.stderr}")
+        
+        if result.returncode == 0 and result.stdout.strip():
             matches = json.loads(result.stdout)
-            print(f"✅ HLTV Bridge: Found {len(matches)} matches")
+            print(f"✅ DEBUG: Found {len(matches)} real matches from HLTV!")
             return matches
         else:
-            print(f"❌ Node.js error: {result.stderr}")
-            # Fallback zu simulierten Daten
-            return get_fallback_matches()
+            print("❌ DEBUG: Node.js returned no data")
+            return []  # LEER - keine Fake Daten
             
     except Exception as e:
-        print(f"❌ HLTV Bridge error: {e}")
-        # Fallback zu simulierten Daten
-        return get_fallback_matches()
-
-def get_fallback_matches():
-    """Fallback mit simulierten Daten falls Bridge fehlschlägt"""
-    now = datetime.datetime.now(timezone.utc)
-    
-    simulated_matches = [
-        {
-            'team1': 'Legacy',
-            'team2': 'FUT', 
-            'event': 'C5 Asia Championships 2025',
-            'time_string': 'LIVE',
-            'unix_time': int(now.timestamp())
-        },
-        {
-            'team1': 'SemperFi',
-            'team2': 'Rooster',
-            'event': 'ESL Challenger League', 
-            'time_string': 'LIVE',
-            'unix_time': int(now.timestamp())
-        },
-        {
-            'team1': 'The Huns',
-            'team2': 'Rare Atom',
-            'event': 'ESL Challenger League Asia-Pacific',
-            'time_string': '18:00', 
-            'unix_time': int((now + timedelta(hours=2)).timestamp())
-        }
-    ]
-    
-    print("⚠️ Using fallback matches")
-    return simulated_matches
+        print(f"❌ DEBUG: Bridge error: {e}")
+        return []  # LEER - keine Fake Daten
 
 # =========================
 # ALERT SYSTEM - UNVERÄNDERT
