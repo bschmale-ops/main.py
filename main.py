@@ -336,30 +336,21 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
+            # ✅ KORRIGIERTE LIVE-API URL
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # ✅ KORREKTE QUERY MIT baseInfo
+            # ✅ KORREKTE QUERY FÜR LIVE-DATEN
             graphql_query = {
                 "query": """
-                query GetUpcomingSeries {
-                    allSeries {
-                        edges {
-                            node {
-                                id
-                                startTimeScheduled
-                                teams {
-                                    baseInfo {
-                                        name
-                                    }
-                                }
-                                tournament {
-                                    name
-                                }
-                            }
+                query GetSeriesStateSchema {
+                    __type(name: "SeriesState") {
+                        name
+                        fields {
+                            name
                         }
                     }
                 }
@@ -369,104 +360,25 @@ async def fetch_grid_matches():
             async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
                 if response.status == 200:
                     data = await response.json()
-                    print(f"✅ Grid.gg API Response erhalten")
+                    print(f"✅ Grid.gg LIVE-API Response erhalten")
                     
                     if data.get('errors'):
                         print(f"❌ GraphQL Errors: {data['errors']}")
                         return []
                     
-                    # Response verarbeiten
-                    edges = data.get('data', {}).get('allSeries', {}).get('edges', [])
+                    # Zeige verfügbare Felder für SeriesState
+                    if data.get('data', {}).get('__type'):
+                        fields = data['data']['__type']['fields']
+                        field_names = [f['name'] for f in fields]
+                        print(f"✅ SeriesState Felder: {field_names}")
                     
-                    current_time = datetime.datetime.now(timezone.utc)
+                    return []  # Temporär - wir müssen erst das Schema verstehen
                     
-                    for edge in edges:
-                        try:
-                            series = edge.get('node', {})
-                            
-                            teams = series.get('teams', [])
-                            if len(teams) >= 2:
-                                # ✅ KORREKT: baseInfo statt team
-                                team1 = teams[0].get('baseInfo', {}).get('name', 'TBD')
-                                team2 = teams[1].get('baseInfo', {}).get('name', 'TBD')
-                                
-                                if team1 != 'TBD' and team2 != 'TBD':
-                                    start_time = series.get('startTimeScheduled')
-                                    if start_time:
-                                        match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                                        unix_time = int(match_dt.timestamp())
-                                        
-                                        # ✅ NUR ZUKÜNFTIGE MATCHES (Filter für 2019, 2024)
-                                        if match_dt > current_time:
-                                            german_tz = timezone(timedelta(hours=2))
-                                            local_dt = match_dt.astimezone(german_tz)
-                                            time_string = local_dt.strftime("%H:%M")
-                                            
-                                            # Tournament Name verwenden
-                                            tournament = series.get('tournament', {})
-                                            event = tournament.get('name', 'CS2 Tournament')
-                                            
-                                            matches.append({
-                                                'team1': team1, 
-                                                'team2': team2, 
-                                                'unix_time': unix_time,
-                                                'event': event, 
-                                                'time_string': time_string
-                                            })
-                        except Exception as e:
-                            print(f"❌ Series parsing error: {e}")
-                            continue
-                    
-                    matches.sort(key=lambda x: x['unix_time'])
-                    print(f"✅ Gefundene Matches: {len(matches)}")
-                    return matches
                 else:
                     print(f"❌ Grid.gg API error: {response.status}")
                     return []
     except Exception as e:
         print(f"❌ Grid.gg API connection error: {e}")
-        return []
-        
-# ALTERNATIVE QUERY FALLS DIE ERSTE NICHT FUNKTIONIERT
-async def fetch_grid_matches_alternative():
-    """Alternative Query falls series nicht funktioniert"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
-            
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            graphql_query = {
-                "query": """
-                query GetUpcomingEvents {
-                    __schema {
-                        types {
-                            name
-                            fields {
-                                name
-                            }
-                        }
-                    }
-                }
-                """
-            }
-            
-            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    print("🔍 Verfügbare Queries:")
-                    if data.get('data'):
-                        types = data['data']['__schema']['types']
-                        query_type = next((t for t in types if t['name'] == 'Query'), None)
-                        if query_type:
-                            available_queries = [field['name'] for field in query_type.get('fields', [])]
-                            print(f"✅ Verfügbare Queries: {available_queries}")
-                    return []
-    except Exception as e:
-        print(f"❌ Alternative query error: {e}")
         return []
 
 # =========================
@@ -687,29 +599,27 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Testet die seriesState Query der Live-API"""
+    """Erkundet das Schema der LIVE-Daten API"""
     try:
         async with aiohttp.ClientSession() as session:
+            # ✅ KORRIGIERTE LIVE-API URL
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # KORREKTE QUERY FÜR LIVE-DATEN
+            # ✅ SCHEMA ERKUNDUNG FÜR LIVE-API
             graphql_query = {
                 "query": """
-                query GetLiveSeries {
-                    seriesState {
-                        id
-                        startTime
-                        teams {
-                            name
+                query GetLiveSchema {
+                    __schema {
+                        queryType {
+                            fields {
+                                name
+                                description
+                            }
                         }
-                        tournament {
-                            name
-                        }
-                        status
                     }
                 }
                 """
@@ -720,22 +630,36 @@ async def debug(ctx):
                 await ctx.send(f"🔍 API Status: {response.status}")
                 
                 if not data.get('errors'):
-                    await ctx.send("✅ **LIVE-DATEN FUNKTIONIEREN!** 🎉")
+                    await ctx.send("✅ **LIVE-API SCHEMA ERKUNDET**")
                     
-                    series_data = data.get('data', {}).get('seriesState', [])
-                    await ctx.send(f"📊 **Live Series:** {len(series_data)}")
+                    queries = data.get('data', {}).get('__schema', {}).get('queryType', {}).get('fields', [])
+                    query_names = [q['name'] for q in queries]
+                    await ctx.send(f"📋 **Verfügbare Queries:** {', '.join(query_names)}")
                     
-                    for series in series_data[:3]:
-                        teams = series.get('teams', [])
-                        if len(teams) >= 2:
-                            team1 = teams[0].get('name', 'TBD')
-                            team2 = teams[1].get('name', 'TBD')
-                            status = series.get('status', 'UNKNOWN')
-                            
-                            await ctx.send(f"⚔️ **{team1} vs {team2}**")
-                            await ctx.send(f"🏆 {series.get('tournament', {}).get('name')}")
-                            await ctx.send(f"📊 Status: {status}")
-                            await ctx.send("---")
+                    # Zeige SeriesState Schema
+                    schema_query = {
+                        "query": """
+                        query GetSeriesStateSchema {
+                            __type(name: "SeriesState") {
+                                name
+                                fields {
+                                    name
+                                    type {
+                                        name
+                                        kind
+                                    }
+                                }
+                            }
+                        }
+                        """
+                    }
+                    
+                    async with session.post(url, headers=headers, json=schema_query, timeout=15) as schema_response:
+                        schema_data = await schema_response.json()
+                        if schema_data.get('data', {}).get('__type'):
+                            fields = schema_data['data']['__type']['fields']
+                            field_names = [f['name'] for f in fields]
+                            await ctx.send(f"🔧 **SeriesState Felder:** {', '.join(field_names)}")
                 else:
                     await ctx.send(f"❌ Fehler: {data['errors'][0]['message']}")
                     
@@ -893,7 +817,7 @@ async def status(ctx):
         f"🔔 ALERTS: ✅ ACTIVE\n"
         f"⏱️ ALERT TIME: {ALERT_TIME}min\n"
         f"👥 SUBSCRIBED: {subscribed_count} TEAMS\n"
-        f"🌐 SOURCE: GRID.GG API"  # Geändert zu Grid.gg
+        f"🌐 SOURCE: GRID.GG LIVE-API"  # Geändert zu Live-API
     )
     
     framed_message = create_frame("🤖 BOT STATUS", status_content)
@@ -1065,7 +989,7 @@ async def createroles(ctx):
 # =========================
 @app.route('/')
 def home():
-    return "✅ CS2 Match Bot - GRID.GG API + TWITCH"  # Geändert
+    return "✅ CS2 Match Bot - GRID.GG LIVE-API + TWITCH"  # Geändert
 
 @app.route('/health')
 def health():
@@ -1086,7 +1010,7 @@ flask_thread.start()
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user} is online! - GRID.GG API + TWITCH')  # Geändert
+    print(f'✅ {bot.user} is online! - GRID.GG LIVE-API + TWITCH')  # Geändert
     
     for guild in bot.guilds:
         guild_id = str(guild.id)
