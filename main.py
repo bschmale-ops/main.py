@@ -330,17 +330,17 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers")
 
 # =========================
-# GRID.GG API - GRAPHQL VERSION
+# GRID.GG API - GRAPHQL VERSION (KORRIGIERT)
 # =========================
 async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # KORRIGIERTE URL - Die richtige Endpoint
+            # Korrigierte URL mit x-api-key Header
             url = "https://api-op.grid.gg/central-data/graphql"
             
             headers = {
-                'Authorization': f'Bearer {GRID_API_KEY}',
+                'x-api-key': GRID_API_KEY,  # ✅ x-api-key statt Bearer Token
                 'Content-Type': 'application/json'
             }
             
@@ -366,6 +366,11 @@ async def fetch_grid_matches():
                 if response.status == 200:
                     data = await response.json()
                     print(f"✅ Grid.gg API Response: {data}")  # Debug output
+                    
+                    # Prüfe ob Errors vorhanden sind
+                    if data.get('errors'):
+                        print(f"❌ GraphQL Errors: {data['errors']}")
+                        return []
                     
                     # GraphQL Response Format verarbeiten
                     matches_data = data.get('data', {}).get('matches', [])
@@ -637,10 +642,9 @@ async def debug(ctx):
     """Zeigt die Rohdaten der API Response"""
     try:
         async with aiohttp.ClientSession() as session:
-            # KORRIGIERTE URL
             url = "https://api-op.grid.gg/central-data/graphql"
             headers = {
-                'Authorization': f'Bearer {GRID_API_KEY}',
+                'x-api-key': GRID_API_KEY,  # ✅ x-api-key statt Bearer
                 'Content-Type': 'application/json'
             }
             
@@ -665,6 +669,7 @@ async def debug(ctx):
                 data = await response.json()
                 await ctx.send(f"🔍 API Status: {response.status}")
                 await ctx.send(f"🔗 Endpoint: {url}")
+                await ctx.send(f"🔑 Auth Type: x-api-key")
                 await ctx.send(f"📄 Response: ```{json.dumps(data, indent=2)[:1500]}```")
                 
     except Exception as e:
