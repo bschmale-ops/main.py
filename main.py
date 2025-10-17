@@ -687,7 +687,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Erkundet das Schema der LIVE-Daten API"""
+    """Testet die seriesState Query der Live-API"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
@@ -696,30 +696,48 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            # Schema erkunden
-            schema_query = {
+            # KORREKTE QUERY FÜR LIVE-DATEN
+            graphql_query = {
                 "query": """
-                query GetSchema {
-                    __schema {
-                        queryType {
-                            fields {
-                                name
-                                description
-                            }
+                query GetLiveSeries {
+                    seriesState {
+                        id
+                        startTime
+                        teams {
+                            name
                         }
+                        tournament {
+                            name
+                        }
+                        status
                     }
                 }
                 """
             }
             
-            async with session.post(url, headers=headers, json=schema_query, timeout=15) as response:
+            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
                 data = await response.json()
-                if data.get('data'):
-                    queries = data['data']['__schema']['queryType']['fields']
-                    query_names = [q['name'] for q in queries]
-                    await ctx.send(f"✅ **Verfügbare Queries:** {', '.join(query_names)}")
+                await ctx.send(f"🔍 API Status: {response.status}")
+                
+                if not data.get('errors'):
+                    await ctx.send("✅ **LIVE-DATEN FUNKTIONIEREN!** 🎉")
+                    
+                    series_data = data.get('data', {}).get('seriesState', [])
+                    await ctx.send(f"📊 **Live Series:** {len(series_data)}")
+                    
+                    for series in series_data[:3]:
+                        teams = series.get('teams', [])
+                        if len(teams) >= 2:
+                            team1 = teams[0].get('name', 'TBD')
+                            team2 = teams[1].get('name', 'TBD')
+                            status = series.get('status', 'UNKNOWN')
+                            
+                            await ctx.send(f"⚔️ **{team1} vs {team2}**")
+                            await ctx.send(f"🏆 {series.get('tournament', {}).get('name')}")
+                            await ctx.send(f"📊 Status: {status}")
+                            await ctx.send("---")
                 else:
-                    await ctx.send(f"❌ Error: {data}")
+                    await ctx.send(f"❌ Fehler: {data['errors'][0]['message']}")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
