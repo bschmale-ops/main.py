@@ -21,12 +21,10 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)
 
-# NEU: Setup Hook für persistente Buttons
+# NEU: Setup Hook für persistente Buttons - ÜBERARBEITETE VERSION
 @bot.event
 async def setup_hook():
-    bot.add_view(RoleButtonsView())
-    bot.add_view(MoreGamesView())
-    print("✅ Role Buttons persistent gemacht!")
+    print("✅ Persistent buttons setup!")
 
 # =========================
 # CONFIGURATION
@@ -44,7 +42,6 @@ AUTO_SUBSCRIBE_TEAMS = [
 
 # Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
-    # MAIN TEAMS MIT LOGOS:
     'Falcons': '<:falcons:1428075105615085598> FALCONS',
     'MOUZ': '<:mouz:1428075167850041425> MOUZ',
     'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
@@ -59,34 +56,6 @@ TEAM_DISPLAY_NAMES = {
     'Aurora': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
-    'BIG': 'BIG',
-    'Wildcard': 'WILDCARD',
-    'Sangal': 'SANGAL',
-    'RED Canids': 'RED CANIDS',
-    
-    # ACADEMY TEAMS OHNE LOGOS:
-    'Falcons Force': 'FALCONS FORCE',
-    'NAVI Junior': 'NAVI JUNIOR',
-    'Spirit Academy': 'SPIRIT ACADEMY',
-    'BIG Academy': 'BIG ACADEMY',
-    'Wildcard Academy': 'WILDCARD ACADEMY',
-    'MIBR Academy': 'MIBR ACADEMY',
-    'Young Ninjas': 'YOUNG NINJAS',
-    'ENCE Academy': 'ENCE ACADEMY',
-    'ODDIK Academy': 'ODDIK ACADEMY',
-    '3DMAX Academy': '3DMAX ACADEMY',
-    'Sangal Academy': 'SANGAL ACADEMY',
-    'RED Canids Academy': 'RED CANIDS ACADEMY',
-    
-    # FEMALE TEAMS OHNE LOGOS:
-    'MIBR fe': 'MIBR FE',
-    'FURIA fe': 'FURIA FE',
-    'NIP Impact': 'NIP IMPACT',
-    'Flame Sharks fe': 'FLAME SHARKS FE',
-    'Imperial Valkyries': 'IMPERIAL VALKYRIES',
-    'n!faculty female': 'N!FACULTY FEMALE',
-    
-    # RESTLICHE TEAMS:
     'B8': '<:b8:1428264645042503761> B8',
     'BetBoom': '<:betboom:1428264669533048932> BETBOOM',
     'Complexity': '<:complexity:1428264681222439023> COMPLEXITY',
@@ -103,23 +72,12 @@ TEAM_DISPLAY_NAMES = {
     'TYLOO': '<:tyloo:1428264914367021198> TYLOO',
     'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO',
     'Legacy': '<:legacy:1428269690001821766> LEGACY',
-    
-    'TEAM NOVAQ': 'TEAM NOVAQ',
-    'GENONE': 'GENONE',
-    'FISH123': 'FISH123',
-    'ARCRED': 'ARCRED',
-    'KONO.ECF': 'KONO.ECF',
-    'AM GAMING': 'AM GAMING',
-    'MASONIC': 'MASONIC',
-    'MINDFREAK': 'MINDFREAK',
-    'ROOSTER': 'ROOSTER'
 }
 
 # =========================
 # TEAM DATA
 # =========================
 TEAM_SYNONYMS = {
-    # MAIN TEAMS:
     'Natus Vincere': ['navi'],
     'FaZe': ['faze', 'faze clan'], 
     'Team Vitality': ['vitality'],
@@ -139,39 +97,15 @@ TEAM_SYNONYMS = {
     'Ninjas in Pyjamas': ['nip', 'ninjas in pyjamas'],
     'paiN': ['pain'],
     'Legacy': ['legacy'],
-    
-    # ACADEMY TEAMS:
-    'Falcons Force': ['falcons force', 'falcons academy'],
-    'NAVI Junior': ['navi junior', 'navi jr', 'navi academy'],
-    'Spirit Academy': ['spirit academy', 'spirit jr'],
-    'BIG Academy': ['big academy', 'big jr'],
-    'Wildcard Academy': ['wildcard academy', 'wildcard jr'],
-    'MIBR Academy': ['mibr academy', 'mibr youth', 'mibr jr'],
-    'Young Ninjas': ['young ninjas', 'nip academy', 'ninjas academy'],
-    'ENCE Academy': ['ence academy', 'ence jr'],
-    'ODDIK Academy': ['oddik academy', 'oddik jr'],
-    '3DMAX Academy': ['3dmax academy', '3dmax jr'],
-    'Sangal Academy': ['sangal academy', 'sangal jr'],
-    'RED Canids Academy': ['red canids academy', 'red canids jr'],
-    
-    # FEMALE TEAMS:
-    'MIBR fe': ['mibr fe', 'mibr female', 'mibr women'],
-    'FURIA fe': ['furia fe', 'furia female', 'furia women'],
-    'NIP Impact': ['nip impact', 'nip female', 'nip fe'],
-    'Flame Sharks fe': ['flame sharks fe', 'flame sharks female'],
-    'Imperial Valkyries': ['imperial valkyries', 'imperial female'],
-    'n!faculty female': ['n faculty female', 'n!faculty fe']
 }
 
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
     
-    # 1. Zuerst in TEAM_SYNONYMS suchen
     for correct_name, variants in TEAM_SYNONYMS.items():
         if input_lower in [v.lower() for v in variants] or input_lower == correct_name.lower():
             return correct_name, True
     
-    # 2. Dann in TEAM_DISPLAY_NAMES suchen (für Main Teams ohne Synonyms)
     for team_name in TEAM_DISPLAY_NAMES.keys():
         if input_lower == team_name.lower():
             return team_name, True
@@ -179,45 +113,29 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_display_name(team_name):
-    """Get team name with emoji for display"""
-    # Zuerst nach EXAKTEN Matches suchen
     if team_name in TEAM_DISPLAY_NAMES:
         return TEAM_DISPLAY_NAMES[team_name]
     
-    # Dann nach längeren Namen suchen (G2 Ares vor G2)
     sorted_names = sorted(TEAM_DISPLAY_NAMES.keys(), key=len, reverse=True)
-    
     for display_name in sorted_names:
         if display_name.upper() in team_name.upper() or team_name.upper() in display_name.upper():
             return TEAM_DISPLAY_NAMES[display_name]
     
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+
 def get_team_emoji(team_name):
-    """Get only the emoji part - mit Regex für Emojis"""
     display = get_display_name(team_name)
-    
-    # Finde Custom Emojis (Format: <:name:ID>)
-    import re
     emoji_match = re.search(r'<:[a-zA-Z0-9_]+:\d+>', display)
     if emoji_match:
         return emoji_match.group()
     return ""
 
 def get_team_name_only(team_name):
-    """Get only the name part - komplett nach dem Emoji"""
     display = get_display_name(team_name)
-    
-    # Entferne Custom Emojis (Format: <:name:ID>) und gebe den REST zurück
     display_without_emoji = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', '', display).strip()
-    
     return display_without_emoji
-    
-def center_vs(team1, team2):
-    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
-    return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
 
 def create_frame(title, content):
-    """Erstelle Rahmen OHNE Code-Blöcke"""
     separator = "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
@@ -337,15 +255,13 @@ async def send_alerts():
                             team1_display = get_display_name(match['team1'])
                             team2_display = get_display_name(match['team2'])
                             
-                            # Teams UND VS mit # für große Schrift + LEERE ZEILE (wie in /test)
                             centered_display = (
                                 f"# {team1_display}\n"
                                 f"# <:VS:1428145739443208305>\n"
                                 f"#  {team2_display}\n"
-                                f"** **"  # Unsichtbare Zeile mit Leerzeichen zwischen **
+                                f"** **"
                             )
                             
-                            # Finale Formatierung mit Emojis und ABSATZ
                             match_content = (
                                 f"\n{centered_display}\n\n"
                                 f"**🏆 {match['event']}**\n"
@@ -377,7 +293,6 @@ async def send_alerts():
 # =========================
 @tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))
 async def daily_dm_reminder():
-    """Tägliche DM um 12:30 Uhr"""
     try:
         message = create_frame(
             "🌞 DAILY REMINDER • 12:30",
@@ -402,6 +317,53 @@ async def daily_dm_reminder():
         print(f"❌ Daily DM error: {e}")
 
 # =========================
+# PERSISTENT BUTTON HANDLER
+# =========================
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type == discord.InteractionType.component:
+        custom_id = interaction.data.get('custom_id', '')
+        
+        role_mapping = {
+            'role_cs2': 'CS 2',
+            'role_valorant': 'Valorant', 
+            'role_lol': 'League of Legends',
+            'role_apex': 'Apex Legends',
+            'role_cod': 'Call of Duty',
+            'role_diablo': 'Diablo 4',
+            'role_tibia': 'Tibia',
+            'role_pubg': 'PUBG',
+            'role_rust': 'Rust',
+            'role_fortnite': 'Fortnite',
+            'role_r6': 'Rainbow Six Siege',
+            'role_overwatch': 'Overwatch',
+            'role_wow': 'World of Warcraft',
+            'role_halo': 'Halo 2'
+        }
+        
+        if custom_id in role_mapping:
+            await interaction.response.defer(ephemeral=True)
+            role_name = role_mapping[custom_id]
+            
+            try:
+                role = discord.utils.get(interaction.guild.roles, name=role_name)
+                if not role:
+                    role = await interaction.guild.create_role(
+                        name=role_name, 
+                        mentionable=True, 
+                        color=discord.Color.blue()
+                    )
+                
+                if role in interaction.user.roles:
+                    await interaction.user.remove_roles(role)
+                    await interaction.followup.send(f"❌ {role_name} Rolle entfernt!", ephemeral=True)
+                else:
+                    await interaction.user.add_roles(role)
+                    await interaction.followup.send(f"✅ {role_name} Rolle hinzugefügt!", ephemeral=True)
+            except Exception as e:
+                await interaction.followup.send(f"❌ Fehler: {e}", ephemeral=True)
+
+# =========================
 # BOT COMMANDS
 # =========================
 @bot.command()
@@ -413,12 +375,10 @@ async def subscribe(ctx, *, team):
     
     correct_name, found = find_team_match(team)
     
-    # TEAM VALIDIERUNG: Wenn Team nicht gefunden wurde
     if not found:
         await ctx.send(f"❌ **Team '{team}' nicht gefunden!**")
         return
     
-    # Normales Subscribe
     if correct_name not in TEAMS[guild_id]:
         TEAMS[guild_id].append(correct_name)
         if save_data():
@@ -444,7 +404,6 @@ async def unsubscribe(ctx, *, team):
 
 @bot.command()
 async def list(ctx):
-    """Show subscribed teams - MIT RAHMEN und FETTEN Teamnamen"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
     
@@ -469,7 +428,6 @@ async def settime(ctx, minutes: int):
 
 @bot.command()
 async def matches(ctx):
-    """Show available matches - MIT RAHMEN"""
     try:
         matches = await fetch_pandascore_matches()
         
@@ -483,7 +441,6 @@ async def matches(ctx):
                 team2_emoji = get_team_emoji(match['team2'])
                 team2_name = get_team_name_only(match['team2'])
                 
-                # Team vs Team Zeile komplett in FETT mit ** am Anfang und Ende
                 match_list += f"**{team1_emoji} {team1_name} <:VS:1428145739443208305> {team2_emoji} {team2_name}**\n"
                 match_list += f"__⏰ {int(time_until)}min | 🏆 {match['event']}__\n\n"
             
@@ -549,19 +506,16 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Test alert - MIT RAHMEN und korrekter Formatierung"""
     team1_display = get_display_name("Falcons")
     team2_display = get_display_name("Team Vitality")
     
-    # Teams UND VS mit # für große Schrift + LEERE ZEILE
     centered_display = (
         f"# {team1_display}\n"
         f"# <:VS:1428145739443208305>\n"
         f"#  {team2_display}\n"
-        f"** **"  # Unsichtbare Zeile mit Leerzeichen zwischen **
+        f"** **"
     )
     
-    # Tournament und Zeit OHNE # aber FETT mit Emojis
     test_content = (
         f"\n{centered_display}\n\n"
         f"**🏆 NODWIN Clutch Series**\n"
@@ -581,168 +535,132 @@ async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
 
 # =========================
-# DEBUG COMMANDS
-# =========================
-@bot.command()
-async def debug(ctx, *, team):
-    """Debug command um Team-Namen zu checken"""
-    display = get_display_name(team)
-    emoji = get_team_emoji(team)
-    name_only = get_team_name_only(team)
-    
-    await ctx.send(
-        f"**Input:** {team}\n"
-        f"**Display:** {display}\n"
-        f"**Emoji:** {emoji}\n"
-        f"**Name Only:** {name_only}"
-    )
-
-@bot.command()
-async def rawmatches(ctx):
-    """Zeigt rohe PandaScore Daten"""
-    matches = await fetch_pandascore_matches()
-    
-    if not matches:
-        await ctx.send("❌ **No matches found**")
-        return
-        
-    for match in matches[:3]:  # Nur erste 3 Matches
-        await ctx.send(
-            f"**Team1:** `{match['team1']}`\n"
-            f"**Team2:** `{match['team2']}`\n"
-            f"**Event:** {match['event']}\n"
-            f"**Time:** {match['time_string']}\n"
-            f"---"
-        )
-
-# =========================
-# ROLE BUTTONS SYSTEM
-# =========================
-class RoleButtonsView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-    
-    # REIHE 0: CS2
-    @discord.ui.button(label="CS 2", emoji="<:cs2:1298250987483697202>", style=discord.ButtonStyle.secondary, custom_id="role_cs2", row=0)
-    async def cs2_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "CS 2")
-    
-    # REIHE 1: Valorant
-    @discord.ui.button(label="Valorant", emoji="<:valorant:1298251760720150550>", style=discord.ButtonStyle.secondary, custom_id="role_valorant", row=1)
-    async def valorant_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Valorant")
-    
-    # REIHE 2: LEER (Absatz) - Keine Buttons
-    
-    # REIHE 3: TEXT-Button (Disabled Button als Überschrift)
-    @discord.ui.button(label="🎮 Other Games", style=discord.ButtonStyle.secondary, custom_id="text_other_games", row=3, disabled=True)
-    async def text_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        pass  # Keine Aktion, nur Text
-    
-    # REIHE 4: Erste 5 andere Spiele
-    @discord.ui.button(label="League of Legends", emoji="<:lol:1298252270240272416>", style=discord.ButtonStyle.secondary, custom_id="role_lol", row=4)
-    async def lol_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "League of Legends")
-    
-    @discord.ui.button(label="Apex Legends", emoji="<:apex:1298251721184772119>", style=discord.ButtonStyle.secondary, custom_id="role_apex", row=4)
-    async def apex_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Apex Legends")
-    
-    @discord.ui.button(label="Call of Duty", emoji="<:cod:1298251740965109770>", style=discord.ButtonStyle.secondary, custom_id="role_cod", row=4)
-    async def cod_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Call of Duty")
-    
-    @discord.ui.button(label="Diablo 4", emoji="<:d4:1304002853253152799>", style=discord.ButtonStyle.secondary, custom_id="role_diablo", row=4)
-    async def diablo_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Diablo 4")
-    
-    @discord.ui.button(label="Tibia", emoji="<:tibia:1305455884201103393>", style=discord.ButtonStyle.secondary, custom_id="role_tibia", row=4)
-    async def tibia_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Tibia")
-
-    async def assign_role(self, interaction: discord.Interaction, role_name: str):
-        await interaction.response.defer(ephemeral=True)
-        
-        try:
-            role = discord.utils.get(interaction.guild.roles, name=role_name)
-            if not role:
-                role = await interaction.guild.create_role(name=role_name, mentionable=True, color=discord.Color.blue())
-            
-            if role in interaction.user.roles:
-                await interaction.user.remove_roles(role)
-                await interaction.followup.send(f"❌ {role_name} Rolle entfernt!", ephemeral=True)
-            else:
-                await interaction.user.add_roles(role)
-                await interaction.followup.send(f"✅ {role_name} Rolle hinzugefügt!", ephemeral=True)
-        except Exception as e:
-            await interaction.followup.send(f"❌ Fehler: {e}", ephemeral=True)
-
-# ZWEITER VIEW FÜR RESTLICHE SPIELE
-class MoreGamesView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-    
-    # REIHE 0: Weitere 5 Spiele
-    @discord.ui.button(label="PUBG", emoji="<:pubg:1305772146861277255>", style=discord.ButtonStyle.secondary, custom_id="role_pubg", row=0)
-    async def pubg_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "PUBG")
-    
-    @discord.ui.button(label="Rust", emoji="<:rust:1305456246996078614>", style=discord.ButtonStyle.secondary, custom_id="role_rust", row=0)
-    async def rust_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Rust")
-    
-    @discord.ui.button(label="Fortnite", emoji="<:fortnite:1305772894336450571>", style=discord.ButtonStyle.secondary, custom_id="role_fortnite", row=0)
-    async def fortnite_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Fortnite")
-    
-    @discord.ui.button(label="Rainbow Six Siege", emoji="<:r6:1305774806083305515>", style=discord.ButtonStyle.secondary, custom_id="role_r6", row=0)
-    async def r6_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Rainbow Six Siege")
-    
-    @discord.ui.button(label="Overwatch", emoji="<:overwatch:1305773706471276554>", style=discord.ButtonStyle.secondary, custom_id="role_overwatch", row=0)
-    async def overwatch_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Overwatch")
-    
-    # REIHE 1: Letzte 2 Spiele
-    @discord.ui.button(label="World of Warcraft", emoji="<:wow:1305809271992352809>", style=discord.ButtonStyle.secondary, custom_id="role_wow", row=1)
-    async def wow_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "World of Warcraft")
-    
-    @discord.ui.button(label="Halo 2", emoji="<:halo2:1305775045204770846>", style=discord.ButtonStyle.secondary, custom_id="role_halo", row=1)
-    async def halo_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.assign_role(interaction, "Halo 2")
-
-    async def assign_role(self, interaction: discord.Interaction, role_name: str):
-        await interaction.response.defer(ephemeral=True)
-        
-        try:
-            role = discord.utils.get(interaction.guild.roles, name=role_name)
-            if not role:
-                role = await interaction.guild.create_role(name=role_name, mentionable=True, color=discord.Color.blue())
-            
-            if role in interaction.user.roles:
-                await interaction.user.remove_roles(role)
-                await interaction.followup.send(f"❌ {role_name} Rolle entfernt!", ephemeral=True)
-            else:
-                await interaction.user.add_roles(role)
-                await interaction.followup.send(f"✅ {role_name} Rolle hinzugefügt!", ephemeral=True)
-        except Exception as e:
-            await interaction.followup.send(f"❌ Fehler: {e}", ephemeral=True)
-
-# =========================
-# ROLE BUTTONS COMMAND
+# ROLE BUTTONS COMMAND - ÜBERARBEITETE VERSION
 # =========================
 @bot.command()
 async def createroles(ctx):
-    """Erstelle die Game-Role Buttons in diesem Channel"""
-    embed = discord.Embed(
+    """Erstelle die Game-Role Buttons in diesem Channel - NEUES LAYOUT"""
+    
+    # ERSTE NACHRICHT: Hauptüberschrift + CS2 & Valorant
+    embed1 = discord.Embed(
         title="🎮 **Choose Your Games**",
-        description="Click the buttons to add/remove game roles\nYou will be pinged for matches of your selected games!\n\n** **",
+        description="Click the buttons to add/remove game roles\nYou will be pinged for matches of your selected games!\n\n---",
         color=0x5865F2
     )
     
-    await ctx.send(embed=embed, view=RoleButtonsView())
-    await ctx.send(view=MoreGamesView())
+    # ERSTER VIEW: CS2 und Valorant
+    view1 = discord.ui.View(timeout=None)
+    
+    # CS2 Button
+    cs2_button = discord.ui.Button(
+        label="CS 2", 
+        emoji="<:cs2:1298250987483697202>", 
+        style=discord.ButtonStyle.secondary, 
+        custom_id="role_cs2",
+        row=0
+    )
+    view1.add_item(cs2_button)
+    
+    # Valorant Button
+    valorant_button = discord.ui.Button(
+        label="Valorant", 
+        emoji="<:valorant:1298251760720150550>", 
+        style=discord.ButtonStyle.secondary, 
+        custom_id="role_valorant",
+        row=1
+    )
+    view1.add_item(valorant_button)
+    
+    await ctx.send(embed=embed1, view=view1)
+    
+    # ZWEITE NACHRICHT: "Other Games" als reiner Text mit Absätzen
+    await ctx.send("** **")
+    await ctx.send("## Other Games")
+    await ctx.send("** **")
+    
+    # DRITTE NACHRICHT: Erste Reihe Other Games
+    view2 = discord.ui.View(timeout=None)
+    
+    buttons_row1 = [
+        ("League of Legends", "<:lol:1298252270240272416>", "role_lol"),
+        ("Apex Legends", "<:apex:1298251721184772119>", "role_apex"),
+        ("Call of Duty", "<:cod:1298251740965109770>", "role_cod")
+    ]
+    
+    for label, emoji, custom_id in buttons_row1:
+        button = discord.ui.Button(
+            label=label, 
+            emoji=emoji, 
+            style=discord.ButtonStyle.secondary, 
+            custom_id=custom_id,
+            row=0
+        )
+        view2.add_item(button)
+    
+    await ctx.send(view=view2)
+    
+    # VIERTE NACHRICHT: Zweite Reihe Other Games
+    view3 = discord.ui.View(timeout=None)
+    
+    buttons_row2 = [
+        ("Diablo 4", "<:d4:1304002853253152799>", "role_diablo"),
+        ("Tibia", "<:tibia:1305455884201103393>", "role_tibia"),
+        ("PUBG", "<:pubg:1305772146861277255>", "role_pubg")
+    ]
+    
+    for label, emoji, custom_id in buttons_row2:
+        button = discord.ui.Button(
+            label=label, 
+            emoji=emoji, 
+            style=discord.ButtonStyle.secondary, 
+            custom_id=custom_id,
+            row=0
+        )
+        view3.add_item(button)
+    
+    await ctx.send(view=view3)
+    
+    # FÜNFTE NACHRICHT: Dritte Reihe Other Games
+    view4 = discord.ui.View(timeout=None)
+    
+    buttons_row3 = [
+        ("Rust", "<:rust:1305456246996078614>", "role_rust"),
+        ("Fortnite", "<:fortnite:1305772894336450571>", "role_fortnite"),
+        ("Rainbow Six Siege", "<:r6:1305774806083305515>", "role_r6")
+    ]
+    
+    for label, emoji, custom_id in buttons_row3:
+        button = discord.ui.Button(
+            label=label, 
+            emoji=emoji, 
+            style=discord.ButtonStyle.secondary, 
+            custom_id=custom_id,
+            row=0
+        )
+        view4.add_item(button)
+    
+    await ctx.send(view=view4)
+    
+    # SECHSTE NACHRICHT: Vierte Reihe Other Games
+    view5 = discord.ui.View(timeout=None)
+    
+    buttons_row4 = [
+        ("Overwatch", "<:overwatch:1305773706471276554>", "role_overwatch"),
+        ("World of Warcraft", "<:wow:1305809271992352809>", "role_wow"),
+        ("Halo 2", "<:halo2:1305775045204770846>", "role_halo")
+    ]
+    
+    for label, emoji, custom_id in buttons_row4:
+        button = discord.ui.Button(
+            label=label, 
+            emoji=emoji, 
+            style=discord.ButtonStyle.secondary, 
+            custom_id=custom_id,
+            row=0
+        )
+        view5.add_item(button)
+    
+    await ctx.send(view=view5)
 
 # =========================
 # FLASK & STARTUP
