@@ -10,7 +10,7 @@ import threading
 import aiohttp
 import re
 
-print("🚀 Starting Discord CS2 Bot - PANDASCORE API")
+print("🚀 Starting Discord CS2 Bot - PANDASCORE API + TWITCH")
 
 # =========================
 # BOT SETUP
@@ -30,6 +30,12 @@ async def setup_hook():
 # CONFIGURATION
 # =========================
 PANDASCORE_TOKEN = "NFG_fJz5qyUGHaWJmh-CcIeGELtI5prmh-YHWNibDTqDXR-p6sM"
+
+# =========================
+# TWITCH CONFIGURATION - EINFACHER WEG
+# =========================
+TWITCH_USERNAME = "shiseii"
+ANNOUNCEMENT_CHANNEL_ID = 1162297673920024667  # Dein Announcement Channel
 
 # =========================
 # AUTO-SUBSCRIBE TEAMS
@@ -57,6 +63,7 @@ TEAM_DISPLAY_NAMES = {
     'Aurora': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
+    'ENCE': 'ENCE',  # NEU: ENCE Main Team hinzugefügt
     'BIG': 'BIG',
     'Wildcard': 'WILDCARD',
     'Sangal': 'SANGAL',
@@ -130,6 +137,7 @@ TEAM_SYNONYMS = {
     'Aurora': ['aurora'],
     'Liquid': ['liquid'],
     'M80': ['m80'],
+    'ENCE': ['ence'],  # NEU: ENCE Main Team Synonym
     'Complexity': ['complexity', 'col'],
     'Heroic': ['heroic'],
     'Fnatic': ['fnatic'],
@@ -164,18 +172,18 @@ TEAM_SYNONYMS = {
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
     
-    # 1. Zuerst in TEAM_SYNONYMS suchen (für Rechtschreibfehler/Akademies)
+    # 1. Zuerst in TEAM_SYNONYMS suchen
     for correct_name, variants in TEAM_SYNONYMS.items():
-        if input_lower in [v.lower() for v in variants] or input_lower == correct_name.lower():
+        if input_lower in [v.lower() for v in variants]:
             return correct_name, True
     
-    # 2. Dann in TEAM_DISPLAY_NAMES suchen (für exakte Main Teams)
+    # 2. Dann in TEAM_DISPLAY_NAMES suchen (NUR EXAKTE MATCHES)
     for team_name in TEAM_DISPLAY_NAMES.keys():
         if input_lower == team_name.lower():
             return team_name, True
     
-    # 3. NEU: Wenn nicht gefunden, Team TROTZDEM verwenden - ABER mit Warnung!
-    return input_team, True  # ⬅️ Hier True statt False - das ist der Schlüssel!
+    # 3. Wenn nicht gefunden, Team TROTZDEM verwenden
+    return input_team, True
 
 def get_display_name(team_name, use_smart_lookup=True):
     """Get team name with emoji for display
@@ -191,13 +199,7 @@ def get_display_name(team_name, use_smart_lookup=True):
     if team_name in TEAM_DISPLAY_NAMES:
         return TEAM_DISPLAY_NAMES[team_name]
     
-    # NEU: Kürzeste Namen zuerst (Main Teams priorisieren)
-    sorted_names = sorted(TEAM_DISPLAY_NAMES.keys(), key=len)
-    
-    for display_name in sorted_names:
-        if display_name.upper() in team_name.upper() or team_name.upper() in display_name.upper():
-            return TEAM_DISPLAY_NAMES[display_name]
-    
+    # NEU: Nur exakte Matches für intelligente Zuordnung
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
 def get_team_emoji(team_name, use_smart_lookup=False):
@@ -404,6 +406,71 @@ async def daily_dm_reminder():
             
     except Exception as e:
         print(f"❌ Daily DM error: {e}")
+
+# =========================
+# TWITCH LIVE CHECKER
+# =========================
+@tasks.loop(minutes=5)
+async def check_twitch_live():
+    """Einfacher Twitch Check ohne API"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Twitch Channel Seite abrufen
+            url = f"https://twitch.tv/{TWITCH_USERNAME}"
+            async with session.get(url) as response:
+                html = await response.text()
+                
+                # Einfache Prüfung ob "isLiveBroadcast" im HTML ist
+                if '"isLiveBroadcast":true' in html:
+                    await send_simple_announcement()
+                    
+    except Exception as e:
+        print(f"❌ Simple Twitch check error: {e}")
+
+async def send_simple_announcement():
+    """Einfache Live Announcement ohne API"""
+    try:
+        if not ANNOUNCEMENT_CHANNEL_ID:
+            return
+            
+        channel = bot.get_channel(ANNOUNCEMENT_CHANNEL_ID)
+        if not channel:
+            return
+            
+        # Anti-Spam Check
+        if hasattr(send_simple_announcement, 'last_announcement'):
+            time_since_last = datetime.datetime.now() - send_simple_announcement.last_announcement
+            if time_since_last < timedelta(hours=2):
+                return
+        
+        # DEIN CUSTOM ANNOUNCEMENT TEXT
+        announcement_text = (
+            f"@everyone @here  |  https://twitch.tv/{TWITCH_USERNAME}  |  "
+            f"{TWITCH_USERNAME} is going live !  --  check out the stream here:"
+        )
+        
+        embed = discord.Embed(
+            title="🔴 **LIVE AUF TWITCH!**",
+            description=f"**{TWITCH_USERNAME} ist jetzt live!** 🎮",
+            color=0x9146FF,
+            url=f"https://twitch.tv/{TWITCH_USERNAME}"
+        )
+        
+        embed.add_field(
+            name="📺 Stream Link",
+            value=f"[Twitch.tv/{TWITCH_USERNAME}](https://twitch.tv/{TWITCH_USERNAME})",
+            inline=True
+        )
+        
+        embed.set_footer(text="Viel Spaß beim Zuschauen! 🎪")
+        
+        await channel.send(announcement_text, embed=embed)
+            
+        send_simple_announcement.last_announcement = datetime.datetime.now()
+        print(f"✅ Twitch Live Announcement gesendet!")
+        
+    except Exception as e:
+        print(f"❌ Twitch announcement error: {e}")
 
 # =========================
 # PERSISTENT BUTTON HANDLER
@@ -631,6 +698,22 @@ async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
 
 # =========================
+# TWITCH COMMANDS
+# =========================
+@bot.command()
+async def setannouncechannel(ctx, channel: discord.TextChannel):
+    """Setzt den Channel für Twitch Announcements"""
+    global ANNOUNCEMENT_CHANNEL_ID
+    ANNOUNCEMENT_CHANNEL_ID = channel.id
+    await ctx.send(f"📢 **Twitch Announcements werden in {channel.mention} gepostet!**")
+
+@bot.command()
+async def twitchtest(ctx):
+    """Testet die Twitch Announcement"""
+    await send_simple_announcement()
+    await ctx.send("✅ **Twitch Test Announcement gesendet!**")
+
+# =========================
 # ROLE BUTTONS COMMAND - ÜBERARBEITETE VERSION
 # =========================
 @bot.command()
@@ -763,7 +846,7 @@ async def createroles(ctx):
 # =========================
 @app.route('/')
 def home():
-    return "✅ CS2 Match Bot - PANDASCORE API"
+    return "✅ CS2 Match Bot - PANDASCORE API + TWITCH"
 
 @app.route('/health')
 def health():
@@ -784,7 +867,7 @@ flask_thread.start()
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user} is online! - PANDASCORE API')
+    print(f'✅ {bot.user} is online! - PANDASCORE API + TWITCH')
     
     for guild in bot.guilds:
         guild_id = str(guild.id)
@@ -803,8 +886,11 @@ async def on_ready():
         send_alerts.start()
     if not daily_dm_reminder.is_running():
         daily_dm_reminder.start()
+    if not check_twitch_live.is_running():  # NEU: Twitch Checker starten
+        check_twitch_live.start()
     print("🔔 Alert system started!")
     print("⏰ Daily DM reminder started!")
+    print("📺 Twitch live checker started!")  # NEU
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
