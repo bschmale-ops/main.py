@@ -1,21 +1,26 @@
-// hltv-scraper.js
 const HLTV = require('hltv').default;
 
 async function getMatches() {
     try {
-        const matches = await HLTV.getLiveMatches();
+        // ALLE Matches holen (nicht nur live)
+        const matches = await HLTV.getMatches();
         
-        // Daten für Python aufbereiten
-        const simplifiedMatches = matches.map(match => ({
+        console.log("🔍 DEBUG: Total matches found:", matches.length);
+        
+        // Die ersten 6 Matches nehmen
+        const recentMatches = matches.slice(0, 6);
+        
+        const simplifiedMatches = recentMatches.map(match => ({
             team1: match.team1?.name || 'TBA',
             team2: match.team2?.name || 'TBA',
             event: match.event?.name || 'Unknown Event',
-            unix_time: Math.floor(Date.now() / 1000) + 3600, // +1h für Demo
-            time_string: 'LIVE'
+            unix_time: Math.floor(Date.now() / 1000) + 3600, // +1 Stunde
+            time_string: match.time || 'SOON'
         }));
 
         console.log(JSON.stringify(simplifiedMatches));
     } catch (error) {
+        console.log("❌ HLTV Error:", error);
         console.log(JSON.stringify([]));
     }
 }
