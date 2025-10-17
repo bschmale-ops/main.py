@@ -210,9 +210,29 @@ def center_vs(team1, team2):
     return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
 
 def create_frame(title, content):
-    """Erstelle Rahmen OHNE Code-Blöcke"""
+    """Erstelle Rahmen mit BLAUEM Titel"""
     separator = "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄"
-    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
+    
+    # Erstelle Embed mit BLAUEM Titel
+    embed = discord.Embed(
+        color=0x0099FF  # BLAU für alle Rahmen-Titel
+    )
+    
+    # Füge Titel und Content als Fields hinzu
+    embed.add_field(
+        name=f"{separator}\n{title}\n{separator}",
+        value=content,
+        inline=False
+    )
+    
+    # Füge unteren Separator hinzu
+    embed.add_field(
+        name=separator,
+        value="",
+        inline=False
+    )
+    
+    return embed
 
 # =========================
 # DATA MANAGEMENT
