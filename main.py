@@ -10,6 +10,16 @@ import threading
 import aiohttp
 import re
 import subprocess  # NEU: Für Node.js Bridge
+import logging  # NEU: Für zuverlässige Logs
+
+# =========================
+# LOGGING SETUP - NEU
+# =========================
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 print("🚀 Starting Discord CS2 Bot - HLTV API + TWITCH")
 
@@ -266,7 +276,7 @@ print(f"📊 Loaded: {len(TEAMS)} servers")
 async def fetch_hltv_matches():
     """Holt echte Live-Matches via Node.js HLTV Package"""
     try:
-        print("🚀 DEBUG: Starting Node.js HLTV bridge...")
+        logging.info("🚀 DEBUG: Starting Node.js HLTV bridge...")
         
         # Node.js Script ausführen
         result = subprocess.run(
@@ -276,21 +286,21 @@ async def fetch_hltv_matches():
             timeout=30
         )
         
-        print(f"🔍 DEBUG: Node.js return code: {result.returncode}")
-        print(f"🔍 DEBUG: Node.js stdout: {result.stdout}")
+        logging.info(f"🔍 DEBUG: Node.js return code: {result.returncode}")
+        logging.info(f"🔍 DEBUG: Node.js stdout: {result.stdout}")
         if result.stderr:
-            print(f"🔍 DEBUG: Node.js stderr: {result.stderr}")
+            logging.info(f"🔍 DEBUG: Node.js stderr: {result.stderr}")
         
         if result.returncode == 0 and result.stdout.strip():
             matches = json.loads(result.stdout)
-            print(f"✅ DEBUG: Found {len(matches)} real matches from HLTV!")
+            logging.info(f"✅ DEBUG: Found {len(matches)} real matches from HLTV!")
             return matches
         else:
-            print("❌ DEBUG: Node.js returned no data")
+            logging.info("❌ DEBUG: Node.js returned no data")
             return []  # LEER - keine Fake Daten
             
     except Exception as e:
-        print(f"❌ DEBUG: Bridge error: {e}")
+        logging.info(f"❌ DEBUG: Bridge error: {e}")
         return []  # LEER - keine Fake Daten
 
 # =========================
@@ -577,35 +587,21 @@ async def settime(ctx, minutes: int):
 @bot.command()
 async def matches(ctx):
     try:
-        print("🎯 DEBUG: /matches command received!")
+        logging.info("🎯 DEBUG: /matches command received!")
         
         matches = await fetch_hltv_matches()
         
-        print(f"🎯 DEBUG: fetch_hltv_matches returned {len(matches)} matches")
+        logging.info(f"🎯 DEBUG: fetch_hltv_matches returned {len(matches)} matches")
         
         if matches:
-            match_list = ""
-            for match in matches[:6]:
-                time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
-                
-                team1_emoji = get_team_emoji(match['team1'], use_smart_lookup=False)
-                team1_name = get_team_name_only(match['team1'], use_smart_lookup=False)
-                team2_emoji = get_team_emoji(match['team2'], use_smart_lookup=False)
-                team2_name = get_team_name_only(match['team2'], use_smart_lookup=False)
-                
-                match_list += f"**{team1_emoji} {team1_name} <:VS:1428145739443208305> {team2_emoji} {team2_name}**\n"
-                match_list += f"__⏰ {int(time_until)}min | 🏆 {match['event']}__\n\n"
-            
-            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
-            framed_message = create_frame("🎯 AVAILABLE CS2 MATCHES", f"{match_list}{footer}")
-            print("🎯 DEBUG: Sending matches to Discord")
-            await ctx.send(framed_message)
+            # ... restlicher Code ...
+            logging.info("🎯 DEBUG: Sending matches to Discord")
         else:
-            print("🎯 DEBUG: No matches found, sending error")
+            logging.info("🎯 DEBUG: No matches found, sending error")
             await ctx.send("❌ **No matches found**")
         
     except Exception as e:
-        print(f"🎯 DEBUG: matches command error: {e}")
+        logging.info(f"🎯 DEBUG: matches command error: {e}")
         await ctx.send(f"❌ **Error:** {e}")
 
 @bot.command()
