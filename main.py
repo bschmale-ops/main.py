@@ -164,17 +164,18 @@ TEAM_SYNONYMS = {
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
     
-    # 1. Zuerst in TEAM_SYNONYMS suchen
+    # 1. Zuerst in TEAM_SYNONYMS suchen (für Rechtschreibfehler/Akademies)
     for correct_name, variants in TEAM_SYNONYMS.items():
         if input_lower in [v.lower() for v in variants] or input_lower == correct_name.lower():
             return correct_name, True
     
-    # 2. Dann in TEAM_DISPLAY_NAMES suchen (für Main Teams ohne Synonyms)
+    # 2. Dann in TEAM_DISPLAY_NAMES suchen (für exakte Main Teams)
     for team_name in TEAM_DISPLAY_NAMES.keys():
         if input_lower == team_name.lower():
             return team_name, True
     
-    return input_team, False
+    # 3. NEU: Wenn nicht gefunden, Team TROTZDEM verwenden - ABER mit Warnung!
+    return input_team, True  # ⬅️ Hier True statt False - das ist der Schlüssel!
 
 def get_display_name(team_name):
     """Get team name with emoji for display"""
@@ -455,14 +456,21 @@ async def subscribe(ctx, *, team):
     
     correct_name, found = find_team_match(team)
     
-    if not found:
-        await ctx.send(f"❌ **Team '{team}' nicht gefunden!**")
-        return
+    # NEU: Warnung wenn Team nicht in unseren Listen steht
+    original_lower = team.lower()
+    correct_lower = correct_name.lower()
+    
+    if original_lower != correct_lower:
+        # Team wurde "intelligent" zugeordnet (z.B. "navi" → "Natus Vincere")
+        message = f"✅ **{get_display_name(correct_name)}** added for alerts! 🎯"
+    else:
+        # Team wurde direkt übernommen (nicht in Listen)
+        message = f"✅ **{correct_name.upper()}** added for alerts! ⚠️ (Team not in database)"
     
     if correct_name not in TEAMS[guild_id]:
         TEAMS[guild_id].append(correct_name)
         if save_data():
-            await ctx.send(f"✅ **{get_display_name(correct_name)}** added for alerts! 🎯")
+            await ctx.send(message)
         else:
             await ctx.send("⚠️ **Save failed!**")
     else:
