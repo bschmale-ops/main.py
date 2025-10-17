@@ -342,7 +342,7 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # ✅ KORREKTE QUERY OHNE TITLE
+            # ✅ KORREKTE QUERY MIT baseInfo
             graphql_query = {
                 "query": """
                 query GetUpcomingSeries {
@@ -352,7 +352,7 @@ async def fetch_grid_matches():
                                 id
                                 startTimeScheduled
                                 teams {
-                                    team {
+                                    baseInfo {
                                         name
                                     }
                                 }
@@ -386,8 +386,9 @@ async def fetch_grid_matches():
                             
                             teams = series.get('teams', [])
                             if len(teams) >= 2:
-                                team1 = teams[0].get('team', {}).get('name', 'TBD')
-                                team2 = teams[1].get('team', {}).get('name', 'TBD')
+                                # ✅ KORREKT: baseInfo statt team
+                                team1 = teams[0].get('baseInfo', {}).get('name', 'TBD')
+                                team2 = teams[1].get('baseInfo', {}).get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
                                     start_time = series.get('startTimeScheduled')
@@ -395,7 +396,7 @@ async def fetch_grid_matches():
                                         match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
                                         
-                                        # Nur zukünftige Matches
+                                        # ✅ NUR ZUKÜNFTIGE MATCHES (Filter für 2019, 2024)
                                         if match_dt > current_time:
                                             german_tz = timezone(timedelta(hours=2))
                                             local_dt = match_dt.astimezone(german_tz)
@@ -425,7 +426,7 @@ async def fetch_grid_matches():
     except Exception as e:
         print(f"❌ Grid.gg API connection error: {e}")
         return []
-
+        
 # ALTERNATIVE QUERY FALLS DIE ERSTE NICHT FUNKTIONIERT
 async def fetch_grid_matches_alternative():
     """Alternative Query falls series nicht funktioniert"""
