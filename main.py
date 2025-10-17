@@ -333,7 +333,7 @@ print(f"📊 Loaded: {len(TEAMS)} servers")
 # GRID.GG API - GRAPHQL VERSION (KORRIGIERT)
 # =========================
 async def fetch_grid_matches():
-    """Einfache Funktion um verfügbare Queries zu finden"""
+    matches = []
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
@@ -342,32 +342,86 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # Teste verschiedene Queries
-            test_queries = [
-                # Query 1: matches
-                {"query": "query { matches { id } }"},
-                # Query 2: series  
-                {"query": "query { series { id } }"},
-                # Query 3: tournaments
-                {"query": "query { tournaments { id } }"},
-                # Query 4: events
-                {"query": "query { events { id } }"},
-                # Query 5: games
-                {"query": "query { games { id } }"}
-            ]
+            # VERWENDE allSeries - das funktioniert!
+            graphql_query = {
+                "query": """
+                query GetUpcomingSeries {
+                    allSeries {
+                        id
+                        startDate
+                        participants {
+                            team {
+                                name
+                            }
+                        }
+                        tournament {
+                            name
+                        }
+                        status
+                    }
+                }
+                """
+            }
             
-            for test_query in test_queries:
-                async with session.post(url, headers=headers, json=test_query, timeout=10) as response:
+            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
+                if response.status == 200:
                     data = await response.json()
-                    if not data.get('errors'):
-                        print(f"✅ FUNKTIONIERT: {test_query['query'][:50]}...")
-                        return []  # Temporär
+                    print(f"✅ Grid.gg API Response erhalten")
                     
-            print("❌ Keine der Test-Queries funktioniert")
-            return []
-            
+                    if data.get('errors'):
+                        print(f"❌ GraphQL Errors: {data['errors']}")
+                        return []
+                    
+                    # Response verarbeiten
+                    series_data = data.get('data', {}).get('allSeries', [])
+                    
+                    current_time = datetime.datetime.now(timezone.utc)
+                    
+                    for series in series_data:
+                        try:
+                            # Nur upcoming Series
+                            if series.get('status') != 'UPCOMING':
+                                continue
+                                
+                            participants = series.get('participants', [])
+                            if len(participants) >= 2:
+                                team1 = participants[0].get('team', {}).get('name', 'TBD')
+                                team2 = participants[1].get('team', {}).get('name', 'TBD')
+                                
+                                if team1 != 'TBD' and team2 != 'TBD':
+                                    start_date = series.get('startDate')
+                                    if start_date:
+                                        match_dt = datetime.datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                                        unix_time = int(match_dt.timestamp())
+                                        
+                                        # Nur zukünftige Matches
+                                        if match_dt > current_time:
+                                            german_tz = timezone(timedelta(hours=2))
+                                            local_dt = match_dt.astimezone(german_tz)
+                                            time_string = local_dt.strftime("%H:%M")
+                                            
+                                            tournament = series.get('tournament', {})
+                                            event = tournament.get('name', 'CS2 Tournament')
+                                            
+                                            matches.append({
+                                                'team1': team1, 
+                                                'team2': team2, 
+                                                'unix_time': unix_time,
+                                                'event': event, 
+                                                'time_string': time_string
+                                            })
+                        except Exception as e:
+                            print(f"❌ Series parsing error: {e}")
+                            continue
+                    
+                    matches.sort(key=lambda x: x['unix_time'])
+                    print(f"✅ Gefundene Matches: {len(matches)}")
+                    return matches
+                else:
+                    print(f"❌ Grid.gg API error: {response.status}")
+                    return []
     except Exception as e:
-        print(f"❌ API connection error: {e}")
+        print(f"❌ Grid.gg API connection error: {e}")
         return []
 
 # ALTERNATIVE QUERY FALLS DIE ERSTE NICHT FUNKTIONIERT
@@ -630,7 +684,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Erkundet das GraphQL Schema"""
+    """Testet die allSeries Query"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
@@ -639,61 +693,46 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            # ERSTENS: Schema erkunden
-            schema_query = {
+            graphql_query = {
                 "query": """
-                query GetSchema {
-                    __schema {
-                        queryType {
-                            fields {
+                query GetUpcomingSeries {
+                    allSeries {
+                        id
+                        startDate
+                        participants {
+                            team {
                                 name
-                                description
-                                type {
-                                    name
-                                    kind
-                                }
                             }
                         }
+                        tournament {
+                            name
+                        }
+                        status
                     }
                 }
                 """
             }
             
-            await ctx.send("🔍 **Exploriere GraphQL Schema...**")
-            
-            async with session.post(url, headers=headers, json=schema_query, timeout=15) as response:
+            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
                 data = await response.json()
+                await ctx.send(f"🔍 API Status: {response.status}")
                 
-                if data.get('data'):
-                    queries = data['data']['__schema']['queryType']['fields']
-                    query_names = [q['name'] for q in queries]
-                    await ctx.send(f"✅ **Verfügbare Queries:** {', '.join(query_names)}")
+                if data.get('data', {}).get('allSeries'):
+                    series_count = len(data['data']['allSeries'])
+                    upcoming_count = len([s for s in data['data']['allSeries'] if s.get('status') == 'UPCOMING'])
+                    await ctx.send(f"📊 **Statistik:** {series_count} Series total, {upcoming_count} upcoming")
                     
-                    # Teste jede relevante Query
-                    for query_name in query_names:
-                        if any(keyword in query_name.lower() for keyword in ['match', 'series', 'event', 'tournament']):
-                            await ctx.send(f"🧪 **Teste Query:** `{query_name}`")
-                            
-                            test_query = {
-                                "query": f"""
-                                query TestQuery {{
-                                    {query_name} {{
-                                        __typename
-                                    }}
-                                }}
-                                """
-                            }
-                            
-                            async with session.post(url, headers=headers, json=test_query, timeout=10) as test_response:
-                                test_data = await test_response.json()
-                                if not test_data.get('errors'):
-                                    await ctx.send(f"✅ `{query_name}` funktioniert!")
-                                else:
-                                    await ctx.send(f"❌ `{query_name}` fehlgeschlagen")
+                    # Zeige die ersten 3 upcoming matches
+                    upcoming_series = [s for s in data['data']['allSeries'] if s.get('status') == 'UPCOMING'][:3]
+                    for series in upcoming_series:
+                        teams = series.get('participants', [])
+                        if len(teams) >= 2:
+                            team1 = teams[0].get('team', {}).get('name', 'TBD')
+                            team2 = teams[1].get('team', {}).get('name', 'TBD')
+                            await ctx.send(f"⚔️ **{team1} vs {team2}** - {series.get('tournament', {}).get('name')}")
                 
-                else:
-                    await ctx.send(f"❌ Schema Error: ```{json.dumps(data, indent=2)[:1000]}```")
-                    
+                await ctx.send(f"📄 Full Response: ```{json.dumps(data, indent=2)[:1500]}```")
+                
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
         
