@@ -686,7 +686,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Findet die korrekten Title Felder"""
+    """Findet die korrekten TeamParticipant Felder"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
@@ -695,82 +695,94 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            # ERSTENS: Title Felder erkunden
+            # TeamParticipant Felder erkunden
             schema_query = {
                 "query": """
-                query GetTitleFields {
-                    __type(name: "Title") {
+                query GetTeamParticipantFields {
+                    __type(name: "TeamParticipant") {
                         name
                         fields {
                             name
+                            type {
+                                name
+                                kind
+                            }
                         }
                     }
                 }
                 """
             }
             
-            await ctx.send("🔍 **Erkunde Title Felder...**")
+            await ctx.send("🔍 **Erkunde TeamParticipant Felder...**")
             
             async with session.post(url, headers=headers, json=schema_query, timeout=15) as response:
                 data = await response.json()
                 
                 if data.get('data', {}).get('__type'):
-                    title_fields = data['data']['__type']['fields']
-                    field_names = [f['name'] for f in title_fields]
-                    await ctx.send(f"✅ **Title Felder:** {', '.join(field_names)}")
+                    team_fields = data['data']['__type']['fields']
+                    field_names = [f['name'] for f in team_fields]
+                    await ctx.send(f"✅ **TeamParticipant Felder:** {', '.join(field_names)}")
                     
-                    # Teste ohne title Feld (nur mit teams und tournament)
-                    test_query = {
-                        "query": """
-                        query GetUpcomingSeries {
-                            allSeries {
-                                edges {
-                                    node {
-                                        id
-                                        startTimeScheduled
-                                        teams {
-                                            team {
+                    # Teste verschiedene Möglichkeiten
+                    test_queries = [
+                        # Versuch 1: Direkt name field
+                        {
+                            "query": """
+                            query Test1 {
+                                allSeries {
+                                    edges {
+                                        node {
+                                            startTimeScheduled
+                                            teams {
                                                 name
                                             }
-                                        }
-                                        tournament {
-                                            name
+                                            tournament {
+                                                name
+                                            }
                                         }
                                     }
                                 }
                             }
+                            """
+                        },
+                        # Versuch 2: participant field
+                        {
+                            "query": """
+                            query Test2 {
+                                allSeries {
+                                    edges {
+                                        node {
+                                            startTimeScheduled
+                                            teams {
+                                                participant {
+                                                    name
+                                                }
+                                            }
+                                            tournament {
+                                                name
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            """
                         }
-                        """
-                    }
+                    ]
                     
-                    await ctx.send("🧪 **Teste ohne title Feld...**")
-                    
-                    async with session.post(url, headers=headers, json=test_query, timeout=15) as test_response:
-                        test_data = await test_response.json()
-                        if not test_data.get('errors'):
-                            await ctx.send("✅ **QUERY FUNKTIONIERT OHNE TITLE!** 🎉")
-                            
-                            edges = test_data.get('data', {}).get('allSeries', {}).get('edges', [])
-                            await ctx.send(f"📊 **Gefundene Series:** {len(edges)}")
-                            
-                            # Zeige die ersten 3 Matches
-                            for edge in edges[:3]:
-                                series = edge.get('node', {})
-                                teams = series.get('teams', [])
-                                if len(teams) >= 2:
-                                    team1 = teams[0].get('team', {}).get('name', 'TBD')
-                                    team2 = teams[1].get('team', {}).get('name', 'TBD')
-                                    start_time = series.get('startTimeScheduled', 'Unbekannt')
-                                    tournament = series.get('tournament', {}).get('name', 'Unbekannt')
-                                    
-                                    await ctx.send(f"⚔️ **{team1} vs {team2}**")
-                                    await ctx.send(f"🏆 {tournament} | 🕐 {start_time}")
-                                    await ctx.send("---")
-                        else:
-                            await ctx.send(f"❌ **Fehler:** {test_data['errors'][0]['message']}")
+                    for i, test_query in enumerate(test_queries, 1):
+                        await ctx.send(f"🧪 **Test {i}...**")
+                        async with session.post(url, headers=headers, json=test_query, timeout=15) as test_response:
+                            test_data = await test_response.json()
+                            if not test_data.get('errors'):
+                                await ctx.send(f"✅ **Test {i} FUNKTIONIERT!**")
+                                edges = test_data.get('data', {}).get('allSeries', {}).get('edges', [])
+                                await ctx.send(f"📊 **Gefundene Series:** {len(edges)}")
+                                break
+                            else:
+                                await ctx.send(f"❌ Test {i} Fehler: {test_data['errors'][0]['message']}")
                 
                 else:
-                    await ctx.send(f"❌ Schema Error: ```{json.dumps(data, indent=2)[:1000]}```")
+                    await ctx.send(f"❌ Schema Error")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
