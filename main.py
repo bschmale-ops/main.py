@@ -237,8 +237,9 @@ def create_match_alert(match, time_until):
     team1_display = get_display_name(match['team1'], use_smart_lookup=False)
     team2_display = get_display_name(match['team2'], use_smart_lookup=False)
     
+    # Mehr Spacer für weiter rechts
     embed = discord.Embed(
-        title=f"CS2 MATCH ALERT{'\u2800' * 20}<:cs2:1298250987483697202>",
+        title=f"CS2 MATCH ALERT{'\u2800' * 35}<:cs2:1298250987483697202>",  # ⬅️ 35 statt 20 Spacer
         description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n\n",
         color=0x00ff00 if time_until > 15 else 0xff9900,
         timestamp=datetime.datetime.now()
