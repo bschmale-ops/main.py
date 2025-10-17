@@ -342,7 +342,7 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # KORREKTE QUERY MIT TEAMS SUBSELECTION
+            # KORREKTE QUERY MIT ALLEN SUBSELECTIONS
             graphql_query = {
                 "query": """
                 query GetUpcomingSeries {
@@ -350,7 +350,9 @@ async def fetch_grid_matches():
                         edges {
                             node {
                                 id
-                                title
+                                title {
+                                    value
+                                }
                                 startTimeScheduled
                                 teams {
                                     team {
@@ -402,8 +404,15 @@ async def fetch_grid_matches():
                                             local_dt = match_dt.astimezone(german_tz)
                                             time_string = local_dt.strftime("%H:%M")
                                             
+                                            # Titel und Tournament korrekt auslesen
+                                            title_data = series.get('title', {})
+                                            event_title = title_data.get('value', 'CS2 Match')
+                                            
                                             tournament = series.get('tournament', {})
-                                            event = tournament.get('name', 'CS2 Tournament')
+                                            tournament_name = tournament.get('name', 'CS2 Tournament')
+                                            
+                                            # Verwende Titel falls vorhanden, sonst Tournament Name
+                                            event = event_title if event_title != 'CS2 Match' else tournament_name
                                             
                                             matches.append({
                                                 'team1': team1, 
@@ -702,7 +711,9 @@ async def debug(ctx):
                         edges {
                             node {
                                 id
-                                title
+                                title {
+                                    value
+                                }
                                 startTimeScheduled
                                 teams {
                                     team {
@@ -737,10 +748,17 @@ async def debug(ctx):
                             team1 = teams[0].get('team', {}).get('name', 'TBD')
                             team2 = teams[1].get('team', {}).get('name', 'TBD')
                             start_time = series.get('startTimeScheduled', 'Unbekannt')
+                            
+                            # Titel korrekt auslesen
+                            title_data = series.get('title', {})
+                            title = title_data.get('value', 'Unbekannter Titel')
+                            
                             tournament = series.get('tournament', {}).get('name', 'Unbekannt')
                             
                             await ctx.send(f"⚔️ **{team1} vs {team2}**")
+                            await ctx.send(f"📺 {title}")
                             await ctx.send(f"🏆 {tournament} | 🕐 {start_time}")
+                            await ctx.send("---")
                 
                 else:
                     await ctx.send(f"❌ **Fehler:** {data['errors'][0]['message']}")
