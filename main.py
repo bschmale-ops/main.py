@@ -698,17 +698,16 @@ class RoleButtonsView(discord.ui.View):
             await interaction.user.add_roles(role)
             await interaction.response.send_message(f"✅ {role_name} Rolle hinzugefügt!", ephemeral=True)
 
-# EINFACHE LÖSUNG: Normales Command für Role Buttons
-@bot.command()
-async def createroles(ctx):
-    """Erstelle die Game-Role Buttons in diesem Channel"""
+# SLASH COMMAND FÜR ROLE BUTTONS
+@bot.tree.command(name="create_game_roles", description="Erstelle die Game-Role Buttons in diesem Channel")
+async def create_game_roles(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🎮 **Wähle deine Spiele**",
         description="Klicke auf die Buttons um Spiel-Rollen zu erhalten/entfernen",
         color=0x5865F2
     )
     
-    await ctx.send(embed=embed, view=RoleButtonsView())
+    await interaction.response.send_message(embed=embed, view=RoleButtonsView())
 
 # =========================
 # FLASK & STARTUP
@@ -737,6 +736,13 @@ flask_thread.start()
 @bot.event
 async def on_ready():
     print(f'✅ {bot.user} is online! - PANDASCORE API')
+    
+    # SLASH COMMANDS SYNCEN
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ {len(synced)} Slash Commands synced!")
+    except Exception as e:
+        print(f"❌ Slash Command sync error: {e}")
     
     for guild in bot.guilds:
         guild_id = str(guild.id)
