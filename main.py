@@ -42,6 +42,7 @@ AUTO_SUBSCRIBE_TEAMS = [
 
 # Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
+    # MAIN TEAMS MIT LOGOS:
     'Falcons': '<:falcons:1428075105615085598> FALCONS',
     'MOUZ': '<:mouz:1428075167850041425> MOUZ',
     'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
@@ -56,6 +57,34 @@ TEAM_DISPLAY_NAMES = {
     'Aurora': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
+    'BIG': 'BIG',
+    'Wildcard': 'WILDCARD',
+    'Sangal': 'SANGAL',
+    'RED Canids': 'RED CANIDS',
+    
+    # ACADEMY TEAMS OHNE LOGOS:
+    'Falcons Force': 'FALCONS FORCE',
+    'NAVI Junior': 'NAVI JUNIOR',
+    'Spirit Academy': 'SPIRIT ACADEMY',
+    'BIG Academy': 'BIG ACADEMY',
+    'Wildcard Academy': 'WILDCARD ACADEMY',
+    'MIBR Academy': 'MIBR ACADEMY',
+    'Young Ninjas': 'YOUNG NINJAS',
+    'ENCE Academy': 'ENCE ACADEMY',
+    'ODDIK Academy': 'ODDIK ACADEMY',
+    '3DMAX Academy': '3DMAX ACADEMY',
+    'Sangal Academy': 'SANGAL ACADEMY',
+    'RED Canids Academy': 'RED CANIDS ACADEMY',
+    
+    # FEMALE TEAMS OHNE LOGOS:
+    'MIBR fe': 'MIBR FE',
+    'FURIA fe': 'FURIA FE',
+    'NIP Impact': 'NIP IMPACT',
+    'Flame Sharks fe': 'FLAME SHARKS FE',
+    'Imperial Valkyries': 'IMPERIAL VALKYRIES',
+    'n!faculty female': 'N!FACULTY FEMALE',
+    
+    # RESTLICHE TEAMS:
     'B8': '<:b8:1428264645042503761> B8',
     'BetBoom': '<:betboom:1428264669533048932> BETBOOM',
     'Complexity': '<:complexity:1428264681222439023> COMPLEXITY',
@@ -72,12 +101,23 @@ TEAM_DISPLAY_NAMES = {
     'TYLOO': '<:tyloo:1428264914367021198> TYLOO',
     'Virtus.pro': '<:virtuspro:1428266203474034748> VIRTUS.PRO',
     'Legacy': '<:legacy:1428269690001821766> LEGACY',
+    
+    'TEAM NOVAQ': 'TEAM NOVAQ',
+    'GENONE': 'GENONE',
+    'FISH123': 'FISH123',
+    'ARCRED': 'ARCRED',
+    'KONO.ECF': 'KONO.ECF',
+    'AM GAMING': 'AM GAMING',
+    'MASONIC': 'MASONIC',
+    'MINDFREAK': 'MINDFREAK',
+    'ROOSTER': 'ROOSTER'
 }
 
 # =========================
 # TEAM DATA
 # =========================
 TEAM_SYNONYMS = {
+    # MAIN TEAMS:
     'Natus Vincere': ['navi'],
     'FaZe': ['faze', 'faze clan'], 
     'Team Vitality': ['vitality'],
@@ -97,15 +137,39 @@ TEAM_SYNONYMS = {
     'Ninjas in Pyjamas': ['nip', 'ninjas in pyjamas'],
     'paiN': ['pain'],
     'Legacy': ['legacy'],
+    
+    # ACADEMY TEAMS:
+    'Falcons Force': ['falcons force', 'falcons academy'],
+    'NAVI Junior': ['navi junior', 'navi jr', 'navi academy'],
+    'Spirit Academy': ['spirit academy', 'spirit jr'],
+    'BIG Academy': ['big academy', 'big jr'],
+    'Wildcard Academy': ['wildcard academy', 'wildcard jr'],
+    'MIBR Academy': ['mibr academy', 'mibr youth', 'mibr jr'],
+    'Young Ninjas': ['young ninjas', 'nip academy', 'ninjas academy'],
+    'ENCE Academy': ['ence academy', 'ence jr'],
+    'ODDIK Academy': ['oddik academy', 'oddik jr'],
+    '3DMAX Academy': ['3dmax academy', '3dmax jr'],
+    'Sangal Academy': ['sangal academy', 'sangal jr'],
+    'RED Canids Academy': ['red canids academy', 'red canids jr'],
+    
+    # FEMALE TEAMS:
+    'MIBR fe': ['mibr fe', 'mibr female', 'mibr women'],
+    'FURIA fe': ['furia fe', 'furia female', 'furia women'],
+    'NIP Impact': ['nip impact', 'nip female', 'nip fe'],
+    'Flame Sharks fe': ['flame sharks fe', 'flame sharks female'],
+    'Imperial Valkyries': ['imperial valkyries', 'imperial female'],
+    'n!faculty female': ['n faculty female', 'n!faculty fe']
 }
 
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
     
+    # 1. Zuerst in TEAM_SYNONYMS suchen
     for correct_name, variants in TEAM_SYNONYMS.items():
         if input_lower in [v.lower() for v in variants] or input_lower == correct_name.lower():
             return correct_name, True
     
+    # 2. Dann in TEAM_DISPLAY_NAMES suchen (für Main Teams ohne Synonyms)
     for team_name in TEAM_DISPLAY_NAMES.keys():
         if input_lower == team_name.lower():
             return team_name, True
@@ -113,29 +177,45 @@ def find_team_match(input_team):
     return input_team, False
 
 def get_display_name(team_name):
+    """Get team name with emoji for display"""
+    # Zuerst nach EXAKTEN Matches suchen
     if team_name in TEAM_DISPLAY_NAMES:
         return TEAM_DISPLAY_NAMES[team_name]
     
+    # Dann nach längeren Namen suchen (G2 Ares vor G2)
     sorted_names = sorted(TEAM_DISPLAY_NAMES.keys(), key=len, reverse=True)
+    
     for display_name in sorted_names:
         if display_name.upper() in team_name.upper() or team_name.upper() in display_name.upper():
             return TEAM_DISPLAY_NAMES[display_name]
     
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
-
 def get_team_emoji(team_name):
+    """Get only the emoji part - mit Regex für Emojis"""
     display = get_display_name(team_name)
+    
+    # Finde Custom Emojis (Format: <:name:ID>)
+    import re
     emoji_match = re.search(r'<:[a-zA-Z0-9_]+:\d+>', display)
     if emoji_match:
         return emoji_match.group()
     return ""
 
 def get_team_name_only(team_name):
+    """Get only the name part - komplett nach dem Emoji"""
     display = get_display_name(team_name)
+    
+    # Entferne Custom Emojis (Format: <:name:ID>) und gebe den REST zurück
     display_without_emoji = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', '', display).strip()
+    
     return display_without_emoji
+    
+def center_vs(team1, team2):
+    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
+    return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
 
 def create_frame(title, content):
+    """Erstelle Rahmen OHNE Code-Blöcke"""
     separator = "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
