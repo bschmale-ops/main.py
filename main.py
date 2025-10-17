@@ -699,9 +699,18 @@ async def list(ctx):
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        team_list = "\n".join([f"• **{get_display_name(team)}**" for team in teams])
-        framed_message = create_frame("📋 SUBSCRIBED TEAMS", team_list)
-        await ctx.send(framed_message)
+        # Team-Namen in Fett ohne Emojis
+        team_list = "\n".join([f"# • **{get_team_name_only(team, use_smart_lookup=True)}**" for team in teams])
+        
+        embed = discord.Embed(
+            title=f"SUBSCRIBED TEAMS{'\u2800' * 25}📋",
+            description=team_list,
+            color=0x0099ff
+        )
+        
+        embed.set_footer(text="🎮 CS2 Match Bot • Use /subscribe <team>")
+        
+        await ctx.send(embed=embed)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
 
