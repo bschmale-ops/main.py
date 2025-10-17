@@ -640,7 +640,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Testet die echte Live-API mit korrekter Query"""
+    """Findet heraus wie man alle Series bekommt"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
@@ -649,57 +649,32 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            graphql_query = {
-                "query": """
-                query GetLiveSeries {
-                    seriesState {
-                        id
-                        title
-                        teams {
-                            name
-                        }
-                        startedAt
-                        started
-                        finished
-                    }
-                }
-                """
-            }
+            # Teste verschiedene Möglichkeiten
+            test_queries = [
+                # Versuch 1: Ohne Parameter (vielleicht gibt es eine Liste)
+                {"query": "query { seriesState { id } }"},
+                # Versuch 2: Mit leerem String
+                {"query": 'query { seriesState(id: "") { id } }'},
+                # Versuch 3: Mit Test-ID
+                {"query": 'query { seriesState(id: "test") { id } }'},
+                # Versuch 4: Vielleicht gibt es eine seriesStates (Plural) Query
+                {"query": "query { seriesStates { id } }"}
+            ]
             
-            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
-                data = await response.json()
-                await ctx.send(f"🔍 API Status: {response.status}")
-                
-                if not data.get('errors'):
-                    await ctx.send("✅ **LIVE-DATEN FUNKTIONIEREN!** 🎉")
-                    
-                    series_data = data.get('data', {}).get('seriesState', [])
-                    await ctx.send(f"📊 **Live Series:** {len(series_data)}")
-                    
-                    current_time = datetime.datetime.now(timezone.utc)
-                    
-                    for series in series_data[:5]:
-                        teams = series.get('teams', [])
-                        if len(teams) >= 2:
-                            team1 = teams[0].get('name', 'TBD')
-                            team2 = teams[1].get('name', 'TBD')
-                            title = series.get('title', 'Unbekannt')
-                            start_time = series.get('startedAt', 'Unbekannt')
-                            started = series.get('started', False)
-                            finished = series.get('finished', False)
-                            
-                            status = "🟢 UPCOMING"
-                            if started:
-                                status = "🟡 LIVE"
-                            if finished:
-                                status = "🔴 FINISHED"
-                            
-                            await ctx.send(f"⚔️ **{team1} vs {team2}**")
-                            await ctx.send(f"📺 {title}")
-                            await ctx.send(f"🕐 {start_time} | {status}")
-                            await ctx.send("---")
-                else:
-                    await ctx.send(f"❌ Fehler: {data['errors'][0]['message']}")
+            for i, test_query in enumerate(test_queries, 1):
+                await ctx.send(f"🧪 **Test {i}:** `{test_query['query'][:50]}...`")
+                async with session.post(url, headers=headers, json=test_query, timeout=10) as response:
+                    data = await response.json()
+                    if not data.get('errors'):
+                        await ctx.send(f"✅ **Test {i} FUNKTIONIERT!**")
+                        break
+                    else:
+                        error_msg = data['errors'][0]['message']
+                        await ctx.send(f"❌ Test {i} Fehler: {error_msg}")
+            
+            # Frage den Support nach der korrekten Methode
+            await ctx.send("\n📧 **Nächster Schritt:** Support fragen:")
+            await ctx.send("> 'How to get ALL series/matches from seriesState endpoint? It requires an ID parameter.'")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
