@@ -265,6 +265,24 @@ def create_match_alert(match, time_until):
     return embed
 
 # =========================
+# TWITCH LIVE EMBED FUNKTION - OPTION 2
+# =========================
+def create_twitch_go_live_alert():
+    embed = discord.Embed(
+        title="🔴 JETZT LIVE AUF TWITCH!",
+        description="**shiseii streamt CS2**\nKomm vorbei und chill mit! 🎮",
+        color=0x9146FF,  # Twitch Lila
+        url="https://twitch.tv/shiseii"
+    )
+    embed.add_field(name="🎮 Spiel", value="Counter-Strike 2", inline=True)
+    embed.add_field(name="💬 Chat", value="Aktiv & Friendly", inline=True)
+    embed.add_field(name="🎵 Musik", value="Lofi Beats", inline=True)
+    embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/your_profile_image")
+    embed.set_image(url="https://static-cdn.jtvnw.net/jtv_user_pictures/your_stream_banner")
+    embed.set_footer(text="Viel Spaß beim Zuschauen! 🎪")
+    return embed
+
+# =========================
 # DATA MANAGEMENT
 # =========================
 DATA_FILE = "bot_data.json"
@@ -507,20 +525,8 @@ async def send_simple_announcement():
             f"{TWITCH_USERNAME} is going live !  --  check out the stream here:"
         )
         
-        embed = discord.Embed(
-            title="🔴 **LIVE AUF TWITCH!**",
-            description=f"**{TWITCH_USERNAME} ist jetzt live!** 🎮",
-            color=0x9146FF,
-            url=f"https://twitch.tv/{TWITCH_USERNAME}"
-        )
-        
-        embed.add_field(
-            name="📺 Stream Link",
-            value=f"[Twitch.tv/{TWITCH_USERNAME}](https://twitch.tv/{TWITCH_USERNAME})",
-            inline=True
-        )
-        
-        embed.set_footer(text="Viel Spaß beim Zuschauen! 🎪")
+        # NEUES TWITCH EMBED DESIGN VERWENDEN
+        embed = create_twitch_go_live_alert()
         
         await channel.send(announcement_text, embed=embed)
             
@@ -814,6 +820,12 @@ async def test(ctx):
     
     embed = create_match_alert(test_match, 15)
     await ctx.send("🎨 **NEUES EMBED DESIGN TEST:**", embed=embed)
+
+@bot.command()
+async def twitchtest(ctx):
+    """Testet das Twitch Live Embed Design"""
+    embed = create_twitch_go_live_alert()
+    await ctx.send("🔴 **TWITCH LIVE TEST:**", embed=embed)
         
 @bot.command()
 async def ping(ctx):
@@ -828,12 +840,6 @@ async def setannouncechannel(ctx, channel: discord.TextChannel):
     global ANNOUNCEMENT_CHANNEL_ID
     ANNOUNCEMENT_CHANNEL_ID = channel.id
     await ctx.send(f"📢 **Twitch Announcements werden in {channel.mention} gepostet!**")
-
-@bot.command()
-async def twitchtest(ctx):
-    """Testet die Twitch Announcement"""
-    await send_simple_announcement()
-    await ctx.send("✅ **Twitch Test Announcement gesendet!**")
 
 # =========================
 # ROLE BUTTONS COMMAND - ÜBERARBEITETE VERSION
