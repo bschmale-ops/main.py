@@ -238,17 +238,19 @@ def create_match_alert(match, time_until):
     team2_display = get_display_name(match['team2'], use_smart_lookup=False)
     
     embed = discord.Embed(
-        title="CS2 MATCH ALERT <:cs2:1298250987483697202>",
-        description=f"# {team1_display}\n= <:VS:1428145739443208305> =\n# {team2_display}",
+        title=f"CS2 MATCH ALERT{'\u2800' * 20}<:cs2:1298250987483697202>",
+        description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}",
         color=0x00ff00 if time_until > 15 else 0xff9900,
         timestamp=datetime.datetime.now()
     )
     
-    embed.add_field(name="🏆 Turnier", value=match['event'], inline=True)
-    embed.add_field(name="⏰ Startet in", value=f"**{int(time_until)} Minuten**", inline=True)
-    embed.add_field(name="🕐 Uhrzeit", value=match['time_string'], inline=True)
-    embed.add_field(name="📺 Stream Tipp", value="[shiseii auf Twitch](https://twitch.tv/shiseii)", inline=False)
-    embed.set_footer(text="🎮 CS2 Match Bot • Viel Spaß!")
+    # Tournament und Time in der gleichen Zeile
+    embed.add_field(name="🏆 Tournament", value=match['event'], inline=True)
+    embed.add_field(name="🕐 Time", value=match['time_string'], inline=True)
+    embed.add_field(name="⏰ Starts in", value=f"**{int(time_until)} minutes**", inline=False)  # ⬅️ Eigene Zeile
+    
+    embed.add_field(name="📺 Stream Tip", value="[shiseii on Twitch](https://twitch.tv/shiseii)", inline=False)
+    embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
     return embed
 
