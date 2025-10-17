@@ -277,6 +277,8 @@ async def fetch_pandascore_matches():
             async with session.get(url, headers=headers, params=params, timeout=15) as response:
                 if response.status == 200:
                     data = await response.json()
+                    current_time = datetime.datetime.now(timezone.utc)
+                    
                     for match_data in data:
                         try:
                             opponents = match_data.get('opponents', [])
@@ -288,19 +290,25 @@ async def fetch_pandascore_matches():
                                     if begin_at:
                                         match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
-                                        german_tz = timezone(timedelta(hours=2))
-                                        local_dt = match_dt.astimezone(german_tz)
-                                        time_string = local_dt.strftime("%H:%M")
                                         
-                                        league = match_data.get('league', {})
-                                        event = league.get('name', 'CS2 Tournament')
-                                        
-                                        matches.append({
-                                            'team1': team1, 'team2': team2, 'unix_time': unix_time,
-                                            'event': event, 'time_string': time_string
-                                        })
+                                        # NUR ZUKÜNFTIGE MATCHES ANZEIGEN
+                                        if match_dt > current_time:
+                                            german_tz = timezone(timedelta(hours=2))
+                                            local_dt = match_dt.astimezone(german_tz)
+                                            time_string = local_dt.strftime("%H:%M")
+                                            
+                                            league = match_data.get('league', {})
+                                            event = league.get('name', 'CS2 Tournament')
+                                            
+                                            matches.append({
+                                                'team1': team1, 'team2': team2, 'unix_time': unix_time,
+                                                'event': event, 'time_string': time_string
+                                            })
                         except:
                             continue
+                    
+                    # Nach Zeit sortieren
+                    matches.sort(key=lambda x: x['unix_time'])
                     return matches
                 else:
                     return []
