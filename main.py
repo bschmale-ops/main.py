@@ -621,64 +621,66 @@ class RoleButtonsView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
     
-    # ERSTE REIHE - Nur CS2
+    # REIHE 0: CS2 & Valorant
     @discord.ui.button(label="CS 2", emoji="<:cs2:1298250987483697202>", style=discord.ButtonStyle.secondary, custom_id="role_cs2", row=0)
     async def cs2_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "CS 2")
     
-    # ZWEITE REIHE - Nur Valorant
-    @discord.ui.button(label="Valorant", emoji="<:valorant:1298251760720150550>", style=discord.ButtonStyle.secondary, custom_id="role_valorant", row=1)
+    @discord.ui.button(label="Valorant", emoji="<:valorant:1298251760720150550>", style=discord.ButtonStyle.secondary, custom_id="role_valorant", row=0)
     async def valorant_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Valorant")
     
-    # DRITTE REIHE - Leer als Absatz
-    
-    # VIERTE REIHE - Andere Spiele
-    @discord.ui.button(label="League of Legends", emoji="<:lol:1298252270240272416>", style=discord.ButtonStyle.secondary, custom_id="role_lol", row=3)
+    # REIHE 1: League of Legends & Apex Legends
+    @discord.ui.button(label="League of Legends", emoji="<:lol:1298252270240272416>", style=discord.ButtonStyle.secondary, custom_id="role_lol", row=1)
     async def lol_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "League of Legends")
     
-    @discord.ui.button(label="Apex Legends", emoji="<:apex:1298251721184772119>", style=discord.ButtonStyle.secondary, custom_id="role_apex", row=4)
+    @discord.ui.button(label="Apex Legends", emoji="<:apex:1298251721184772119>", style=discord.ButtonStyle.secondary, custom_id="role_apex", row=1)
     async def apex_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Apex Legends")
     
-    @discord.ui.button(label="Call of Duty", emoji="<:cod:1298251740965109770>", style=discord.ButtonStyle.secondary, custom_id="role_cod", row=5)
+    # REIHE 2: Call of Duty & Diablo 4
+    @discord.ui.button(label="Call of Duty", emoji="<:cod:1298251740965109770>", style=discord.ButtonStyle.secondary, custom_id="role_cod", row=2)
     async def cod_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Call of Duty")
     
-    @discord.ui.button(label="Diablo 4", emoji="<:d4:1304002853253152799>", style=discord.ButtonStyle.secondary, custom_id="role_diablo", row=6)
+    @discord.ui.button(label="Diablo 4", emoji="<:d4:1304002853253152799>", style=discord.ButtonStyle.secondary, custom_id="role_diablo", row=2)
     async def diablo_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Diablo 4")
     
-    @discord.ui.button(label="Tibia", emoji="<:tibia:1305455884201103393>", style=discord.ButtonStyle.secondary, custom_id="role_tibia", row=7)
+    # REIHE 3: Tibia & PUBG
+    @discord.ui.button(label="Tibia", emoji="<:tibia:1305455884201103393>", style=discord.ButtonStyle.secondary, custom_id="role_tibia", row=3)
     async def tibia_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Tibia")
     
-    @discord.ui.button(label="PUBG", emoji="<:pubg:1305772146861277255>", style=discord.ButtonStyle.secondary, custom_id="role_pubg", row=8)
+    @discord.ui.button(label="PUBG", emoji="<:pubg:1305772146861277255>", style=discord.ButtonStyle.secondary, custom_id="role_pubg", row=3)
     async def pubg_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "PUBG")
     
-    @discord.ui.button(label="Rust", emoji="<:rust:1305456246996078614>", style=discord.ButtonStyle.secondary, custom_id="role_rust", row=9)
+    # REIHE 4: Rust & Fortnite
+    @discord.ui.button(label="Rust", emoji="<:rust:1305456246996078614>", style=discord.ButtonStyle.secondary, custom_id="role_rust", row=4)
     async def rust_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Rust")
     
-    @discord.ui.button(label="Fortnite", emoji="<:fortnite:1305772894336450571>", style=discord.ButtonStyle.secondary, custom_id="role_fortnite", row=10)
+    @discord.ui.button(label="Fortnite", emoji="<:fortnite:1305772894336450571>", style=discord.ButtonStyle.secondary, custom_id="role_fortnite", row=4)
     async def fortnite_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Fortnite")
     
-    @discord.ui.button(label="Rainbow Six Siege", emoji="<:r6:1305774806083305515>", style=discord.ButtonStyle.secondary, custom_id="role_r6", row=11)
+    # REIHE 0 (zweite Hälfte): Rainbow Six Siege & Overwatch
+    @discord.ui.button(label="R6 Siege", emoji="<:r6:1305774806083305515>", style=discord.ButtonStyle.secondary, custom_id="role_r6", row=0)
     async def r6_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Rainbow Six Siege")
     
-    @discord.ui.button(label="Overwatch", emoji="<:overwatch:1305773706471276554>", style=discord.ButtonStyle.secondary, custom_id="role_overwatch", row=12)
+    @discord.ui.button(label="Overwatch", emoji="<:overwatch:1305773706471276554>", style=discord.ButtonStyle.secondary, custom_id="role_overwatch", row=0)
     async def overwatch_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Overwatch")
     
-    @discord.ui.button(label="World of Warcraft", emoji="<:wow:1305809271992352809>", style=discord.ButtonStyle.secondary, custom_id="role_wow", row=13)
+    # REIHE 1 (zweite Hälfte): World of Warcraft & Halo 2
+    @discord.ui.button(label="WoW", emoji="<:wow:1305809271992352809>", style=discord.ButtonStyle.secondary, custom_id="role_wow", row=1)
     async def wow_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "World of Warcraft")
     
-    @discord.ui.button(label="Halo 2", emoji="<:halo2:1305775045204770846>", style=discord.ButtonStyle.secondary, custom_id="role_halo", row=14)
+    @discord.ui.button(label="Halo 2", emoji="<:halo2:1305775045204770846>", style=discord.ButtonStyle.secondary, custom_id="role_halo", row=1)
     async def halo_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.assign_role(interaction, "Halo 2")
     
