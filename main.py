@@ -408,37 +408,13 @@ async def subscribe(ctx, *, team):
     
     # TEAM VALIDIERUNG: Wenn Team nicht gefunden wurde
     if not found:
-        # Tippfehler-Erkennung: Ähnliche Teamnamen vorschlagen
-        suggestions = []
-        input_lower = team.lower()
-        
-        # FIX: Konvertiere zu Liste bevor wir darauf zugreifen
-        team_names = list(TEAM_DISPLAY_NAMES.keys())
-        
-        for team_name in team_names:
-            team_lower = team_name.lower()
-            # Einfache Ähnlichkeitsprüfung
-            if (input_lower in team_lower or 
-                team_lower in input_lower or 
-                sum(1 for a, b in zip(input_lower, team_lower) if a == b) >= 3):
-                suggestions.append(team_name)
-        
-        # Antwort mit Vorschlägen
-        if suggestions:
-            suggestion_list = "\n".join([f"• {get_display_name(name)}" for name in suggestions[:5]])
-            await ctx.send(
-                f"❌ **Team '{team}' nicht gefunden!**\n\n"
-                f"**Meintest du eines dieser Teams?**\n{suggestion_list}\n"
-                f"*Verwende `/list` für alle Teams*"
-            )
-        else:
-            # FIX: Verwende die team_names Liste
-            available_teams = "\n".join([f"• {name}" for name in team_names[:8]])
-            await ctx.send(
-                f"❌ **Team '{team}' nicht gefunden!**\n\n"
-                f"**Verfügbare Teams:**\n{available_teams}\n"
-                f"*Verwende `/list` für alle Teams*"
-            )
+        # EINFACHE Fehlermeldung ohne komplexe Logik
+        await ctx.send(
+            f"❌ **Team '{team}' nicht gefunden!**\n\n"
+            f"**Verwende eines dieser Teams:**\n"
+            f"• MIBR, NAVI, FAZE, G2, LIQUID, VITALITY\n"
+            f"• Oder verwende `/list` für alle verfügbaren Teams"
+        )
         return
     
     # Normales Subscribe
