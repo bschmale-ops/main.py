@@ -264,42 +264,57 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers")
 
 # =========================
-# GRID.GG API - KOMPLETT ANGEPASST
+# GRID.GG API - GRAPHQL VERSION
 # =========================
 async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # Grid.gg API Endpoint für CS2 Matches
-            url = "https://api.grid.gg/matches"
+            # GraphQL Endpoint (kann sein dass die URL anders ist - ggf. anpassen)
+            url = "https://api.grid.gg/graphql"
+            
             headers = {
                 'Authorization': f'Bearer {GRID_API_KEY}',
                 'Content-Type': 'application/json'
             }
-            params = {
-                'status': 'upcoming',
-                'limit': 20,
-                'sort': 'scheduled_at'
+            
+            # GraphQL Query für CS2 Matches
+            graphql_query = {
+                "query": """
+                query GetUpcomingCS2Matches {
+                    matches(status: "upcoming", game: "cs2") {
+                        id
+                        scheduledAt
+                        teams {
+                            name
+                        }
+                        tournament {
+                            name
+                        }
+                    }
+                }
+                """
             }
             
-            async with session.get(url, headers=headers, params=params, timeout=15) as response:
+            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
                 if response.status == 200:
                     data = await response.json()
+                    
+                    # GraphQL Response Format verarbeiten
+                    matches_data = data.get('data', {}).get('matches', [])
+                    
                     current_time = datetime.datetime.now(timezone.utc)
                     
-                    # Grid.gg API Response Format anpassen
-                    for match_data in data.get('data', []):
+                    for match_data in matches_data:
                         try:
-                            # Grid.gg Format: teams array
                             teams = match_data.get('teams', [])
                             if len(teams) >= 2:
                                 team1 = teams[0].get('name', 'TBD')
                                 team2 = teams[1].get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    scheduled_at = match_data.get('scheduled_at')
+                                    scheduled_at = match_data.get('scheduledAt')
                                     if scheduled_at:
-                                        # Grid.gg verwendet ISO 8601 Format
                                         match_dt = datetime.datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
                                         
@@ -327,10 +342,10 @@ async def fetch_grid_matches():
                     matches.sort(key=lambda x: x['unix_time'])
                     return matches
                 else:
-                    print(f"❌ Grid.gg API error: {response.status}")
+                    print(f"❌ GraphQL error: {response.status}")
                     return []
     except Exception as e:
-        print(f"❌ Grid.gg API error: {e}")
+        print(f"❌ GraphQL API error: {e}")
         return []
 
 # =========================
