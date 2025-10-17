@@ -1,6 +1,6 @@
 {
   "name": "hltv-scraper",
   "dependencies": {
-    "hltv": "^3.4.5"
+    "hltv-api": "^1.0.0"
   }
 }
