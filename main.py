@@ -270,21 +270,21 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # GraphQL Endpoint (kann sein dass die URL anders ist - ggf. anpassen)
-            url = "https://data.grid.gg/graphql"
+            # KORREKTE GraphQL URL aus der Dokumentation:
+            url = "https://api.grid.gg/live-data-feed/series-state/graphql"
             
             headers = {
                 'Authorization': f'Bearer {GRID_API_KEY}',
                 'Content-Type': 'application/json'
             }
             
-            # GraphQL Query für CS2 Matches
+            # GraphQL Query für geplante Series/Match
             graphql_query = {
                 "query": """
-                query GetUpcomingCS2Matches {
-                    matches(status: "upcoming", game: "cs2") {
+                query GetUpcomingSeries {
+                    series(status: "upcoming", game: "cs2") {
                         id
-                        scheduledAt
+                        scheduledStartTime
                         teams {
                             name
                         }
@@ -301,19 +301,19 @@ async def fetch_grid_matches():
                     data = await response.json()
                     
                     # GraphQL Response Format verarbeiten
-                    matches_data = data.get('data', {}).get('matches', [])
+                    series_data = data.get('data', {}).get('series', [])
                     
                     current_time = datetime.datetime.now(timezone.utc)
                     
-                    for match_data in matches_data:
+                    for series in series_data:
                         try:
-                            teams = match_data.get('teams', [])
+                            teams = series.get('teams', [])
                             if len(teams) >= 2:
                                 team1 = teams[0].get('name', 'TBD')
                                 team2 = teams[1].get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    scheduled_at = match_data.get('scheduledAt')
+                                    scheduled_at = series.get('scheduledStartTime')
                                     if scheduled_at:
                                         match_dt = datetime.datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
@@ -324,7 +324,7 @@ async def fetch_grid_matches():
                                             local_dt = match_dt.astimezone(german_tz)
                                             time_string = local_dt.strftime("%H:%M")
                                             
-                                            tournament = match_data.get('tournament', {})
+                                            tournament = series.get('tournament', {})
                                             event = tournament.get('name', 'CS2 Tournament')
                                             
                                             matches.append({
@@ -335,7 +335,7 @@ async def fetch_grid_matches():
                                                 'time_string': time_string
                                             })
                         except Exception as e:
-                            print(f"❌ Match parsing error: {e}")
+                            print(f"❌ Series parsing error: {e}")
                             continue
                     
                     # Nach Zeit sortieren
