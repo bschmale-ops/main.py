@@ -1,0 +1,2 @@
+TWITCH_CLIENT_ID=rwaq6wdx7z8gqt7gywf1xll8p0il22
+TWITCH_CLIENT_SECRET=rwaq6wdx7z8gqt7gywf1xll8p0il22
