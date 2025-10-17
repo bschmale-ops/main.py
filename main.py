@@ -234,46 +234,20 @@ def create_frame(title, content):
 # NEUE EMBED FUNKTION FÜR MATCH ALERTS
 # =========================
 def create_match_alert(match, time_until):
-    """Erstellt ein schickes Embed für Match-Alerts"""
     team1_display = get_display_name(match['team1'], use_smart_lookup=False)
     team2_display = get_display_name(match['team2'], use_smart_lookup=False)
     
     embed = discord.Embed(
-        title="🔔 CS2 MATCH ALERT",
-        description=f"# {team1_display}\n**VS**\n# {team2_display}",
+        title="CS2 MATCH ALERT <:cs2:1298250987483697202>",
+        description=f"# {team1_display}\n= <:VS:1428145739443208305> =\n# {team2_display}",
         color=0x00ff00 if time_until > 15 else 0xff9900,
         timestamp=datetime.datetime.now()
     )
     
-    # CS2 Logo als Thumbnail
-    embed.set_thumbnail(url="https://i.imgur.com/3Qr7J2c.png")
-    
-    # Match Informationen
-    embed.add_field(
-        name="🏆 Turnier",
-        value=match['event'],
-        inline=True
-    )
-    
-    embed.add_field(
-        name="⏰ Startet in", 
-        value=f"**{int(time_until)} Minuten**",
-        inline=True
-    )
-    
-    embed.add_field(
-        name="🕐 Uhrzeit",
-        value=match['time_string'],
-        inline=True
-    )
-    
-    # Twitch Empfehlung
-    embed.add_field(
-        name="📺 Stream Tipp", 
-        value="[shiseii auf Twitch](https://twitch.tv/shiseii)",
-        inline=False
-    )
-    
+    embed.add_field(name="🏆 Turnier", value=match['event'], inline=True)
+    embed.add_field(name="⏰ Startet in", value=f"**{int(time_until)} Minuten**", inline=True)
+    embed.add_field(name="🕐 Uhrzeit", value=match['time_string'], inline=True)
+    embed.add_field(name="📺 Stream Tipp", value="[shiseii auf Twitch](https://twitch.tv/shiseii)", inline=False)
     embed.set_footer(text="🎮 CS2 Match Bot • Viel Spaß!")
     
     return embed
