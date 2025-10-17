@@ -398,6 +398,38 @@ async def subscribe(ctx, *, team):
     
     correct_name, found = find_team_match(team)
     
+    # TEAM VALIDIERUNG: Wenn Team nicht gefunden wurde
+    if not found:
+        # Tippfehler-Erkennung: Ähnliche Teamnamen vorschlagen
+        suggestions = []
+        input_lower = team.lower()
+        
+        for team_name in TEAM_DISPLAY_NAMES.keys():
+            team_lower = team_name.lower()
+            # Einfache Ähnlichkeitsprüfung
+            if (input_lower in team_lower or 
+                team_lower in input_lower or 
+                sum(1 for a, b in zip(input_lower, team_lower) if a == b) >= 3):
+                suggestions.append(team_name)
+        
+        # Antwort mit Vorschlägen
+        if suggestions:
+            suggestion_list = "\n".join([f"• {get_display_name(name)}" for name in suggestions[:5]])
+            await ctx.send(
+                f"❌ **Team '{team}' nicht gefunden!**\n\n"
+                f"**Meintest du eines dieser Teams?**\n{suggestion_list}\n"
+                f"*Verwende `/list` für alle Teams*"
+            )
+        else:
+            available_teams = "\n".join([f"• {get_display_name(name)}" for name in list(TEAM_DISPLAY_NAMES.keys())[:8]])
+            await ctx.send(
+                f"❌ **Team '{team}' nicht gefunden!**\n\n"
+                f"**Verfügbare Teams:**\n{available_teams}\n"
+                f"*Verwende `/list` für alle Teams*"
+            )
+        return
+    
+    # Normales Subscribe
     if correct_name not in TEAMS[guild_id]:
         TEAMS[guild_id].append(correct_name)
         if save_data():
