@@ -412,7 +412,10 @@ async def subscribe(ctx, *, team):
         suggestions = []
         input_lower = team.lower()
         
-        for team_name in TEAM_DISPLAY_NAMES.keys():
+        # FIX: Konvertiere zu Liste bevor wir darauf zugreifen
+        team_names = list(TEAM_DISPLAY_NAMES.keys())
+        
+        for team_name in team_names:
             team_lower = team_name.lower()
             # Einfache Ähnlichkeitsprüfung
             if (input_lower in team_lower or 
@@ -429,8 +432,8 @@ async def subscribe(ctx, *, team):
                 f"*Verwende `/list` für alle Teams*"
             )
         else:
-            # FIX: KEINE get_display_name() hier verwenden!
-            available_teams = "\n".join([f"• {name}" for name in list(TEAM_DISPLAY_NAMES.keys())[:8]])
+            # FIX: Verwende die team_names Liste
+            available_teams = "\n".join([f"• {name}" for name in team_names[:8]])
             await ctx.send(
                 f"❌ **Team '{team}' nicht gefunden!**\n\n"
                 f"**Verfügbare Teams:**\n{available_teams}\n"
