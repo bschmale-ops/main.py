@@ -700,7 +700,7 @@ async def list(ctx):
     
     if teams:
         # Team-Namen in Fett ohne Emojis
-        team_list = "\n".join([f"# • **{get_team_name_only(team, use_smart_lookup=True)}**" for team in teams])
+        team_list = "\n".join([f" • **{get_team_name_only(team, use_smart_lookup=True)}**" for team in teams])
         
         embed = discord.Embed(
             title=f"SUBSCRIBED TEAMS{'\u2800' * 25}📋",
