@@ -336,21 +336,20 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # Korrigierte URL mit x-api-key Header
             url = "https://api-op.grid.gg/central-data/graphql"
             
             headers = {
-                'x-api-key': GRID_API_KEY,  # ✅ x-api-key statt Bearer Token
+                'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # Korrigierte GraphQL Query
+            # KORRIGIERTE QUERY - Teste verschiedene Möglichkeiten
             graphql_query = {
                 "query": """
-                query GetUpcomingMatches {
-                    matches(status: "upcoming", game: "cs2") {
+                query GetUpcomingSeries {
+                    series(status: UPCOMING, game: [CS2]) {
                         id
-                        scheduledAt
+                        scheduledStartTime
                         teams {
                             name
                         }
@@ -365,38 +364,37 @@ async def fetch_grid_matches():
             async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
                 if response.status == 200:
                     data = await response.json()
-                    print(f"✅ Grid.gg API Response: {data}")  # Debug output
+                    print(f"✅ Grid.gg API Response: {data}")
                     
-                    # Prüfe ob Errors vorhanden sind
                     if data.get('errors'):
                         print(f"❌ GraphQL Errors: {data['errors']}")
-                        return []
+                        # Versuche alternative Query
+                        return await fetch_grid_matches_alternative()
                     
-                    # GraphQL Response Format verarbeiten
-                    matches_data = data.get('data', {}).get('matches', [])
+                    # Response verarbeiten
+                    series_data = data.get('data', {}).get('series', [])
                     
                     current_time = datetime.datetime.now(timezone.utc)
                     
-                    for match in matches_data:
+                    for series in series_data:
                         try:
-                            teams = match.get('teams', [])
+                            teams = series.get('teams', [])
                             if len(teams) >= 2:
                                 team1 = teams[0].get('name', 'TBD')
                                 team2 = teams[1].get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    scheduled_at = match.get('scheduledAt')
+                                    scheduled_at = series.get('scheduledStartTime')
                                     if scheduled_at:
                                         match_dt = datetime.datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
                                         
-                                        # NUR ZUKÜNFTIGE MATCHES ANZEIGEN
                                         if match_dt > current_time:
                                             german_tz = timezone(timedelta(hours=2))
                                             local_dt = match_dt.astimezone(german_tz)
                                             time_string = local_dt.strftime("%H:%M")
                                             
-                                            tournament = match.get('tournament', {})
+                                            tournament = series.get('tournament', {})
                                             event = tournament.get('name', 'CS2 Tournament')
                                             
                                             matches.append({
@@ -407,18 +405,59 @@ async def fetch_grid_matches():
                                                 'time_string': time_string
                                             })
                         except Exception as e:
-                            print(f"❌ Match parsing error: {e}")
+                            print(f"❌ Series parsing error: {e}")
                             continue
                     
-                    # Nach Zeit sortieren
                     matches.sort(key=lambda x: x['unix_time'])
                     print(f"✅ Gefundene Matches: {len(matches)}")
                     return matches
                 else:
-                    print(f"❌ Grid.gg API error: {response.status} - {await response.text()}")
+                    print(f"❌ Grid.gg API error: {response.status}")
                     return []
     except Exception as e:
         print(f"❌ Grid.gg API connection error: {e}")
+        return []
+
+# ALTERNATIVE QUERY FALLS DIE ERSTE NICHT FUNKTIONIERT
+async def fetch_grid_matches_alternative():
+    """Alternative Query falls series nicht funktioniert"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://api-op.grid.gg/central-data/graphql"
+            
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            graphql_query = {
+                "query": """
+                query GetUpcomingEvents {
+                    __schema {
+                        types {
+                            name
+                            fields {
+                                name
+                            }
+                        }
+                    }
+                }
+                """
+            }
+            
+            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    print("🔍 Verfügbare Queries:")
+                    if data.get('data'):
+                        types = data['data']['__schema']['types']
+                        query_type = next((t for t in types if t['name'] == 'Query'), None)
+                        if query_type:
+                            available_queries = [field['name'] for field in query_type.get('fields', [])]
+                            print(f"✅ Verfügbare Queries: {available_queries}")
+                    return []
+    except Exception as e:
+        print(f"❌ Alternative query error: {e}")
         return []
 
 # =========================
@@ -644,16 +683,16 @@ async def debug(ctx):
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
             headers = {
-                'x-api-key': GRID_API_KEY,  # ✅ x-api-key statt Bearer
+                'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
             graphql_query = {
                 "query": """
-                query GetUpcomingMatches {
-                    matches(status: "upcoming", game: "cs2") {
+                query GetUpcomingSeries {
+                    series(status: UPCOMING, game: [CS2]) {
                         id
-                        scheduledAt
+                        scheduledStartTime
                         teams {
                             name
                         }
@@ -669,12 +708,10 @@ async def debug(ctx):
                 data = await response.json()
                 await ctx.send(f"🔍 API Status: {response.status}")
                 await ctx.send(f"🔗 Endpoint: {url}")
-                await ctx.send(f"🔑 Auth Type: x-api-key")
                 await ctx.send(f"📄 Response: ```{json.dumps(data, indent=2)[:1500]}```")
                 
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
-
 @bot.command()
 async def unsubscribe(ctx, *, team):
     guild_id = str(ctx.guild.id)
