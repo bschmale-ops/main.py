@@ -342,22 +342,26 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # VERWENDE allSeries - das funktioniert!
+            # KORREKTE allSeries QUERY MIT edges/node
             graphql_query = {
                 "query": """
                 query GetUpcomingSeries {
                     allSeries {
-                        id
-                        startDate
-                        participants {
-                            team {
-                                name
+                        edges {
+                            node {
+                                id
+                                startDate
+                                participants {
+                                    team {
+                                        name
+                                    }
+                                }
+                                tournament {
+                                    name
+                                }
+                                status
                             }
                         }
-                        tournament {
-                            name
-                        }
-                        status
                     }
                 }
                 """
@@ -372,13 +376,15 @@ async def fetch_grid_matches():
                         print(f"❌ GraphQL Errors: {data['errors']}")
                         return []
                     
-                    # Response verarbeiten
-                    series_data = data.get('data', {}).get('allSeries', [])
+                    # Response verarbeiten MIT edges/node
+                    edges = data.get('data', {}).get('allSeries', {}).get('edges', [])
                     
                     current_time = datetime.datetime.now(timezone.utc)
                     
-                    for series in series_data:
+                    for edge in edges:
                         try:
+                            series = edge.get('node', {})
+                            
                             # Nur upcoming Series
                             if series.get('status') != 'UPCOMING':
                                 continue
@@ -684,7 +690,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Testet die allSeries Query"""
+    """Testet die korrigierte allSeries Query"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
@@ -697,17 +703,21 @@ async def debug(ctx):
                 "query": """
                 query GetUpcomingSeries {
                     allSeries {
-                        id
-                        startDate
-                        participants {
-                            team {
-                                name
+                        edges {
+                            node {
+                                id
+                                startDate
+                                participants {
+                                    team {
+                                        name
+                                    }
+                                }
+                                tournament {
+                                    name
+                                }
+                                status
                             }
                         }
-                        tournament {
-                            name
-                        }
-                        status
                     }
                 }
                 """
@@ -717,21 +727,24 @@ async def debug(ctx):
                 data = await response.json()
                 await ctx.send(f"🔍 API Status: {response.status}")
                 
-                if data.get('data', {}).get('allSeries'):
-                    series_count = len(data['data']['allSeries'])
-                    upcoming_count = len([s for s in data['data']['allSeries'] if s.get('status') == 'UPCOMING'])
+                if data.get('data', {}).get('allSeries', {}).get('edges'):
+                    edges = data['data']['allSeries']['edges']
+                    series_count = len(edges)
+                    upcoming_count = len([e for e in edges if e.get('node', {}).get('status') == 'UPCOMING'])
+                    
                     await ctx.send(f"📊 **Statistik:** {series_count} Series total, {upcoming_count} upcoming")
                     
                     # Zeige die ersten 3 upcoming matches
-                    upcoming_series = [s for s in data['data']['allSeries'] if s.get('status') == 'UPCOMING'][:3]
-                    for series in upcoming_series:
+                    upcoming_edges = [e for e in edges if e.get('node', {}).get('status') == 'UPCOMING'][:3]
+                    for edge in upcoming_edges:
+                        series = edge.get('node', {})
                         teams = series.get('participants', [])
                         if len(teams) >= 2:
                             team1 = teams[0].get('team', {}).get('name', 'TBD')
                             team2 = teams[1].get('team', {}).get('name', 'TBD')
                             await ctx.send(f"⚔️ **{team1} vs {team2}** - {series.get('tournament', {}).get('name')}")
                 
-                await ctx.send(f"📄 Full Response: ```{json.dumps(data, indent=2)[:1500]}```")
+                await ctx.send(f"📄 Response Sample: ```{json.dumps(data, indent=2)[:1500]}```")
                 
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
