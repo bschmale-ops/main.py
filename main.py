@@ -21,6 +21,12 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)
 
+# NEU: Setup Hook für persistente Buttons
+@bot.event
+async def setup_hook():
+    bot.add_view(RoleButtonsView())
+    print("✅ Role Buttons persistent gemacht!")
+
 # =========================
 # CONFIGURATION
 # =========================
@@ -609,6 +615,96 @@ async def rawmatches(ctx):
         )
 
 # =========================
+# ROLE BUTTONS SYSTEM
+# =========================
+class RoleButtonsView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+    
+    # ERSTE REIHE - Nur CS2
+    @discord.ui.button(label="CS 2", emoji="<:cs2:1298250987483697202>", style=discord.ButtonStyle.secondary, custom_id="role_cs2", row=0)
+    async def cs2_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "CS 2")
+    
+    # ZWEITE REIHE - Nur Valorant
+    @discord.ui.button(label="Valorant", emoji="<:valorant:1298251760720150550>", style=discord.ButtonStyle.secondary, custom_id="role_valorant", row=1)
+    async def valorant_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Valorant")
+    
+    # DRITTE REIHE - Leer als Absatz
+    
+    # VIERTE REIHE - Andere Spiele
+    @discord.ui.button(label="League of Legends", emoji="<:lol:1298252270240272416>", style=discord.ButtonStyle.secondary, custom_id="role_lol", row=3)
+    async def lol_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "League of Legends")
+    
+    @discord.ui.button(label="Apex Legends", emoji="<:apex:1298251721184772119>", style=discord.ButtonStyle.secondary, custom_id="role_apex", row=4)
+    async def apex_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Apex Legends")
+    
+    @discord.ui.button(label="Call of Duty", emoji="<:cod:1298251740965109770>", style=discord.ButtonStyle.secondary, custom_id="role_cod", row=5)
+    async def cod_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Call of Duty")
+    
+    @discord.ui.button(label="Diablo 4", emoji="<:d4:1304002853253152799>", style=discord.ButtonStyle.secondary, custom_id="role_diablo", row=6)
+    async def diablo_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Diablo 4")
+    
+    @discord.ui.button(label="Tibia", emoji="<:tibia:1305455884201103393>", style=discord.ButtonStyle.secondary, custom_id="role_tibia", row=7)
+    async def tibia_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Tibia")
+    
+    @discord.ui.button(label="PUBG", emoji="<:pubg:1305772146861277255>", style=discord.ButtonStyle.secondary, custom_id="role_pubg", row=8)
+    async def pubg_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "PUBG")
+    
+    @discord.ui.button(label="Rust", emoji="<:rust:1305456246996078614>", style=discord.ButtonStyle.secondary, custom_id="role_rust", row=9)
+    async def rust_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Rust")
+    
+    @discord.ui.button(label="Fortnite", emoji="<:fortnite:1305772894336450571>", style=discord.ButtonStyle.secondary, custom_id="role_fortnite", row=10)
+    async def fortnite_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Fortnite")
+    
+    @discord.ui.button(label="Rainbow Six Siege", emoji="<:r6:1305774806083305515>", style=discord.ButtonStyle.secondary, custom_id="role_r6", row=11)
+    async def r6_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Rainbow Six Siege")
+    
+    @discord.ui.button(label="Overwatch", emoji="<:overwatch:1305773706471276554>", style=discord.ButtonStyle.secondary, custom_id="role_overwatch", row=12)
+    async def overwatch_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Overwatch")
+    
+    @discord.ui.button(label="World of Warcraft", emoji="<:wow:1305809271992352809>", style=discord.ButtonStyle.secondary, custom_id="role_wow", row=13)
+    async def wow_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "World of Warcraft")
+    
+    @discord.ui.button(label="Halo 2", emoji="<:halo2:1305775045204770846>", style=discord.ButtonStyle.secondary, custom_id="role_halo", row=14)
+    async def halo_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.assign_role(interaction, "Halo 2")
+    
+    async def assign_role(self, interaction: discord.Interaction, role_name: str):
+        role = discord.utils.get(interaction.guild.roles, name=role_name)
+        if not role:
+            role = await interaction.guild.create_role(name=role_name, mentionable=True, color=discord.Color.blue())
+        
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.send_message(f"❌ {role_name} Rolle entfernt!", ephemeral=True)
+        else:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message(f"✅ {role_name} Rolle hinzugefügt!", ephemeral=True)
+
+@bot.tree.command(name="create_game_roles", description="Erstelle die Game-Role Buttons in diesem Channel")
+async def create_game_roles(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🎮 **Wähle deine Spiele**",
+        description="Klicke auf die Buttons um Spiel-Rollen zu erhalten/entfernen",
+        color=0x5865F2
+    )
+    
+    await interaction.response.send_message(embed=embed, view=RoleButtonsView())
+
+# =========================
 # FLASK & STARTUP
 # =========================
 @app.route('/')
@@ -635,6 +731,13 @@ flask_thread.start()
 @bot.event
 async def on_ready():
     print(f'✅ {bot.user} is online! - PANDASCORE API')
+    
+    # NEU: Slash Commands syncen
+    try:
+        synced = await bot.tree.sync()
+        print(f"✅ {len(synced)} Slash Commands synced!")
+    except Exception as e:
+        print(f"❌ Slash Command sync error: {e}")
     
     for guild in bot.guilds:
         guild_id = str(guild.id)
