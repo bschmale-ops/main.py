@@ -9,19 +9,8 @@ from flask import Flask, jsonify
 import threading
 import aiohttp
 import re
-import subprocess  # NEU: Für Node.js Bridge
-import logging  # NEU: Für zuverlässige Logs
 
-# =========================
-# LOGGING SETUP - NEU
-# =========================
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-
-print("🚀 Starting Discord CS2 Bot - HLTV API + TWITCH")
+print("🚀 Starting Discord CS2 Bot - PANDASCORE API + TWITCH")
 
 # =========================
 # BOT SETUP
@@ -38,10 +27,15 @@ async def setup_hook():
     print("✅ Persistent buttons setup!")
 
 # =========================
+# CONFIGURATION
+# =========================
+PANDASCORE_TOKEN = "NFG_fJz5qyUGHaWJmh-CcIeGELtI5prmh-YHWNibDTqDXR-p6sM"
+
+# =========================
 # TWITCH CONFIGURATION - EINFACHER WEG
 # =========================
 TWITCH_USERNAME = "shiseii"
-ANNOUNCEMENT_CHANNEL_ID = 116229767392002467  # Dein Announcement Channel
+ANNOUNCEMENT_CHANNEL_ID = 1162297673920024667  # Dein Announcement Channel
 
 # =========================
 # AUTO-SUBSCRIBE TEAMS
@@ -198,7 +192,7 @@ def get_display_name(team_name, use_smart_lookup=True):
     """
     
     if not use_smart_lookup:
-        # FÜR MATCHES/ALERTS: Exakt anzeigen was HLTV liefert
+        # FÜR MATCHES/ALERTS: Exakt anzeigen was PandaScore liefert
         return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
     
     # FÜR SUBSCRIBE/LIST: Intelligente Zuordnung
@@ -256,7 +250,6 @@ def save_data():
     try:
         with open(DATA_FILE, "w", encoding='utf-8') as f:
             json.dump({"TEAMS": TEAMS, "CHANNELS": CHANNELS, "ALERT_TIME": ALERT_TIME}, f, indent=2)
-        print("✅ Data saved successfully")
         return True
     except Exception as e:
         print(f"❌ Save error: {e}")
@@ -271,47 +264,59 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers")
 
 # =========================
-# HLTV API - NODE.JS BRIDGE IMPLEMENTIERUNG
+# PANDASCORE API
 # =========================
-async def fetch_hltv_matches():
-    """Holt echte Live-Matches via Node.js HLTV Package"""
+async def fetch_pandascore_matches():
+    matches = []
     try:
-        logging.info("🚀 DEBUG: Starting Node.js HLTV bridge...")
-        
-        # Node.js Script ausführen
-        result = subprocess.run(
-            ['node', 'hltv-scraper.js'],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        logging.info(f"🔍 DEBUG: Node.js return code: {result.returncode}")
-        logging.info(f"🔍 DEBUG: Node.js stdout: {result.stdout}")
-        if result.stderr:
-            logging.info(f"🔍 DEBUG: Node.js stderr: {result.stderr}")
-        
-        if result.returncode == 0 and result.stdout.strip():
-            matches = json.loads(result.stdout)
-            logging.info(f"✅ DEBUG: Found {len(matches)} real matches from HLTV!")
-            return matches
-        else:
-            logging.info("❌ DEBUG: Node.js returned no data")
-            return []  # LEER - keine Fake Daten
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.pandascore.co/csgo/matches/upcoming"
+            headers = {'Authorization': f'Bearer {PANDASCORE_TOKEN}'}
+            params = {'sort': 'begin_at', 'page[size]': 20}
             
+            async with session.get(url, headers=headers, params=params, timeout=15) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    for match_data in data:
+                        try:
+                            opponents = match_data.get('opponents', [])
+                            if len(opponents) >= 2:
+                                team1 = opponents[0].get('opponent', {}).get('name', 'TBD')
+                                team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
+                                if team1 != 'TBD' and team2 != 'TBD':
+                                    begin_at = match_data.get('begin_at')
+                                    if begin_at:
+                                        match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
+                                        unix_time = int(match_dt.timestamp())
+                                        german_tz = timezone(timedelta(hours=2))
+                                        local_dt = match_dt.astimezone(german_tz)
+                                        time_string = local_dt.strftime("%H:%M")
+                                        
+                                        league = match_data.get('league', {})
+                                        event = league.get('name', 'CS2 Tournament')
+                                        
+                                        matches.append({
+                                            'team1': team1, 'team2': team2, 'unix_time': unix_time,
+                                            'event': event, 'time_string': time_string
+                                        })
+                        except:
+                            continue
+                    return matches
+                else:
+                    return []
     except Exception as e:
-        logging.info(f"❌ DEBUG: Bridge error: {e}")
-        return []  # LEER - keine Fake Daten
+        print(f"❌ PandaScore error: {e}")
+        return []
 
 # =========================
-# ALERT SYSTEM - UNVERÄNDERT
+# ALERT SYSTEM
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
     try:
-        matches = await fetch_hltv_matches()
+        matches = await fetch_pandascore_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
         
         for guild_id, subscribed_teams in TEAMS.items():
@@ -375,7 +380,7 @@ async def send_alerts():
         print(f"❌ Alert error: {e}")
 
 # =========================
-# DAILY DM REMINDER - UNVERÄNDERT
+# DAILY DM REMINDER
 # =========================
 @tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))
 async def daily_dm_reminder():
@@ -403,7 +408,7 @@ async def daily_dm_reminder():
         print(f"❌ Daily DM error: {e}")
 
 # =========================
-# TWITCH LIVE CHECKER - UNVERÄNDERT
+# TWITCH LIVE CHECKER
 # =========================
 @tasks.loop(minutes=5)
 async def check_twitch_live():
@@ -468,7 +473,7 @@ async def send_simple_announcement():
         print(f"❌ Twitch announcement error: {e}")
 
 # =========================
-# PERSISTENT BUTTON HANDLER - UNVERÄNDERT
+# PERSISTENT BUTTON HANDLER
 # =========================
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
@@ -515,7 +520,7 @@ async def on_interaction(interaction: discord.Interaction):
                 await interaction.followup.send(f"❌ Fehler: {e}", ephemeral=True)
 
 # =========================
-# BOT COMMANDS - ALLE UNVERÄNDERT
+# BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -587,21 +592,28 @@ async def settime(ctx, minutes: int):
 @bot.command()
 async def matches(ctx):
     try:
-        logging.info("🎯 DEBUG: /matches command received!")
-        
-        matches = await fetch_hltv_matches()
-        
-        logging.info(f"🎯 DEBUG: fetch_hltv_matches returned {len(matches)} matches")
+        matches = await fetch_pandascore_matches()
         
         if matches:
-            # ... restlicher Code ...
-            logging.info("🎯 DEBUG: Sending matches to Discord")
+            match_list = ""
+            for match in matches[:6]:
+                time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
+                
+                team1_emoji = get_team_emoji(match['team1'], use_smart_lookup=False)
+                team1_name = get_team_name_only(match['team1'], use_smart_lookup=False)
+                team2_emoji = get_team_emoji(match['team2'], use_smart_lookup=False)
+                team2_name = get_team_name_only(match['team2'], use_smart_lookup=False)
+                
+                match_list += f"**{team1_emoji} {team1_name} <:VS:1428145739443208305> {team2_emoji} {team2_name}**\n"
+                match_list += f"__⏰ {int(time_until)}min | 🏆 {match['event']}__\n\n"
+            
+            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
+            framed_message = create_frame("🎯 AVAILABLE CS2 MATCHES", f"{match_list}{footer}")
+            await ctx.send(framed_message)
         else:
-            logging.info("🎯 DEBUG: No matches found, sending error")
             await ctx.send("❌ **No matches found**")
         
     except Exception as e:
-        logging.info(f"🎯 DEBUG: matches command error: {e}")
         await ctx.send(f"❌ **Error:** {e}")
 
 @bot.command()
@@ -649,7 +661,7 @@ async def status(ctx):
         f"🔔 ALERTS: ✅ ACTIVE\n"
         f"⏱️ ALERT TIME: {ALERT_TIME}min\n"
         f"👥 SUBSCRIBED: {subscribed_count} TEAMS\n"
-        f"🌐 SOURCE: HLTV.ORG API"
+        f"🌐 SOURCE: PANDASCORE API"
     )
     
     framed_message = create_frame("🤖 BOT STATUS", status_content)
@@ -686,7 +698,7 @@ async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
 
 # =========================
-# TWITCH COMMANDS - UNVERÄNDERT
+# TWITCH COMMANDS
 # =========================
 @bot.command()
 async def setannouncechannel(ctx, channel: discord.TextChannel):
@@ -702,7 +714,7 @@ async def twitchtest(ctx):
     await ctx.send("✅ **Twitch Test Announcement gesendet!**")
 
 # =========================
-# ROLE BUTTONS COMMAND - UNVERÄNDERT
+# ROLE BUTTONS COMMAND - ÜBERARBEITETE VERSION
 # =========================
 @bot.command()
 async def createroles(ctx):
@@ -834,7 +846,7 @@ async def createroles(ctx):
 # =========================
 @app.route('/')
 def home():
-    return "✅ CS2 Match Bot - HLTV API + TWITCH"
+    return "✅ CS2 Match Bot - PANDASCORE API + TWITCH"
 
 @app.route('/health')
 def health():
@@ -855,7 +867,7 @@ flask_thread.start()
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user} is online! - HLTV API + TWITCH')
+    print(f'✅ {bot.user} is online! - PANDASCORE API + TWITCH')
     
     for guild in bot.guilds:
         guild_id = str(guild.id)
@@ -874,11 +886,11 @@ async def on_ready():
         send_alerts.start()
     if not daily_dm_reminder.is_running():
         daily_dm_reminder.start()
-    if not check_twitch_live.is_running():
+    if not check_twitch_live.is_running():  # NEU: Twitch Checker starten
         check_twitch_live.start()
     print("🔔 Alert system started!")
     print("⏰ Daily DM reminder started!")
-    print("📺 Twitch live checker started!")
+    print("📺 Twitch live checker started!")  # NEU
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
