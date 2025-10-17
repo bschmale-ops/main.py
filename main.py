@@ -408,11 +408,7 @@ async def subscribe(ctx, *, team):
     
     # TEAM VALIDIERUNG: Wenn Team nicht gefunden wurde
     if not found:
-        # EINFACHE Fehlermeldung
-        await ctx.send(
-            f"❌ **Team '{team}' nicht gefunden!**\n\n"
-            f"**Verwende `/list` für alle verfügbaren Teams**"
-        )
+        await ctx.send(f"❌ **Team '{team}' nicht gefunden!**")
         return
     
     # Normales Subscribe
