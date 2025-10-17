@@ -478,7 +478,7 @@ async def matches(ctx):
                 
                 # Team vs Team Zeile komplett in FETT mit ** am Anfang und Ende
                 match_list += f"**{team1_emoji} {team1_name} <:VS:1428145739443208305> {team2_emoji} {team2_name}**\n"
-                match_list += f"⏰ {int(time_until)}min | 🏆 {match['event']}\n\n"
+                match_list += f"__⏰ {int(time_until)}min | 🏆 {match['event']}__\n\n"
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
             framed_message = create_frame("🎯 AVAILABLE CS2 MATCHES", f"{match_list}{footer}")
