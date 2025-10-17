@@ -10,7 +10,7 @@ import threading
 import aiohttp
 import re
 
-print("🚀 Starting Discord CS2 Bot - PANDASCORE API + TWITCH")
+print("🚀 Starting Discord CS2 Bot - GRID.GG API + TWITCH")
 
 # =========================
 # BOT SETUP
@@ -29,7 +29,7 @@ async def setup_hook():
 # =========================
 # CONFIGURATION
 # =========================
-PANDASCORE_TOKEN = "NFG_fJz5qyUGHaWJmh-CcIeGELtI5prmh-YHWNibDTqDXR-p6sM"
+GRID_API_KEY = "jmoLQscQ10EDnFgzBCosixLkTE31tVXStEoLESXw"  # ⚠️ SOFORT ERSETZEN!
 
 # =========================
 # TWITCH CONFIGURATION - EINFACHER WEG
@@ -192,7 +192,7 @@ def get_display_name(team_name, use_smart_lookup=True):
     """
     
     if not use_smart_lookup:
-        # FÜR MATCHES/ALERTS: Exakt anzeigen was PandaScore liefert
+        # FÜR MATCHES/ALERTS: Exakt anzeigen was Grid.gg liefert
         return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
     
     # FÜR SUBSCRIBE/LIST: Intelligente Zuordnung
@@ -264,31 +264,43 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers")
 
 # =========================
-# PANDASCORE API
+# GRID.GG API - KOMPLETT ANGEPASST
 # =========================
-async def fetch_pandascore_matches():
+async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api.pandascore.co/csgo/matches/upcoming"
-            headers = {'Authorization': f'Bearer {PANDASCORE_TOKEN}'}
-            params = {'sort': 'begin_at', 'page[size]': 20}
+            # Grid.gg API Endpoint für CS2 Matches
+            url = "https://api.grid.gg/matches"
+            headers = {
+                'Authorization': f'Bearer {GRID_API_KEY}',
+                'Content-Type': 'application/json'
+            }
+            params = {
+                'status': 'upcoming',
+                'limit': 20,
+                'sort': 'scheduled_at'
+            }
             
             async with session.get(url, headers=headers, params=params, timeout=15) as response:
                 if response.status == 200:
                     data = await response.json()
                     current_time = datetime.datetime.now(timezone.utc)
                     
-                    for match_data in data:
+                    # Grid.gg API Response Format anpassen
+                    for match_data in data.get('data', []):
                         try:
-                            opponents = match_data.get('opponents', [])
-                            if len(opponents) >= 2:
-                                team1 = opponents[0].get('opponent', {}).get('name', 'TBD')
-                                team2 = opponents[1].get('opponent', {}).get('name', 'TBD')
+                            # Grid.gg Format: teams array
+                            teams = match_data.get('teams', [])
+                            if len(teams) >= 2:
+                                team1 = teams[0].get('name', 'TBD')
+                                team2 = teams[1].get('name', 'TBD')
+                                
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    begin_at = match_data.get('begin_at')
-                                    if begin_at:
-                                        match_dt = datetime.datetime.fromisoformat(begin_at.replace('Z', '+00:00'))
+                                    scheduled_at = match_data.get('scheduled_at')
+                                    if scheduled_at:
+                                        # Grid.gg verwendet ISO 8601 Format
+                                        match_dt = datetime.datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
                                         
                                         # NUR ZUKÜNFTIGE MATCHES ANZEIGEN
@@ -297,34 +309,39 @@ async def fetch_pandascore_matches():
                                             local_dt = match_dt.astimezone(german_tz)
                                             time_string = local_dt.strftime("%H:%M")
                                             
-                                            league = match_data.get('league', {})
-                                            event = league.get('name', 'CS2 Tournament')
+                                            tournament = match_data.get('tournament', {})
+                                            event = tournament.get('name', 'CS2 Tournament')
                                             
                                             matches.append({
-                                                'team1': team1, 'team2': team2, 'unix_time': unix_time,
-                                                'event': event, 'time_string': time_string
+                                                'team1': team1, 
+                                                'team2': team2, 
+                                                'unix_time': unix_time,
+                                                'event': event, 
+                                                'time_string': time_string
                                             })
-                        except:
+                        except Exception as e:
+                            print(f"❌ Match parsing error: {e}")
                             continue
                     
                     # Nach Zeit sortieren
                     matches.sort(key=lambda x: x['unix_time'])
                     return matches
                 else:
+                    print(f"❌ Grid.gg API error: {response.status}")
                     return []
     except Exception as e:
-        print(f"❌ PandaScore error: {e}")
+        print(f"❌ Grid.gg API error: {e}")
         return []
 
 # =========================
-# ALERT SYSTEM
+# ALERT SYSTEM - ANGEPASST FÜR GRID.GG
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
     try:
-        matches = await fetch_pandascore_matches()
+        matches = await fetch_grid_matches()  # Jetzt Grid.gg Funktion
         current_time = datetime.datetime.now(timezone.utc).timestamp()
         
         for guild_id, subscribed_teams in TEAMS.items():
@@ -528,7 +545,7 @@ async def on_interaction(interaction: discord.Interaction):
                 await interaction.followup.send(f"❌ Fehler: {e}", ephemeral=True)
 
 # =========================
-# BOT COMMANDS
+# BOT COMMANDS - ANGEPASST FÜR GRID.GG
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -600,7 +617,7 @@ async def settime(ctx, minutes: int):
 @bot.command()
 async def matches(ctx):
     try:
-        matches = await fetch_pandascore_matches()
+        matches = await fetch_grid_matches()  # Jetzt Grid.gg Funktion
         
         if matches:
             match_list = ""
@@ -669,7 +686,7 @@ async def status(ctx):
         f"🔔 ALERTS: ✅ ACTIVE\n"
         f"⏱️ ALERT TIME: {ALERT_TIME}min\n"
         f"👥 SUBSCRIBED: {subscribed_count} TEAMS\n"
-        f"🌐 SOURCE: PANDASCORE API"
+        f"🌐 SOURCE: GRID.GG API"  # Geändert zu Grid.gg
     )
     
     framed_message = create_frame("🤖 BOT STATUS", status_content)
@@ -854,7 +871,7 @@ async def createroles(ctx):
 # =========================
 @app.route('/')
 def home():
-    return "✅ CS2 Match Bot - PANDASCORE API + TWITCH"
+    return "✅ CS2 Match Bot - GRID.GG API + TWITCH"  # Geändert
 
 @app.route('/health')
 def health():
@@ -875,7 +892,7 @@ flask_thread.start()
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user} is online! - PANDASCORE API + TWITCH')
+    print(f'✅ {bot.user} is online! - GRID.GG API + TWITCH')  # Geändert
     
     for guild in bot.guilds:
         guild_id = str(guild.id)
@@ -894,11 +911,11 @@ async def on_ready():
         send_alerts.start()
     if not daily_dm_reminder.is_running():
         daily_dm_reminder.start()
-    if not check_twitch_live.is_running():  # NEU: Twitch Checker starten
+    if not check_twitch_live.is_running():
         check_twitch_live.start()
     print("🔔 Alert system started!")
     print("⏰ Daily DM reminder started!")
-    print("📺 Twitch live checker started!")  # NEU
+    print("📺 Twitch live checker started!")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
