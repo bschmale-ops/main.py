@@ -158,9 +158,17 @@ TEAM_SYNONYMS = {
 
 def find_team_match(input_team):
     input_lower = input_team.lower().strip()
+    
+    # 1. Zuerst in TEAM_SYNONYMS suchen
     for correct_name, variants in TEAM_SYNONYMS.items():
         if input_lower in [v.lower() for v in variants] or input_lower == correct_name.lower():
             return correct_name, True
+    
+    # 2. Dann in TEAM_DISPLAY_NAMES suchen (für Main Teams ohne Synonyms)
+    for team_name in TEAM_DISPLAY_NAMES.keys():
+        if input_lower == team_name.lower():
+            return team_name, True
+    
     return input_team, False
 
 def get_display_name(team_name):
