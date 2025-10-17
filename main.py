@@ -333,89 +333,41 @@ print(f"📊 Loaded: {len(TEAMS)} servers")
 # GRID.GG API - GRAPHQL VERSION (KORRIGIERT)
 # =========================
 async def fetch_grid_matches():
-    matches = []
+    """Einfache Funktion um verfügbare Queries zu finden"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
-            
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # KORRIGIERTE QUERY - Teste verschiedene Möglichkeiten
-            graphql_query = {
-                "query": """
-                query GetUpcomingSeries {
-                    series(status: UPCOMING, game: [CS2]) {
-                        id
-                        scheduledStartTime
-                        teams {
-                            name
-                        }
-                        tournament {
-                            name
-                        }
-                    }
-                }
-                """
-            }
+            # Teste verschiedene Queries
+            test_queries = [
+                # Query 1: matches
+                {"query": "query { matches { id } }"},
+                # Query 2: series  
+                {"query": "query { series { id } }"},
+                # Query 3: tournaments
+                {"query": "query { tournaments { id } }"},
+                # Query 4: events
+                {"query": "query { events { id } }"},
+                # Query 5: games
+                {"query": "query { games { id } }"}
+            ]
             
-            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
-                if response.status == 200:
+            for test_query in test_queries:
+                async with session.post(url, headers=headers, json=test_query, timeout=10) as response:
                     data = await response.json()
-                    print(f"✅ Grid.gg API Response: {data}")
+                    if not data.get('errors'):
+                        print(f"✅ FUNKTIONIERT: {test_query['query'][:50]}...")
+                        return []  # Temporär
                     
-                    if data.get('errors'):
-                        print(f"❌ GraphQL Errors: {data['errors']}")
-                        # Versuche alternative Query
-                        return await fetch_grid_matches_alternative()
-                    
-                    # Response verarbeiten
-                    series_data = data.get('data', {}).get('series', [])
-                    
-                    current_time = datetime.datetime.now(timezone.utc)
-                    
-                    for series in series_data:
-                        try:
-                            teams = series.get('teams', [])
-                            if len(teams) >= 2:
-                                team1 = teams[0].get('name', 'TBD')
-                                team2 = teams[1].get('name', 'TBD')
-                                
-                                if team1 != 'TBD' and team2 != 'TBD':
-                                    scheduled_at = series.get('scheduledStartTime')
-                                    if scheduled_at:
-                                        match_dt = datetime.datetime.fromisoformat(scheduled_at.replace('Z', '+00:00'))
-                                        unix_time = int(match_dt.timestamp())
-                                        
-                                        if match_dt > current_time:
-                                            german_tz = timezone(timedelta(hours=2))
-                                            local_dt = match_dt.astimezone(german_tz)
-                                            time_string = local_dt.strftime("%H:%M")
-                                            
-                                            tournament = series.get('tournament', {})
-                                            event = tournament.get('name', 'CS2 Tournament')
-                                            
-                                            matches.append({
-                                                'team1': team1, 
-                                                'team2': team2, 
-                                                'unix_time': unix_time,
-                                                'event': event, 
-                                                'time_string': time_string
-                                            })
-                        except Exception as e:
-                            print(f"❌ Series parsing error: {e}")
-                            continue
-                    
-                    matches.sort(key=lambda x: x['unix_time'])
-                    print(f"✅ Gefundene Matches: {len(matches)}")
-                    return matches
-                else:
-                    print(f"❌ Grid.gg API error: {response.status}")
-                    return []
+            print("❌ Keine der Test-Queries funktioniert")
+            return []
+            
     except Exception as e:
-        print(f"❌ Grid.gg API connection error: {e}")
+        print(f"❌ API connection error: {e}")
         return []
 
 # ALTERNATIVE QUERY FALLS DIE ERSTE NICHT FUNKTIONIERT
@@ -678,7 +630,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Zeigt die Rohdaten der API Response"""
+    """Erkundet das GraphQL Schema"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
@@ -687,31 +639,64 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            graphql_query = {
+            # ERSTENS: Schema erkunden
+            schema_query = {
                 "query": """
-                query GetUpcomingSeries {
-                    series(status: UPCOMING, game: [CS2]) {
-                        id
-                        scheduledStartTime
-                        teams {
-                            name
-                        }
-                        tournament {
-                            name
+                query GetSchema {
+                    __schema {
+                        queryType {
+                            fields {
+                                name
+                                description
+                                type {
+                                    name
+                                    kind
+                                }
+                            }
                         }
                     }
                 }
                 """
             }
             
-            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
+            await ctx.send("🔍 **Exploriere GraphQL Schema...**")
+            
+            async with session.post(url, headers=headers, json=schema_query, timeout=15) as response:
                 data = await response.json()
-                await ctx.send(f"🔍 API Status: {response.status}")
-                await ctx.send(f"🔗 Endpoint: {url}")
-                await ctx.send(f"📄 Response: ```{json.dumps(data, indent=2)[:1500]}```")
                 
+                if data.get('data'):
+                    queries = data['data']['__schema']['queryType']['fields']
+                    query_names = [q['name'] for q in queries]
+                    await ctx.send(f"✅ **Verfügbare Queries:** {', '.join(query_names)}")
+                    
+                    # Teste jede relevante Query
+                    for query_name in query_names:
+                        if any(keyword in query_name.lower() for keyword in ['match', 'series', 'event', 'tournament']):
+                            await ctx.send(f"🧪 **Teste Query:** `{query_name}`")
+                            
+                            test_query = {
+                                "query": f"""
+                                query TestQuery {{
+                                    {query_name} {{
+                                        __typename
+                                    }}
+                                }}
+                                """
+                            }
+                            
+                            async with session.post(url, headers=headers, json=test_query, timeout=10) as test_response:
+                                test_data = await test_response.json()
+                                if not test_data.get('errors'):
+                                    await ctx.send(f"✅ `{query_name}` funktioniert!")
+                                else:
+                                    await ctx.send(f"❌ `{query_name}` fehlgeschlagen")
+                
+                else:
+                    await ctx.send(f"❌ Schema Error: ```{json.dumps(data, indent=2)[:1000]}```")
+                    
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
+        
 @bot.command()
 async def unsubscribe(ctx, *, team):
     guild_id = str(ctx.guild.id)
