@@ -238,14 +238,15 @@ def create_match_alert(match, time_until):
     team2_display = get_display_name(match['team2'], use_smart_lookup=False)
     
     embed = discord.Embed(
-        title=f"CS2 MATCH ALERT{'\u2800' * 25}<:cs2:1298250987483697202>",  # ⬅️ Mehr Spacer (25)
+        title=f"CS2 MATCH ALERT{'\u2800' * 25}<:cs2:1298250987483697202>",
         description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n",  # 1 Absatz nach Vitality
         color=0x00ff00 if time_until > 15 else 0xff9900,
         timestamp=datetime.datetime.now()
     )
     
-    # ABSATZ über Tournament
-    embed.add_field(name="", value="", inline=False)  # ⬅️ Neuer Absatz hier
+    # 2 ABSÄTZE über Tournament
+    embed.add_field(name="", value="", inline=False)  # ⬅️ Erster Absatz
+    embed.add_field(name="", value="", inline=False)  # ⬅️ Zweiter Absatz
     
     # Zeile 1: "Tournament" und "🕐 Time 16:30" in einer Zeile (rechtsbündig)
     header_line = f"🏆 Tournament{'\u2800' * 25}🕐 Time {match['time_string']}"
