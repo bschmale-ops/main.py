@@ -211,7 +211,7 @@ def center_vs(team1, team2):
 
 def create_frame(title, content):
     """Erstelle Rahmen OHNE Code-Blöcke"""
-    separator = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    separator = "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄"
     return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
 
 # =========================
