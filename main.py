@@ -687,7 +687,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Testet mit baseInfo Feld"""
+    """Erkundet das Schema der LIVE-Daten API"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
@@ -696,22 +696,15 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            # Teste mit baseInfo Feld
-            test_query = {
+            # Schema erkunden
+            schema_query = {
                 "query": """
-                query TestWithBaseInfo {
-                    allSeries {
-                        edges {
-                            node {
-                                startTimeScheduled
-                                teams {
-                                    baseInfo {
-                                        name
-                                    }
-                                }
-                                tournament {
-                                    name
-                                }
+                query GetSchema {
+                    __schema {
+                        queryType {
+                            fields {
+                                name
+                                description
                             }
                         }
                     }
@@ -719,31 +712,14 @@ async def debug(ctx):
                 """
             }
             
-            await ctx.send("🧪 **Teste mit baseInfo...**")
-            
-            async with session.post(url, headers=headers, json=test_query, timeout=15) as response:
+            async with session.post(url, headers=headers, json=schema_query, timeout=15) as response:
                 data = await response.json()
-                if not data.get('errors'):
-                    await ctx.send("✅ **QUERY FUNKTIONIERT MIT baseInfo!** 🎉")
-                    
-                    edges = data.get('data', {}).get('allSeries', {}).get('edges', [])
-                    await ctx.send(f"📊 **Gefundene Series:** {len(edges)}")
-                    
-                    # Zeige die ersten 3 Matches
-                    for edge in edges[:3]:
-                        series = edge.get('node', {})
-                        teams = series.get('teams', [])
-                        if len(teams) >= 2:
-                            team1 = teams[0].get('baseInfo', {}).get('name', 'TBD')
-                            team2 = teams[1].get('baseInfo', {}).get('name', 'TBD')
-                            start_time = series.get('startTimeScheduled', 'Unbekannt')
-                            tournament = series.get('tournament', {}).get('name', 'Unbekannt')
-                            
-                            await ctx.send(f"⚔️ **{team1} vs {team2}**")
-                            await ctx.send(f"🏆 {tournament} | 🕐 {start_time}")
-                            await ctx.send("---")
+                if data.get('data'):
+                    queries = data['data']['__schema']['queryType']['fields']
+                    query_names = [q['name'] for q in queries]
+                    await ctx.send(f"✅ **Verfügbare Queries:** {', '.join(query_names)}")
                 else:
-                    await ctx.send(f"❌ Fehler: {data['errors'][0]['message']}")
+                    await ctx.send(f"❌ Error: {data}")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
