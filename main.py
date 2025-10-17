@@ -577,7 +577,11 @@ async def settime(ctx, minutes: int):
 @bot.command()
 async def matches(ctx):
     try:
+        print("🎯 DEBUG: /matches command received!")
+        
         matches = await fetch_hltv_matches()
+        
+        print(f"🎯 DEBUG: fetch_hltv_matches returned {len(matches)} matches")
         
         if matches:
             match_list = ""
@@ -594,11 +598,14 @@ async def matches(ctx):
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
             framed_message = create_frame("🎯 AVAILABLE CS2 MATCHES", f"{match_list}{footer}")
+            print("🎯 DEBUG: Sending matches to Discord")
             await ctx.send(framed_message)
         else:
+            print("🎯 DEBUG: No matches found, sending error")
             await ctx.send("❌ **No matches found**")
         
     except Exception as e:
+        print(f"🎯 DEBUG: matches command error: {e}")
         await ctx.send(f"❌ **Error:** {e}")
 
 @bot.command()
