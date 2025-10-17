@@ -37,6 +37,7 @@ AUTO_SUBSCRIBE_TEAMS = [
 
 # Team Display Names mit korrekten Emoji-IDs
 TEAM_DISPLAY_NAMES = {
+    # MAIN TEAMS MIT LOGOS:
     'Falcons': '<:falcons:1428075105615085598> FALCONS',
     'MOUZ': '<:mouz:1428075167850041425> MOUZ',
     'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
@@ -48,11 +49,37 @@ TEAM_DISPLAY_NAMES = {
     '3DMAX': '<:3dmax:1428075077408133262> 3DMAX',
     'Astralis': '<:astralis:1428075043526672394> ASTRALIS',
     'G2': '<:g2:1428075144240431154> G2',
-    'G2 Ares': '<:g2:1428075144240431154> G2 ARES',  # NEU für Academy Team
     'Aurora': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
+    'BIG': 'BIG',
+    'Wildcard': 'WILDCARD',
+    'Sangal': 'SANGAL',
+    'RED Canids': 'RED CANIDS',
     
+    # ACADEMY TEAMS OHNE LOGOS:
+    'Falcons Force': 'FALCONS FORCE',
+    'NAVI Junior': 'NAVI JUNIOR',
+    'Spirit Academy': 'SPIRIT ACADEMY',
+    'BIG Academy': 'BIG ACADEMY',
+    'Wildcard Academy': 'WILDCARD ACADEMY',
+    'MIBR Academy': 'MIBR ACADEMY',
+    'Young Ninjas': 'YOUNG NINJAS',
+    'ENCE Academy': 'ENCE ACADEMY',
+    'ODDIK Academy': 'ODDIK ACADEMY',
+    '3DMAX Academy': '3DMAX ACADEMY',
+    'Sangal Academy': 'SANGAL ACADEMY',
+    'RED Canids Academy': 'RED CANIDS ACADEMY',
+    
+    # FEMALE TEAMS OHNE LOGOS:
+    'MIBR fe': 'MIBR FE',
+    'FURIA fe': 'FURIA FE',
+    'NIP Impact': 'NIP IMPACT',
+    'Flame Sharks fe': 'FLAME SHARKS FE',
+    'Imperial Valkyries': 'IMPERIAL VALKYRIES',
+    'n!faculty female': 'N!FACULTY FEMALE',
+    
+    # RESTLICHE TEAMS:
     'B8': '<:b8:1428264645042503761> B8',
     'BetBoom': '<:betboom:1428264669533048932> BETBOOM',
     'Complexity': '<:complexity:1428264681222439023> COMPLEXITY',
@@ -85,11 +112,11 @@ TEAM_DISPLAY_NAMES = {
 # TEAM DATA
 # =========================
 TEAM_SYNONYMS = {
+    # MAIN TEAMS:
     'Natus Vincere': ['navi'],
     'FaZe': ['faze', 'faze clan'], 
     'Team Vitality': ['vitality'],
     'G2': ['g2'],
-    'G2 Ares': ['g2 ares', 'g2 academy'],  # NEU für Academy Team
     'MOUZ': ['mouz'],
     'Team Spirit': ['spirit'],
     'FURIA': ['furia'],
@@ -104,7 +131,29 @@ TEAM_SYNONYMS = {
     'Virtus.pro': ['virtus pro', 'vp'],
     'Ninjas in Pyjamas': ['nip', 'ninjas in pyjamas'],
     'paiN': ['pain'],
-    'Legacy': ['legacy']
+    'Legacy': ['legacy'],
+    
+    # ACADEMY TEAMS:
+    'Falcons Force': ['falcons force', 'falcons academy'],
+    'NAVI Junior': ['navi junior', 'navi jr', 'navi academy'],
+    'Spirit Academy': ['spirit academy', 'spirit jr'],
+    'BIG Academy': ['big academy', 'big jr'],
+    'Wildcard Academy': ['wildcard academy', 'wildcard jr'],
+    'MIBR Academy': ['mibr academy', 'mibr youth', 'mibr jr'],
+    'Young Ninjas': ['young ninjas', 'nip academy', 'ninjas academy'],
+    'ENCE Academy': ['ence academy', 'ence jr'],
+    'ODDIK Academy': ['oddik academy', 'oddik jr'],
+    '3DMAX Academy': ['3dmax academy', '3dmax jr'],
+    'Sangal Academy': ['sangal academy', 'sangal jr'],
+    'RED Canids Academy': ['red canids academy', 'red canids jr'],
+    
+    # FEMALE TEAMS:
+    'MIBR fe': ['mibr fe', 'mibr female', 'mibr women'],
+    'FURIA fe': ['furia fe', 'furia female', 'furia women'],
+    'NIP Impact': ['nip impact', 'nip female', 'nip fe'],
+    'Flame Sharks fe': ['flame sharks fe', 'flame sharks female'],
+    'Imperial Valkyries': ['imperial valkyries', 'imperial female'],
+    'n!faculty female': ['n faculty female', 'n!faculty fe']
 }
 
 def find_team_match(input_team):
