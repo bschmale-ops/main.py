@@ -833,23 +833,36 @@ async def status(ctx):
     guild_id = str(ctx.guild.id)
     subscribed_count = len(TEAMS.get(guild_id, []))
     
-    # Status-Informationen im gleichen Design
-    status_content = (
-        f"# • **STATUS:** ✅ ONLINE\n"
-        f"# • **UPTIME:** {hours}h {minutes}m\n" 
-        f"# • **ALERTS:** ✅ ACTIVE\n"
-        f"# • **ALERT TIME:** {ALERT_TIME}min\n"
-        f"# • **SUBSCRIBED:** {subscribed_count} TEAMS\n"
-        f"# • **SOURCE:** GRID.GG LIVE-API"
-    )
-    
     embed = discord.Embed(
         title=f"BOT STATUS{'\u2800' * 28}🤖",
-        description=status_content,
-        color=0x00ff00
+        color=0x00ff00,
+        timestamp=datetime.datetime.now()
     )
     
-    embed.set_footer(text="🎮 CS2 Match Bot • Use /help for commands")
+    # Status-Informationen in Fields wie bei /test
+    embed.add_field(
+        name=f"🟢 STATUS{'\u2800' * 30}⏰ UPTIME",
+        value=f"✅ ONLINE\n**{hours}h {minutes}m**",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)
+    
+    embed.add_field(
+        name=f"🔔 ALERTS{'\u2800' * 28}⏱️ ALERT TIME", 
+        value=f"✅ ACTIVE\n**{ALERT_TIME}min**",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)
+    
+    embed.add_field(
+        name=f"👥 SUBSCRIBED{'\u2800' * 25}🌐 SOURCE",
+        value=f"**{subscribed_count} TEAMS**\nGRID.GG LIVE-API",
+        inline=False
+    )
+    
+    embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
     await ctx.send(embed=embed)
 
