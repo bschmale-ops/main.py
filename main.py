@@ -342,7 +342,7 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # KORREKTE allSeries QUERY MIT edges/node
+            # KORREKTE QUERY MIT TEAMS SUBSELECTION
             graphql_query = {
                 "query": """
                 query GetUpcomingSeries {
@@ -350,8 +350,9 @@ async def fetch_grid_matches():
                         edges {
                             node {
                                 id
-                                startDate
-                                participants {
+                                title
+                                startTimeScheduled
+                                teams {
                                     team {
                                         name
                                     }
@@ -359,7 +360,6 @@ async def fetch_grid_matches():
                                 tournament {
                                     name
                                 }
-                                status
                             }
                         }
                     }
@@ -376,7 +376,7 @@ async def fetch_grid_matches():
                         print(f"❌ GraphQL Errors: {data['errors']}")
                         return []
                     
-                    # Response verarbeiten MIT edges/node
+                    # Response verarbeiten
                     edges = data.get('data', {}).get('allSeries', {}).get('edges', [])
                     
                     current_time = datetime.datetime.now(timezone.utc)
@@ -385,19 +385,15 @@ async def fetch_grid_matches():
                         try:
                             series = edge.get('node', {})
                             
-                            # Nur upcoming Series
-                            if series.get('status') != 'UPCOMING':
-                                continue
-                                
-                            participants = series.get('participants', [])
-                            if len(participants) >= 2:
-                                team1 = participants[0].get('team', {}).get('name', 'TBD')
-                                team2 = participants[1].get('team', {}).get('name', 'TBD')
+                            teams = series.get('teams', [])
+                            if len(teams) >= 2:
+                                team1 = teams[0].get('team', {}).get('name', 'TBD')
+                                team2 = teams[1].get('team', {}).get('name', 'TBD')
                                 
                                 if team1 != 'TBD' and team2 != 'TBD':
-                                    start_date = series.get('startDate')
-                                    if start_date:
-                                        match_dt = datetime.datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                                    start_time = series.get('startTimeScheduled')
+                                    if start_time:
+                                        match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
                                         unix_time = int(match_dt.timestamp())
                                         
                                         # Nur zukünftige Matches
@@ -690,7 +686,7 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Findet die korrekten Feldnamen für Series"""
+    """Finaler Test der korrekten Query"""
     try:
         async with aiohttp.ClientSession() as session:
             url = "https://api-op.grid.gg/central-data/graphql"
@@ -699,17 +695,23 @@ async def debug(ctx):
                 'Content-Type': 'application/json'
             }
             
-            # SCHEMA EXPLORATION - Welche Felder hat Series?
-            schema_query = {
+            graphql_query = {
                 "query": """
-                query GetSeriesFields {
-                    __type(name: "Series") {
-                        name
-                        fields {
-                            name
-                            type {
-                                name
-                                kind
+                query GetUpcomingSeries {
+                    allSeries {
+                        edges {
+                            node {
+                                id
+                                title
+                                startTimeScheduled
+                                teams {
+                                    team {
+                                        name
+                                    }
+                                }
+                                tournament {
+                                    name
+                                }
                             }
                         }
                     }
@@ -717,50 +719,31 @@ async def debug(ctx):
                 """
             }
             
-            await ctx.send("🔍 **Erkunde Series Felder...**")
-            
-            async with session.post(url, headers=headers, json=schema_query, timeout=15) as response:
+            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
                 data = await response.json()
+                await ctx.send(f"🔍 API Status: {response.status}")
                 
-                if data.get('data', {}).get('__type'):
-                    series_fields = data['data']['__type']['fields']
-                    field_names = [f['name'] for f in series_fields]
-                    await ctx.send(f"✅ **Series Felder:** {', '.join(field_names)}")
+                if not data.get('errors'):
+                    await ctx.send("✅ **QUERY FUNKTIONIERT!** 🎉")
                     
-                    # Teste mit den gefundenen Feldern
-                    test_fields = ["id", "name", "startTime", "scheduledStartTime", "teams", "tournament"]
-                    available_fields = [f for f in test_fields if f in field_names]
+                    edges = data.get('data', {}).get('allSeries', {}).get('edges', [])
+                    await ctx.send(f"📊 **Gefundene Series:** {len(edges)}")
                     
-                    await ctx.send(f"🧪 **Teste mit Feldern:** {', '.join(available_fields)}")
-                    
-                    # Test Query mit verfügbaren Feldern
-                    test_query = {
-                        "query": f"""
-                        query TestSeries {{
-                            allSeries {{
-                                edges {{
-                                    node {{
-                                        {" ".join(available_fields)}
-                                    }}
-                                }}
-                            }}
-                        }}
-                        """
-                    }
-                    
-                    async with session.post(url, headers=headers, json=test_query, timeout=15) as test_response:
-                        test_data = await test_response.json()
-                        if not test_data.get('errors'):
-                            await ctx.send("✅ **Query funktioniert!**")
-                            # Zeige ein Beispiel
-                            if test_data.get('data', {}).get('allSeries', {}).get('edges'):
-                                sample_edge = test_data['data']['allSeries']['edges'][0]
-                                await ctx.send(f"📄 **Beispiel:** ```{json.dumps(sample_edge, indent=2)[:800]}```")
-                        else:
-                            await ctx.send(f"❌ **Test Query Fehler:** {test_data['errors'][0]['message']}")
+                    # Zeige die ersten 3 Matches
+                    for edge in edges[:3]:
+                        series = edge.get('node', {})
+                        teams = series.get('teams', [])
+                        if len(teams) >= 2:
+                            team1 = teams[0].get('team', {}).get('name', 'TBD')
+                            team2 = teams[1].get('team', {}).get('name', 'TBD')
+                            start_time = series.get('startTimeScheduled', 'Unbekannt')
+                            tournament = series.get('tournament', {}).get('name', 'Unbekannt')
+                            
+                            await ctx.send(f"⚔️ **{team1} vs {team2}**")
+                            await ctx.send(f"🏆 {tournament} | 🕐 {start_time}")
                 
                 else:
-                    await ctx.send(f"❌ Schema Error: ```{json.dumps(data, indent=2)[:1000]}```")
+                    await ctx.send(f"❌ **Fehler:** {data['errors'][0]['message']}")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
