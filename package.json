@@ -1,0 +1,6 @@
+{
+  "name": "hltv-scraper",
+  "dependencies": {
+    "hltv": "^3.6.2"
+  }
+}
