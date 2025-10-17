@@ -19,7 +19,9 @@ app = Flask(__name__)
 start_time = datetime.datetime.now(timezone.utc)
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)
+
+# ÄNDERUNG: Verwende discord.Bot statt commands.Bot für bessere Slash Command Unterstützung
+bot = discord.Bot(intents=intents)
 
 # NEU: Setup Hook für persistente Buttons
 @bot.event
@@ -401,10 +403,10 @@ async def daily_dm_reminder():
         print(f"❌ Daily DM error: {e}")
 
 # =========================
-# BOT COMMANDS
+# BOT COMMANDS - ALS SLASH COMMANDS
 # =========================
-@bot.command()
-async def subscribe(ctx, *, team):
+@bot.slash_command(name="subscribe", description="Subscribe to a team for match alerts")
+async def subscribe(ctx, team: str):
     guild_id = str(ctx.guild.id)
     
     if guild_id not in TEAMS:
@@ -414,35 +416,35 @@ async def subscribe(ctx, *, team):
     
     # TEAM VALIDIERUNG: Wenn Team nicht gefunden wurde
     if not found:
-        await ctx.send(f"❌ **Team '{team}' nicht gefunden!**")
+        await ctx.respond(f"❌ **Team '{team}' nicht gefunden!**")
         return
     
     # Normales Subscribe
     if correct_name not in TEAMS[guild_id]:
         TEAMS[guild_id].append(correct_name)
         if save_data():
-            await ctx.send(f"✅ **{get_display_name(correct_name)}** added for alerts! 🎯")
+            await ctx.respond(f"✅ **{get_display_name(correct_name)}** added for alerts! 🎯")
         else:
-            await ctx.send("⚠️ **Save failed!**")
+            await ctx.respond("⚠️ **Save failed!**")
     else:
-        await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already subscribed!")
+        await ctx.respond(f"⚠️ **{get_display_name(correct_name)}** is already subscribed!")
 
-@bot.command()
-async def unsubscribe(ctx, *, team):
+@bot.slash_command(name="unsubscribe", description="Unsubscribe from a team")
+async def unsubscribe(ctx, team: str):
     guild_id = str(ctx.guild.id)
     correct_name, found = find_team_match(team)
     
     if guild_id in TEAMS and correct_name in TEAMS[guild_id]:
         TEAMS[guild_id].remove(correct_name)
         if save_data():
-            await ctx.send(f"❌ **{get_display_name(correct_name)}** removed from alerts!")
+            await ctx.respond(f"❌ **{get_display_name(correct_name)}** removed from alerts!")
         else:
-            await ctx.send("⚠️ **Save failed!**")
+            await ctx.respond("⚠️ **Save failed!**")
     else:
-        await ctx.send(f"❌ **Team {get_display_name(correct_name)} not found!**")
+        await ctx.respond(f"❌ **Team {get_display_name(correct_name)} not found!**")
 
-@bot.command()
-async def list(ctx):
+@bot.slash_command(name="list", description="Show subscribed teams")
+async def list_cmd(ctx):
     """Show subscribed teams - MIT RAHMEN und FETTEN Teamnamen"""
     guild_id = str(ctx.guild.id)
     teams = TEAMS.get(guild_id, [])
@@ -450,23 +452,23 @@ async def list(ctx):
     if teams:
         team_list = "\n".join([f"• **{get_display_name(team)}**" for team in teams])
         framed_message = create_frame("📋 SUBSCRIBED TEAMS", team_list)
-        await ctx.send(framed_message)
+        await ctx.respond(framed_message)
     else:
-        await ctx.send("❌ **No teams subscribed yet!**")
+        await ctx.respond("❌ **No teams subscribed yet!**")
 
-@bot.command()
+@bot.slash_command(name="settime", description="Set alert time in minutes")
 async def settime(ctx, minutes: int):
     global ALERT_TIME
     if 1 <= minutes <= 240:
         ALERT_TIME = minutes
         if save_data():
-            await ctx.send(f"⏰ **Alert time set to {minutes} minutes!** 🔔")
+            await ctx.respond(f"⏰ **Alert time set to {minutes} minutes!** 🔔")
         else:
-            await ctx.send("⚠️ **Save failed!**")
+            await ctx.respond("⚠️ **Save failed!**")
     else:
-        await ctx.send("❌ **Please specify 1-240 minutes!**")
+        await ctx.respond("❌ **Please specify 1-240 minutes!**")
 
-@bot.command()
+@bot.slash_command(name="matches", description="Show available matches")
 async def matches(ctx):
     """Show available matches - MIT RAHMEN"""
     try:
@@ -488,22 +490,22 @@ async def matches(ctx):
             
             footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
             framed_message = create_frame("🎯 AVAILABLE CS2 MATCHES", f"{match_list}{footer}")
-            await ctx.send(framed_message)
+            await ctx.respond(framed_message)
         else:
-            await ctx.send("❌ **No matches found**")
+            await ctx.respond("❌ **No matches found**")
         
     except Exception as e:
-        await ctx.send(f"❌ **Error:** {e}")
+        await ctx.respond(f"❌ **Error:** {e}")
 
-@bot.command()
+@bot.slash_command(name="setchannel", description="Set alert channel")
 async def setchannel(ctx, channel: discord.TextChannel):
     CHANNELS[str(ctx.guild.id)] = channel.id
     if save_data():
-        await ctx.send(f"📡 **Alert channel set to {channel.mention}!** ✅")
+        await ctx.respond(f"📡 **Alert channel set to {channel.mention}!** ✅")
     else:
-        await ctx.send("⚠️ **Save failed!**")
+        await ctx.respond("⚠️ **Save failed!**")
 
-@bot.command()
+@bot.slash_command(name="autosetup", description="Auto-subscribe to popular teams")
 async def autosetup(ctx):
     guild_id = str(ctx.guild.id)
     
@@ -519,13 +521,13 @@ async def autosetup(ctx):
     if save_data():
         if added_teams:
             team_list = "\n".join([f"• {get_display_name(team)}" for team in added_teams])
-            await ctx.send(f"✅ **Auto-subscribed {len(added_teams)} teams!**\n{team_list}")
+            await ctx.respond(f"✅ **Auto-subscribed {len(added_teams)} teams!**\n{team_list}")
         else:
-            await ctx.send("✅ **Teams already subscribed!**")
+            await ctx.respond("✅ **Teams already subscribed!**")
     else:
-        await ctx.send("⚠️ **Save failed!**")
+        await ctx.respond("⚠️ **Save failed!**")
 
-@bot.command()
+@bot.slash_command(name="status", description="Show bot status")
 async def status(ctx):
     uptime = datetime.datetime.now(timezone.utc) - start_time
     hours, remainder = divmod(int(uptime.total_seconds()), 3600)
@@ -544,9 +546,9 @@ async def status(ctx):
     )
     
     framed_message = create_frame("🤖 BOT STATUS", status_content)
-    await ctx.send(framed_message)
+    await ctx.respond(framed_message)
 
-@bot.command()
+@bot.slash_command(name="test", description="Test alert")
 async def test(ctx):
     """Test alert - MIT RAHMEN und korrekter Formatierung"""
     team1_display = get_display_name("Falcons")
@@ -571,48 +573,9 @@ async def test(ctx):
     
     role = discord.utils.get(ctx.guild.roles, name="CS2")
     if role:
-        await ctx.send(f"🔔 {role.mention}\n{framed_message}")
+        await ctx.respond(f"🔔 {role.mention}\n{framed_message}")
     else:
-        await ctx.send(framed_message)
-        
-@bot.command()
-async def ping(ctx):
-    await ctx.send('🏓 **PONG!** 🎯')
-
-# =========================
-# DEBUG COMMANDS
-# =========================
-@bot.command()
-async def debug(ctx, *, team):
-    """Debug command um Team-Namen zu checken"""
-    display = get_display_name(team)
-    emoji = get_team_emoji(team)
-    name_only = get_team_name_only(team)
-    
-    await ctx.send(
-        f"**Input:** {team}\n"
-        f"**Display:** {display}\n"
-        f"**Emoji:** {emoji}\n"
-        f"**Name Only:** {name_only}"
-    )
-
-@bot.command()
-async def rawmatches(ctx):
-    """Zeigt rohe PandaScore Daten"""
-    matches = await fetch_pandascore_matches()
-    
-    if not matches:
-        await ctx.send("❌ **No matches found**")
-        return
-        
-    for match in matches[:3]:  # Nur erste 3 Matches
-        await ctx.send(
-            f"**Team1:** `{match['team1']}`\n"
-            f"**Team2:** `{match['team2']}`\n"
-            f"**Event:** {match['event']}\n"
-            f"**Time:** {match['time_string']}\n"
-            f"---"
-        )
+        await ctx.respond(framed_message)
 
 # =========================
 # ROLE BUTTONS SYSTEM
@@ -696,7 +659,7 @@ class RoleButtonsView(discord.ui.View):
             await interaction.user.add_roles(role)
             await interaction.response.send_message(f"✅ {role_name} Rolle hinzugefügt!", ephemeral=True)
 
-@bot.tree.command(name="create_game_roles", description="Erstelle die Game-Role Buttons in diesem Channel")
+@bot.slash_command(name="create_game_roles", description="Erstelle die Game-Role Buttons in diesem Channel")
 async def create_game_roles(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🎮 **Wähle deine Spiele**",
@@ -736,8 +699,8 @@ async def on_ready():
     
     # NEU: Slash Commands syncen
     try:
-        synced = await bot.tree.sync()
-        print(f"✅ {len(synced)} Slash Commands synced!")
+        synced = await bot.sync_commands()
+        print(f"✅ Slash Commands synced!")
     except Exception as e:
         print(f"❌ Slash Command sync error: {e}")
     
