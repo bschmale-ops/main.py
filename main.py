@@ -336,7 +336,7 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/central-data/graphql"
+            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
@@ -432,7 +432,7 @@ async def fetch_grid_matches_alternative():
     """Alternative Query falls series nicht funktioniert"""
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/central-data/graphql"
+            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             
             headers = {
                 'x-api-key': GRID_API_KEY,
@@ -690,7 +690,7 @@ async def debug(ctx):
     """Testet mit baseInfo Feld"""
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/central-data/graphql"
+            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
