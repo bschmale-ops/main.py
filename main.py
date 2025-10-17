@@ -590,6 +590,41 @@ async def subscribe(ctx, *, team):
             await ctx.send("⚠️ **Save failed!**")
     else:
         await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already subscribed!")
+@bot.command()
+async def debug(ctx):
+    """Zeigt die Rohdaten der API Response"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://api.grid.gg/graphql"
+            headers = {
+                'Authorization': f'Bearer {GRID_API_KEY}',
+                'Content-Type': 'application/json'
+            }
+            
+            graphql_query = {
+                "query": """
+                query GetUpcomingCS2Matches {
+                    matches(status: "upcoming", game: "cs2") {
+                        id
+                        scheduledAt
+                        teams {
+                            name
+                        }
+                        tournament {
+                            name
+                        }
+                    }
+                }
+                """
+            }
+            
+            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
+                data = await response.json()
+                await ctx.send(f"🔍 API Status: {response.status}")
+                await ctx.send(f"📄 Response: ```{json.dumps(data, indent=2)[:1500]}```")
+                
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
 
 @bot.command()
 async def unsubscribe(ctx, *, team):
