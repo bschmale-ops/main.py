@@ -330,94 +330,125 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers")
 
 # =========================
-# GRID.GG API - GRAPHQL VERSION (KORRIGIERT)
+# GRID.GG API - KOMBINIERTE VERSION
 # =========================
 async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # NEUE URL VERWENDEN
-            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
+            # 1. ZUERST: Series-IDs von central-data Endpoint holen
+            central_url = "https://api-op.grid.gg/central-data/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # Gleiche Query wie vorher testen
-            graphql_query = {
+            # Query für alle verfügbaren Series
+            series_list_query = {
                 "query": """
-                query GetLiveSeries {
-                    seriesState {
+                query GetAllSeries {
+                    series {
                         id
-                        title
+                        name
+                        startDate
+                        endDate
+                        status
+                        tournament {
+                            name
+                        }
                         teams {
                             name
                         }
-                        games
-                        startedAt
-                        started
-                        finished
                     }
                 }
                 """
             }
             
-            async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
+            # Series-Liste abrufen
+            async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
                 if response.status == 200:
-                    data = await response.json()
-                    print(f"✅ NEUER ENDPOINT - Response erhalten")
+                    central_data = await response.json()
                     
-                    if data.get('errors'):
-                        print(f"❌ GraphQL Errors: {data['errors']}")
+                    if central_data.get('errors'):
+                        print(f"❌ Central Data Error: {central_data['errors']}")
                         return []
                     
-                    # Response verarbeiten
-                    series_data = data.get('data', {}).get('seriesState', [])
+                    series_list = central_data.get('data', {}).get('series', [])
+                    print(f"✅ Gefundene Series: {len(series_list)}")
                     
+                    # 2. FÜR JEDE SERIES: Live-Daten vom series-state Endpoint holen
+                    state_url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
                     current_time = datetime.datetime.now(timezone.utc)
                     
-                    for series in series_data:
+                    for series in series_list:
                         try:
-                            # Nur Series die noch nicht gestartet oder beendet sind
-                            if series.get('started') or series.get('finished'):
+                            series_id = series.get('id')
+                            if not series_id:
                                 continue
                                 
-                            teams = series.get('teams', [])
-                            if len(teams) >= 2:
-                                team1 = teams[0].get('name', 'TBD')
-                                team2 = teams[1].get('name', 'TBD')
-                                
-                                if team1 != 'TBD' and team2 != 'TBD':
-                                    start_time = series.get('startedAt')
-                                    if start_time:
-                                        match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                                        unix_time = int(match_dt.timestamp())
+                            # Live-Daten für diese Series abrufen
+                            state_query = {
+                                "query": """
+                                query GetSeriesState($id: String!) {
+                                    seriesState(id: $id) {
+                                        id
+                                        title
+                                        teams {
+                                            name
+                                        }
+                                        games
+                                        startedAt
+                                        started
+                                        finished
+                                    }
+                                }
+                                """,
+                                "variables": {"id": series_id}
+                            }
+                            
+                            async with session.post(state_url, headers=headers, json=state_query, timeout=10) as state_response:
+                                if state_response.status == 200:
+                                    state_data = await state_response.json()
+                                    
+                                    if state_data.get('errors'):
+                                        continue
                                         
-                                        # Nur zukünftige Matches
-                                        if match_dt > current_time:
-                                            german_tz = timezone(timedelta(hours=2))
-                                            local_dt = match_dt.astimezone(german_tz)
-                                            time_string = local_dt.strftime("%H:%M")
+                                    series_state = state_data.get('data', {}).get('seriesState')
+                                    if series_state and not series_state.get('finished'):
+                                        teams = series_state.get('teams', [])
+                                        if len(teams) >= 2:
+                                            team1 = teams[0].get('name', 'TBD')
+                                            team2 = teams[1].get('name', 'TBD')
                                             
-                                            # Titel verwenden
-                                            event = series.get('title', 'CS2 Match')
-                                            
-                                            matches.append({
-                                                'team1': team1, 
-                                                'team2': team2, 
-                                                'unix_time': unix_time,
-                                                'event': event, 
-                                                'time_string': time_string
-                                            })
+                                            if team1 != 'TBD' and team2 != 'TBD':
+                                                start_time = series_state.get('startedAt')
+                                                if start_time:
+                                                    match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                                                    
+                                                    # Nur zukünftige Matches
+                                                    if match_dt > current_time:
+                                                        german_tz = timezone(timedelta(hours=2))
+                                                        local_dt = match_dt.astimezone(german_tz)
+                                                        time_string = local_dt.strftime("%H:%M")
+                                                        
+                                                        event = series_state.get('title', 'CS2 Match')
+                                                        
+                                                        matches.append({
+                                                            'team1': team1, 
+                                                            'team2': team2, 
+                                                            'unix_time': int(match_dt.timestamp()),
+                                                            'event': event, 
+                                                            'time_string': time_string
+                                                        })
                         except Exception as e:
-                            print(f"❌ Series parsing error: {e}")
+                            print(f"❌ Series {series.get('id')} error: {e}")
                             continue
                     
                     matches.sort(key=lambda x: x['unix_time'])
-                    print(f"✅ Gefundene Matches: {len(matches)}")
+                    print(f"✅ Verfügbare Matches: {len(matches)}")
                     return matches
                 else:
-                    print(f"❌ Grid.gg API error: {response.status}")
+                    print(f"❌ Central Data API error: {response.status}")
                     return []
     except Exception as e:
         print(f"❌ Grid.gg API connection error: {e}")
@@ -1007,6 +1038,17 @@ async def test(ctx):
     
     embed = create_match_alert(test_match, 15)
     await ctx.send("🎨 **NEUES EMBED DESIGN TEST:**", embed=embed)
+    
+@bot.command() 
+async def testapi(ctx):
+    """Testet die neue kombinierte API-Struktur"""
+    matches = await fetch_grid_matches()
+    if matches:
+        await ctx.send(f"✅ **NEUE API FUNKTIONIERT!** {len(matches)} Matches gefunden!")
+        for match in matches[:3]:
+            await ctx.send(f"• {match['team1']} vs {match['team2']} - {match['time_string']}")
+    else:
+        await ctx.send("❌ Keine Matches gefunden")
 
 @bot.command()
 async def twitchtest(ctx):
