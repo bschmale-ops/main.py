@@ -876,7 +876,36 @@ async def test(ctx):
     
     embed = create_match_alert(test_match, 15)
     await ctx.send("🎨 **EMBED DESIGN TEST:**", embed=embed)
+    
+@bot.command()
+async def debugalert(ctx):
+    """🔍 LIVE Debug vom Alert-System"""
+    matches = await fetch_grid_matches()
+    current_time = datetime.datetime.now(timezone.utc).timestamp()
+    
+    await ctx.send(f"**🔍 LIVE DEBUG:** {len(matches)} Matches, ALERT_TIME={ALERT_TIME}")
+    await ctx.send(f"**🕐 Aktuelle Zeit:** {datetime.datetime.now().strftime('%H:%M')}")
+    
+    for match in matches:
+        time_until = (match['unix_time'] - current_time) / 60
+        await ctx.send(f"**🎯 {match['team1']} vs {match['team2']}:** {time_until:.1f} min")
         
+        # Prüfe Bedingung
+        if 0 <= time_until <= ALERT_TIME:
+            await ctx.send("✅ **WÜRDE JETZT PINGEN!**")
+            
+            # Prüfe Teams
+            for guild_id, subscribed_teams in TEAMS.items():
+                for subscribed_team in subscribed_teams:
+                    correct_name, found = find_team_match(subscribed_team)
+                    team_variants = [correct_name.lower()] + [v.lower() for v in TEAM_SYNONYMS.get(correct_name, [])]
+                    
+                    if (match['team1'].lower() in team_variants or 
+                        match['team2'].lower() in team_variants):
+                        await ctx.send(f"✅ **Team Match:** {subscribed_team} → {correct_name}")
+        else:
+            await ctx.send(f"❌ **Noch nicht in Alert-Zeit:** {time_until:.1f} min")
+
 @bot.command()
 async def twitchtest(ctx):
     """Twitch Test mit LIVE-Banner und Twitch-Daten"""
