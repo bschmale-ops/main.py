@@ -1190,9 +1190,10 @@ async def matches(ctx):
                 if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
                     team2_display = f"🌍 {team2_display}"
                 
-                # Berechne feste Breite für "Starts in" - immer gleich lang
+                # Feste Breite für Starts in - mit Unicode-Leerzeichen die Discord respektiert
                 starts_in_text = f"⏰ **Starts in:** **{int(time_until)} minutes**"
-                fixed_width_starts_in = starts_in_text.ljust(40)  # Feste Breite von 40 Zeichen
+                # Verwende \u2800 (Braille-Leerzeichen) die Discord nicht kollabiert
+                padding = '\u2800' * (35 - len(starts_in_text))  # Dynamische Berechnung
                 
                 # Größere Schrift mit **# ** am Anfang jeder Zeile
                 match_content = (
@@ -1200,7 +1201,7 @@ async def matches(ctx):
                     f"# <:VS:1428145739443208305>\n"
                     f"# **{team2_display}**\n"
                     f"🏆 {match['event']}\n"
-                    f"{fixed_width_starts_in}🕐 **{match['time_string']}**\n"
+                    f"{starts_in_text}{padding}🕐 **{match['time_string']}**\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 )
                 
