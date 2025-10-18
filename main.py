@@ -886,28 +886,28 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Zeile 1
     
-    # Stream Info über dem Banner - mit "# " und 🌐
+    # Stream Info über dem Banner - MIT "# " NUR bei der CLICK HERE Zeile
     embed.add_field(
-        name="# 🔴 shiseii is now live on Twitch!",
-        value="# **[🌐 CLICK HERE TO WATCH LIVE ](https://twitch.tv/shiseii)**",
+        name="🔴 shiseii is now live on Twitch!",
+        value="# **[🌐 CLICK HERE TO WATCH LIVE](https://twitch.tv/shiseii)**",
         inline=False
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz
     embed.add_field(name="", value="", inline=False)  # Absatz
     
-    # Titel
+    # Titel OHNE "# "
     embed.add_field(
-        name="# 📺 TWITCH TEST TITEL",
+        name="📺 TWITCH TEST TITEL",
         value="",
         inline=False
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
     
-    # Game und Live-Status in EINER Zeile - FIXIERT
+    # Game und Live-Status in EINER Zeile - OHNE "# " und KORREKT rechtsbündig
     embed.add_field(
-        name=f"# 🎮 TWITCH TEST GAME{'\u2800' * 20}🕐 LIVE",
+        name=f"🎮 TWITCH TEST GAME{'\u2800' * 40}🕐 LIVE",
         value="",
         inline=False
     )
