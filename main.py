@@ -896,6 +896,8 @@ async def twitchtest(ctx):
         inline=False
     )
     
+    embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
+    
     # Game und Live-Status in EINER Zeile
     embed.add_field(
         name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",
@@ -911,10 +913,6 @@ async def twitchtest(ctx):
     
     # Profilbild oben rechts (Thumbnail)
     embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/8b4104f3-43d0-4d7e-a7ae-bd15408acad4-profile_image-70x70.png")
-    
-    # Viewers & Chat
-    embed.add_field(name="👥 Viewers", value="**Active & Friendly**", inline=True)
-    embed.add_field(name="💬 Chat", value="**Live Chat**", inline=True)
     
     embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
