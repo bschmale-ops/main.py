@@ -68,6 +68,7 @@ TEAM_DISPLAY_NAMES = {
     'Team Spirit': '<:spirit:1428075208564019302> TEAM SPIRIT',
     'Team Vitality': '<:vitality:1428075243510956113> TEAM VITALITY',
     'The Mongolz': '<:themongolz:1428075231939133581> THE MONGOLZ',
+    'TheMongolz': '<:themongolz:1428075231939133581> THE MONGOLZ',
     'FURIA': '<:furia:1428075132156641471> FURIA',
     'Natus Vincere': '<:navi:1428075186976194691> NATUS VINCERE',
     'FaZe': '<:faze:1428075117753401414> FAZE',
@@ -1190,18 +1191,24 @@ async def matches(ctx):
                 if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
                     team2_display = f"🌍 {team2_display}"
                 
-                # Feste Breite für Starts in - mit Unicode-Leerzeichen die Discord respektiert
-                starts_in_text = f"⏰ **Starts in:** **{int(time_until)} minutes**"
-                # Verwende \u2800 (Braille-Leerzeichen) die Discord nicht kollabiert
-                padding = '\u2800' * (35 - len(starts_in_text))  # Dynamische Berechnung
+                # ✅ KORRIGIERTE PADDING-LOGIK:
+                time_until = int(time_until)
+                starts_in_text = f"⏰ **Starts in:** **{time_until} minutes**"
                 
-                # Größere Schrift mit **# ** am Anfang jeder Zeile
+                # MEHR Padding für weiter rechts
+                current_length = len(starts_in_text)
+                padding_needed = 60 - current_length  # ← Erhöht von 45 auf 60
+                padding = '\u2800' * max(1, padding_needed)
+                
+                time_line = f"{starts_in_text}{padding}🕐 **{match['time_string']}**"
+                
+                # ✅ "# " ENTFERNT - nur Fett für größere Schrift
                 match_content = (
-                    f"# **{team1_display}**\n"
-                    f"# <:VS:1428145739443208305>\n"
-                    f"# **{team2_display}**\n"
+                    f"**{team1_display}**\n"
+                    f"<:VS:1428145739443208305>\n"
+                    f"**{team2_display}**\n"
                     f"🏆 {match['event']}\n"
-                    f"{starts_in_text}{padding}🕐 **{match['time_string']}**\n"
+                    f"{time_line}\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 )
                 
