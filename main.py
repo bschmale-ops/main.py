@@ -641,43 +641,70 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Findet heraus wie man alle Series bekommt - MIT NEUER URL"""
+    """Findet heraus wie man alle Series bekommt - MIT KORREKTER URL"""
     try:
         async with aiohttp.ClientSession() as session:
-            # NEUE URL VERWENDEN
+            # KORREKTE URL VERWENDEN
             url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # Teste verschiedene Möglichkeiten mit der NEUEN URL
+            # Teste verschiedene Möglichkeiten
             test_queries = [
-                # Versuch 1: Ohne Parameter (vielleicht gibt es eine Liste)
-                {"query": "query { seriesState { id } }"},
-                # Versuch 2: Mit leerem String
-                {"query": 'query { seriesState(id: "") { id } }'},
-                # Versuch 3: Mit Test-ID
-                {"query": 'query { seriesState(id: "test") { id } }'},
-                # Versuch 4: Vielleicht gibt es eine seriesStates (Plural) Query
-                {"query": "query { seriesStates { id } }"}
+                # Versuch 1: Vielleicht gibt es eine allSeries Query
+                {"query": "query { allSeries { id } }"},
+                # Versuch 2: Vielleicht series ohne State
+                {"query": "query { series { id } }"},
+                # Versuch 3: Vielleicht matches statt series
+                {"query": "query { matches { id } }"},
+                # Versuch 4: Vielleicht liveSeries
+                {"query": "query { liveSeries { id } }"},
+                # Versuch 5: Schema abfragen um verfügbare Queries zu sehen
+                {"query": """
+                query {
+                    __schema {
+                        queryType {
+                            fields {
+                                name
+                                description
+                            }
+                        }
+                    }
+                }
+                """}
             ]
             
             for i, test_query in enumerate(test_queries, 1):
-                await ctx.send(f"🧪 **Test {i}:** `{test_query['query'][:50]}...`")
-                async with session.post(url, headers=headers, json=test_query, timeout=10) as response:
-                    data = await response.json()
-                    if not data.get('errors'):
-                        await ctx.send(f"✅ **Test {i} FUNKTIONIERT!**")
-                        await ctx.send(f"📊 Response: ```{json.dumps(data, indent=2)[:1000]}```")
-                        break
-                    else:
-                        error_msg = data['errors'][0]['message']
-                        await ctx.send(f"❌ Test {i} Fehler: {error_msg}")
+                await ctx.send(f"🧪 **Test {i}:** `{test_query['query'][:60]}...`")
+                try:
+                    async with session.post(url, headers=headers, json=test_query, timeout=10) as response:
+                        content_type = response.headers.get('content-type', '')
+                        text = await response.text()
+                        
+                        await ctx.send(f"📡 Status: {response.status}, Content-Type: {content_type}")
+                        
+                        if 'application/json' in content_type:
+                            data = json.loads(text)
+                            if not data.get('errors'):
+                                await ctx.send(f"✅ **Test {i} FUNKTIONIERT!**")
+                                # Zeige verfügbare Felder
+                                if 'data' in data and data['data']:
+                                    await ctx.send(f"📊 Verfügbare Daten: ```{json.dumps(data, indent=2)[:800]}```")
+                                break
+                            else:
+                                error_msg = data['errors'][0]['message']
+                                await ctx.send(f"❌ GraphQL Error: {error_msg}")
+                        else:
+                            await ctx.send(f"❌ Kein JSON: ```{text[:200]}```")
+                            
+                except Exception as e:
+                    await ctx.send(f"❌ Request Error: {e}")
             
-            # Frage den Support nach der korrekten Methode
-            await ctx.send("\n📧 **Nächster Schritt:** Support fragen:")
-            await ctx.send("> 'How to get ALL series/matches from seriesState endpoint? It requires an ID parameter.'")
+            # Frage mit den konkreten Fehlern
+            await ctx.send("\n📧 **Support fragen mit diesen Infos:**")
+            await ctx.send("> 'seriesState requires ID parameter, but how to get list of ALL series/matches? What query returns all available series?'")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
