@@ -1313,12 +1313,21 @@ async def status(ctx):
     guild_id = str(ctx.guild.id)
     subscribed_count = len(TEAMS.get(guild_id, []))
     
+    # ✅ NEUE LOGIK FÜR ALERT CHANNEL & TIME
+    alert_channel_status = "❌"
+    if MATCH_ALERT_CHANNEL_ID:
+        channel = bot.get_channel(MATCH_ALERT_CHANNEL_ID)
+        if channel:
+            alert_channel_status = f"✅ #{channel.name}"
+    
+    alert_time_status = f"✅ {ALERT_TIME}min" if ALERT_TIME else "❌"
+    
     # Status-Informationen mit ## • außer der ersten Zeile
     status_content = (
         f" • 🟢 **STATUS:** ✅ ONLINE\n"
         f" • ⏰ **UPTIME:** {hours}h {minutes}m\n" 
-        f" • 🔔 **ALERTS:** ✅ ACTIVE\n"
-        f" • ⏱️ **ALERT TIME:** {ALERT_TIME}min\n"
+        f" • 🔔 **ALERTS:** {alert_channel_status}\n"
+        f" • ⏱️ **ALERT TIME:** {alert_time_status}\n"
         f" • 👥 **SUBSCRIBED:** {subscribed_count} TEAMS\n"
         f" • 🌐 **SOURCE:** GRID.GG LIVE-API"
     )
