@@ -326,7 +326,7 @@ def create_twitch_go_live_alert():
     
     # ✅ KORREKT: "🎮 TWITCH TEST GAME" in EINER Zeile mit Padding
     embed.add_field(
-        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",  # ← "GAME" in derselben Zeile
+        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐LIVE",  # ← "GAME" in derselben Zeile
         value="",
         inline=False
     )
