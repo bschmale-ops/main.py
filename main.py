@@ -358,7 +358,7 @@ async def fetch_grid_matches():
                       }
                       title: {
                         nameShortened: {
-                          eq: "Counter-Strike 2"
+                          eq: "cs2"
                         }
                       }
                     }
