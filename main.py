@@ -708,7 +708,118 @@ async def debug(ctx):
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
-        
+@bot.command()
+async def testseries(ctx, series_id: str = "12345"):
+    """Testet eine bestimmte Series-ID um Details zu sehen"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            # Detaillierte Query für seriesState
+            detailed_query = {
+                "query": """
+                query GetSeriesDetails($id: String!) {
+                    seriesState(id: $id) {
+                        id
+                        title
+                        description
+                        games
+                        startedAt
+                        started
+                        finished
+                        teams {
+                            id
+                            name
+                            acronym
+                            imageUrl
+                            players {
+                                id
+                                nickname
+                                firstName
+                                lastName
+                                imageUrl
+                            }
+                        }
+                        matches {
+                            id
+                            status
+                            startTime
+                            endTime
+                            games {
+                                id
+                                number
+                                status
+                                startTime
+                                endTime
+                            }
+                        }
+                        tournament {
+                            id
+                            name
+                            series
+                        }
+                        streamUrl
+                        standings {
+                            position
+                            team {
+                                id
+                                name
+                            }
+                        }
+                    }
+                }
+                """,
+                "variables": {"id": series_id}
+            }
+            
+            await ctx.send(f"🧪 **Teste Series ID:** `{series_id}`")
+            
+            async with session.post(url, headers=headers, json=detailed_query, timeout=10) as response:
+                data = await response.json()
+                
+                if 'errors' in data:
+                    error_msg = data['errors'][0]['message']
+                    await ctx.send(f"❌ Error: {error_msg}")
+                elif 'data' in data and data['data']['seriesState']:
+                    series = data['data']['seriesState']
+                    await ctx.send(f"✅ **Series gefunden!**")
+                    
+                    # Zeige Basis-Infos
+                    info = f"""
+                    **📺 Titel:** {series.get('title', 'N/A')}
+                    **🎮 Games:** {series.get('games', 'N/A')}
+                    **⏰ Gestartet:** {series.get('started', 'N/A')}
+                    **🏁 Beendet:** {series.get('finished', 'N/A')}
+                    **📅 Startzeit:** {series.get('startedAt', 'N/A')}
+                    """
+                    await ctx.send(info)
+                    
+                    # Teams anzeigen
+                    teams = series.get('teams', [])
+                    if teams:
+                        team_info = "**👥 Teams:**\n"
+                        for team in teams:
+                            team_info += f"- {team.get('name', 'N/A')} ({team.get('acronym', 'N/A')})\n"
+                        await ctx.send(team_info)
+                    
+                    # Matches anzeigen
+                    matches = series.get('matches', [])
+                    if matches:
+                        await ctx.send(f"**🎯 Matches:** {len(matches)}")
+                    
+                    # Vollständige Response zeigen
+                    await ctx.send(f"📄 **Vollständige Response:**```json\n{json.dumps(series, indent=2)[:1500]}```")
+                    
+                else:
+                    await ctx.send("❌ **Series nicht gefunden oder keine Daten**")
+                    
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
+
 @bot.command()
 async def unsubscribe(ctx, *, team):
     guild_id = str(ctx.guild.id)
