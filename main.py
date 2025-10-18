@@ -473,14 +473,89 @@ async def fetch_grid_matches():
 
 @bot.command()
 async def testnew(ctx):
-    """Testet die neue Grid.gg Implementierung"""
-    matches = await fetch_grid_matches()
-    if matches:
-        await ctx.send(f"✅ **GRID.GG FUNKTIONIERT!** {len(matches)} Matches gefunden!")
-        for match in matches[:5]:
-            await ctx.send(f"• **{match['team1']}** vs **{match['team2']}** - {match['time_string']} ({match['event']})")
-    else:
-        await ctx.send("❌ Keine Matches gefunden")
+    """Testet die neue Grid.gg Implementierung mit Debug"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            central_url = "https://api-op.grid.gg/central-data/graphql"
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            # Zeitfilter für heute
+            now = datetime.datetime.now(timezone.utc)
+            start_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            end_time = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            
+            await ctx.send(f"🔍 **Zeitfilter:** {start_time} bis {end_time}")
+            
+            series_list_query = {
+                "query": """
+                query GetAllSeries {
+                  allSeries(
+                    filter: {
+                      startTimeScheduled: {
+                        gte: "%s"
+                        lte: "%s"
+                      }
+                    }
+                    orderBy: StartTimeScheduled
+                    first: 20
+                  ) {
+                    totalCount
+                    edges {
+                      node {
+                        id
+                        startTimeScheduled
+                        teams {
+                          baseInfo {
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                """ % (start_time, end_time)
+            }
+            
+            await ctx.send("📡 **Hole Series von Central Data...**")
+            
+            async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
+                if response.status == 200:
+                    central_data = await response.json()
+                    
+                    if central_data.get('errors'):
+                        error_msg = central_data['errors'][0]['message']
+                        await ctx.send(f"❌ Central Data Error: {error_msg}")
+                        return
+                    
+                    all_series = central_data.get('data', {}).get('allSeries', {})
+                    total_count = all_series.get('totalCount', 0)
+                    edges = all_series.get('edges', [])
+                    
+                    await ctx.send(f"📊 **Central Data Response:** {total_count} Series total, {len(edges)} edges")
+                    
+                    if edges:
+                        await ctx.send("🔍 **Gefundene Series:**")
+                        for i, edge in enumerate(edges[:5]):
+                            node = edge.get('node', {})
+                            teams = node.get('teams', [])
+                            team_names = [team.get('baseInfo', {}).get('name', '?') for team in teams]
+                            
+                            await ctx.send(
+                                f"**Series {i+1}:** `{node.get('id')}`\n"
+                                f"Teams: {', '.join(team_names)}\n"
+                                f"Time: {node.get('startTimeScheduled', 'N/A')}\n"
+                            )
+                    else:
+                        await ctx.send("❌ **Keine Series im Zeitraum gefunden!**")
+                        
+                else:
+                    await ctx.send(f"❌ Central Data API Status: {response.status}")
+                    
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
         
 # =========================
 # ALERT SYSTEM - ANGEPASST FÜR GRID.GG
