@@ -336,35 +336,52 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # 1. ZUERST: Series-IDs von central-data Endpoint holen
+            # 1. SERIES LISTE VON CENTRAL DATA
             central_url = "https://api-op.grid.gg/central-data/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # Query für alle verfügbaren Series
+            # Zeitfilter für heute + 1 Tag
+            now = datetime.datetime.now(timezone.utc)
+            start_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            end_time = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            
             series_list_query = {
                 "query": """
                 query GetAllSeries {
-                    series {
-                        id
-                        name
-                        startDate
-                        endDate
-                        status
-                        tournament {
-                            name
-                        }
-                        teams {
-                            name
-                        }
+                  allSeries(
+                    filter: {
+                      startTimeScheduled: {
+                        gte: "%s"
+                        lte: "%s"
+                      }
                     }
+                    orderBy: StartTimeScheduled
+                    first: 50
+                  ) {
+                    edges {
+                      node {
+                        id
+                        tournament {
+                          nameShortened
+                        }
+                        startTimeScheduled
+                        teams {
+                          baseInfo {
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
-                """
+                """ % (start_time, end_time)
             }
             
-            # Series-Liste abrufen
+            print(f"🔍 Hole Series von {start_time} bis {end_time}")
+            
             async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
                 if response.status == 200:
                     central_data = await response.json()
@@ -373,19 +390,29 @@ async def fetch_grid_matches():
                         print(f"❌ Central Data Error: {central_data['errors']}")
                         return []
                     
-                    series_list = central_data.get('data', {}).get('series', [])
-                    print(f"✅ Gefundene Series: {len(series_list)}")
+                    series_edges = central_data.get('data', {}).get('allSeries', {}).get('edges', [])
+                    print(f"✅ Gefundene Series: {len(series_edges)}")
                     
-                    # 2. FÜR JEDE SERIES: Live-Daten vom series-state Endpoint holen
+                    # 2. FÜR JEDE SERIES: LIVE-DATEN HOLEN
                     state_url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
                     current_time = datetime.datetime.now(timezone.utc)
                     
-                    for series in series_list:
+                    for edge in series_edges:
                         try:
-                            series_id = series.get('id')
+                            series_node = edge.get('node', {})
+                            series_id = series_node.get('id')
+                            
                             if not series_id:
                                 continue
+                            
+                            # Teams aus Central Data
+                            teams = series_node.get('teams', [])
+                            if len(teams) < 2:
+                                continue
                                 
+                            team1_name = teams[0].get('baseInfo', {}).get('name', 'TBD')
+                            team2_name = teams[1].get('baseInfo', {}).get('name', 'TBD')
+                            
                             # Live-Daten für diese Series abrufen
                             state_query = {
                                 "query": """
@@ -393,10 +420,6 @@ async def fetch_grid_matches():
                                     seriesState(id: $id) {
                                         id
                                         title
-                                        teams {
-                                            name
-                                        }
-                                        games
                                         startedAt
                                         started
                                         finished
@@ -415,33 +438,27 @@ async def fetch_grid_matches():
                                         
                                     series_state = state_data.get('data', {}).get('seriesState')
                                     if series_state and not series_state.get('finished'):
-                                        teams = series_state.get('teams', [])
-                                        if len(teams) >= 2:
-                                            team1 = teams[0].get('name', 'TBD')
-                                            team2 = teams[1].get('name', 'TBD')
+                                        start_time = series_state.get('startedAt')
+                                        if start_time:
+                                            match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
                                             
-                                            if team1 != 'TBD' and team2 != 'TBD':
-                                                start_time = series_state.get('startedAt')
-                                                if start_time:
-                                                    match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                                                    
-                                                    # Nur zukünftige Matches
-                                                    if match_dt > current_time:
-                                                        german_tz = timezone(timedelta(hours=2))
-                                                        local_dt = match_dt.astimezone(german_tz)
-                                                        time_string = local_dt.strftime("%H:%M")
-                                                        
-                                                        event = series_state.get('title', 'CS2 Match')
-                                                        
-                                                        matches.append({
-                                                            'team1': team1, 
-                                                            'team2': team2, 
-                                                            'unix_time': int(match_dt.timestamp()),
-                                                            'event': event, 
-                                                            'time_string': time_string
-                                                        })
+                                            # Nur zukünftige Matches
+                                            if match_dt > current_time:
+                                                german_tz = timezone(timedelta(hours=2))
+                                                local_dt = match_dt.astimezone(german_tz)
+                                                time_string = local_dt.strftime("%H:%M")
+                                                
+                                                event = series_state.get('title', series_node.get('tournament', {}).get('nameShortened', 'CS2 Match'))
+                                                
+                                                matches.append({
+                                                    'team1': team1_name, 
+                                                    'team2': team2_name, 
+                                                    'unix_time': int(match_dt.timestamp()),
+                                                    'event': event, 
+                                                    'time_string': time_string
+                                                })
                         except Exception as e:
-                            print(f"❌ Series {series.get('id')} error: {e}")
+                            print(f"❌ Series {series_id} error: {e}")
                             continue
                     
                     matches.sort(key=lambda x: x['unix_time'])
@@ -454,6 +471,17 @@ async def fetch_grid_matches():
         print(f"❌ Grid.gg API connection error: {e}")
         return []
 
+@bot.command()
+async def testnew(ctx):
+    """Testet die neue Grid.gg Implementierung"""
+    matches = await fetch_grid_matches()
+    if matches:
+        await ctx.send(f"✅ **GRID.GG FUNKTIONIERT!** {len(matches)} Matches gefunden!")
+        for match in matches[:5]:
+            await ctx.send(f"• **{match['team1']}** vs **{match['team2']}** - {match['time_string']} ({match['event']})")
+    else:
+        await ctx.send("❌ Keine Matches gefunden")
+        
 # =========================
 # ALERT SYSTEM - ANGEPASST FÜR GRID.GG
 # =========================
