@@ -778,28 +778,50 @@ async def send_alerts():
 # =========================
 @tasks.loop(time=datetime.time(hour=10, minute=30, tzinfo=timezone.utc))
 async def daily_dm_reminder():
+    """Sendet tägliche Erinnerung an alle User die /notifications aktiviert haben"""
     try:
-        message = create_frame(
-            "🌞 DAILY REMINDER • 12:30",
-            f"#      🕛 NOVA FUTTER 🕛\n"
-            f"#\n"
-            f"#\n"
-            f"#   Viel Erfolg heute! 🚀\n"
-            f"#\n"
-            f"#   {datetime.datetime.now().strftime('%d.%m.%Y')}"
-        )
+        user_ids = [123456789, 987654321]  # ← Durch echte User-IDs ersetzen
         
-        target_user_id = 238376746230087682
-        
-        try:
-            user = await bot.fetch_user(target_user_id)
-            await user.send(message)
-            print(f"✅ Daily DM sent to {user.name}")
-        except Exception as e:
-            print(f"❌ Failed to send daily DM: {e}")
-            
+        for user_id in user_ids:
+            try:
+                user = await bot.fetch_user(user_id)
+                
+                embed = discord.Embed(
+                    title="🌞 Hey Benni",
+                    description=(
+                        "**💡 DAILY REMINDER • 12:30**\n\n"
+                        "**🕛 NOVA FUTTER 🕛**\n\n"
+                        "Deine tägliche CS2 Match Erinnerung\n"
+                        "Vergiss nicht heute auf spannende Matches zu checken!"
+                    ),
+                    color=0xff9900,
+                    timestamp=datetime.datetime.now()
+                )
+                
+                # Befehle als schöne Liste
+                embed.add_field(
+                    name="**🎯 Verfügbare Befehle:**",
+                    value=(
+                        "▫️ `/status` - Bot Info\n"
+                        "▫️ `/matches` - Aktuelle Matches anzeigen\n"
+                        "▫️ `/subscribe <team>` - Team abonnieren\n"  
+                        "▫️ `/unsubscribe <team>` - Team nicht mehr abonnieren"
+                    ),
+                    inline=False
+                )
+                
+                embed.set_footer(text="🎮 CS2 Match Bot • Have a nice day!")
+                
+                await user.send(embed=embed)
+                print(f"✅ Daily reminder sent to {user.name}")
+                
+            except discord.Forbidden:
+                print(f"❌ Cannot DM user {user_id} (no permissions)")
+            except Exception as e:
+                print(f"❌ Error sending DM to {user_id}: {e}")
+                
     except Exception as e:
-        print(f"❌ Daily DM error: {e}")
+        print(f"❌ Daily reminder error: {e}")
 
 # =========================
 # TWITCH LIVE CHECKER
