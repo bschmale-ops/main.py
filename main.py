@@ -879,19 +879,19 @@ async def twitchtest(ctx):
         url="https://twitch.tv/shiseii"
     )
     
-    # NEU: Stream Info über dem Banner
+    # Stream Info über dem Banner
     embed.add_field(
-        name="🔴 shiseii is now live on Twitch!",
-        value="**[👉 CLICK HERE TO WATCH LIVE 👈](https://twitch.tv/shiseii)**",
+        name="shiseii is now live on Twitch!",
+        value="**[ 👉 CLICK HERE TO WATCH LIVE](https://twitch.tv/shiseii)**",
         inline=False
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz
     
-    # Stream Titel und Game (Platzhalter - später mit Twitch API füllen)
+    # Stream Titel und Game - mit klaren Test-Daten
     embed.add_field(
-        name=f"📺 Stream Title{'\u2800' * 25}🎮 Game",
-        value=f"**CS2 Stream mit shiseii**\n**Counter-Strike 2**",
+        name=f"📺 TWITCH TITLE{'\u2800' * 25}🎮 GAME TEST",
+        value=f"**TWITCH TEST TITEL**\n**TWITCH GAME TEST**",
         inline=False
     )
     
@@ -903,7 +903,7 @@ async def twitchtest(ctx):
     # Profilbild oben rechts (Thumbnail)
     embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/8b4104f3-43d0-4d7e-a7ae-bd15408acad4-profile_image-70x70.png")
     
-    # Viewers & Chat (bleibt wie vorher)
+    # Viewers & Chat
     embed.add_field(name="👥 Viewers", value="**Active & Friendly**", inline=True)
     embed.add_field(name="💬 Chat", value="**Live Chat**", inline=True)
     
