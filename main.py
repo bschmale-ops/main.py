@@ -905,6 +905,34 @@ async def debugalert(ctx):
                         await ctx.send(f"✅ **Team Match:** {subscribed_team} → {correct_name}")
         else:
             await ctx.send(f"❌ **Noch nicht in Alert-Zeit:** {time_until:.1f} min")
+            
+@bot.command()
+async def debugtime(ctx):
+    """🔍 Debug der Zeitberechnung & Timezone Probleme"""
+    now_utc = datetime.datetime.now(timezone.utc)
+    now_local = datetime.datetime.now()
+    
+    await ctx.send(f"**🌍 TIMEZONE DEBUG:**")
+    await ctx.send(f"UTC Zeit: {now_utc.strftime('%H:%M')}")
+    await ctx.send(f"Local Zeit: {now_local.strftime('%H:%M')}")
+    await ctx.send(f"Difference: {(now_local - now_utc.replace(tzinfo=None)).total_seconds() / 3600:.1f} Stunden")
+    
+    matches = await fetch_grid_matches()
+    for match in matches[:2]:
+        match_dt_utc = datetime.datetime.fromtimestamp(match['unix_time'], tz=timezone.utc)
+        match_dt_local = match_dt_utc.astimezone(timezone(timedelta(hours=2)))
+        
+        await ctx.send(f"**🎯 {match['team1']} vs {match['team2']}:**")
+        await ctx.send(f"Match UTC: {match_dt_utc.strftime('%H:%M')}")
+        await ctx.send(f"Match Local: {match_dt_local.strftime('%H:%M')}")
+        await ctx.send(f"Time String: {match['time_string']}")
+        
+        # Beide Berechnungen
+        time_until_utc = (match_dt_utc - now_utc).total_seconds() / 60
+        time_until_local = (match_dt_local - now_local.replace(tzinfo=timezone(timedelta(hours=2)))).total_seconds() / 60
+        
+        await ctx.send(f"Time Until (UTC): {time_until_utc:.1f} min")
+        await ctx.send(f"Time Until (Local): {time_until_local:.1f} min")
 
 @bot.command()
 async def twitchtest(ctx):
