@@ -1039,16 +1039,115 @@ async def test(ctx):
     embed = create_match_alert(test_match, 15)
     await ctx.send("🎨 **NEUES EMBED DESIGN TEST:**", embed=embed)
     
-@bot.command() 
+@bot.command()
 async def testapi(ctx):
-    """Testet die neue kombinierte API-Struktur"""
-    matches = await fetch_grid_matches()
-    if matches:
-        await ctx.send(f"✅ **NEUE API FUNKTIONIERT!** {len(matches)} Matches gefunden!")
-        for match in matches[:3]:
-            await ctx.send(f"• {match['team1']} vs {match['team2']} - {match['time_string']}")
-    else:
-        await ctx.send("❌ Keine Matches gefunden")
+    """Testet die neue kombinierte API-Struktur mit Debug-Infos"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # 1. ZUERST: Series-IDs von central-data Endpoint holen
+            central_url = "https://api-op.grid.gg/central-data/graphql"
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            # Query für alle verfügbaren Series
+            series_list_query = {
+                "query": """
+                query GetAllSeries {
+                    series {
+                        id
+                        name
+                        startDate
+                        endDate
+                        status
+                        tournament {
+                            name
+                        }
+                        teams {
+                            name
+                        }
+                    }
+                }
+                """
+            }
+            
+            await ctx.send("🔍 **Step 1: Hole Series-Liste von Central Data...**")
+            
+            async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
+                if response.status == 200:
+                    central_data = await response.json()
+                    
+                    if central_data.get('errors'):
+                        error_msg = central_data['errors'][0]['message']
+                        await ctx.send(f"❌ Central Data Error: {error_msg}")
+                        return
+                    
+                    series_list = central_data.get('data', {}).get('series', [])
+                    await ctx.send(f"✅ **Step 1: {len(series_list)} Series gefunden**")
+                    
+                    if not series_list:
+                        await ctx.send("❌ Keine Series in Central Data!")
+                        return
+                    
+                    # Zeige erste 3 Series als Beispiel
+                    for i, series in enumerate(series_list[:3]):
+                        await ctx.send(f"📋 Series {i+1}: `{series.get('id')}` - {series.get('name')}")
+                    
+                    # 2. TESTE EINZELNE SERIES
+                    await ctx.send("\n🔍 **Step 2: Teste erste Series mit Series State API...**")
+                    
+                    state_url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
+                    test_series = series_list[0]
+                    series_id = test_series.get('id')
+                    
+                    state_query = {
+                        "query": """
+                        query GetSeriesState($id: String!) {
+                            seriesState(id: $id) {
+                                id
+                                title
+                                teams {
+                                    name
+                                }
+                                games
+                                startedAt
+                                started
+                                finished
+                            }
+                        }
+                        """,
+                        "variables": {"id": series_id}
+                    }
+                    
+                    async with session.post(state_url, headers=headers, json=state_query, timeout=10) as state_response:
+                        if state_response.status == 200:
+                            state_data = await state_response.json()
+                            
+                            if state_data.get('errors'):
+                                error_msg = state_data['errors'][0]['message']
+                                await ctx.send(f"❌ Series State Error: {error_msg}")
+                                return
+                            
+                            series_state = state_data.get('data', {}).get('seriesState')
+                            await ctx.send(f"📊 **Series State Response:**```json\n{json.dumps(series_state, indent=2)[:1000]}```")
+                            
+                            if series_state:
+                                teams = series_state.get('teams', [])
+                                await ctx.send(f"👥 Teams: {len(teams)}")
+                                for team in teams:
+                                    await ctx.send(f"  - {team.get('name')}")
+                            else:
+                                await ctx.send("❌ Series State ist leer!")
+                                
+                        else:
+                            await ctx.send(f"❌ Series State API Status: {state_response.status}")
+                            
+                else:
+                    await ctx.send(f"❌ Central Data API Status: {response.status}")
+                    
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
 
 @bot.command()
 async def twitchtest(ctx):
