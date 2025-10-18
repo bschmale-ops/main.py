@@ -21,7 +21,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='/', intents=intents, case_insensitive=True)
 
-# NEU: Setup Hook für persistente Buttons - ÜBERARBEITETE VERSION
+# NEU: Setup Hook für persistente Buttons
 @bot.event
 async def setup_hook():
     print("✅ Persistent buttons setup!")
@@ -80,7 +80,7 @@ TEAM_DISPLAY_NAMES = {
     'AURORA': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
-    'ENCE': 'ENCE',  # NEU: ENCE Main Team hinzugefügt
+    'ENCE': 'ENCE',
     'BIG': 'BIG',
     'Wildcard': 'WILDCARD',
     'Sangal': 'SANGAL',
@@ -154,7 +154,7 @@ TEAM_SYNONYMS = {
     'Aurora': ['aurora'],
     'Liquid': ['liquid'],
     'M80': ['m80'],
-    'ENCE': ['ence'],  # NEU: ENCE Main Team Synonym
+    'ENCE': ['ence'],
     'Complexity': ['complexity', 'col'],
     'Heroic': ['heroic'],
     'Fnatic': ['fnatic'],
@@ -224,36 +224,8 @@ def get_display_name(team_name, use_smart_lookup=True):
     # NEU: Nur exakte Matches für intelligente Zuordnung
     return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
 
-def get_team_emoji(team_name, use_smart_lookup=False):
-    """Get only the emoji part - mit Regex für Emojis"""
-    display = get_display_name(team_name, use_smart_lookup=use_smart_lookup)
-    
-    # Finde Custom Emojis (Format: <:name:ID>)
-    emoji_match = re.search(r'<:[a-zA-Z0-9_]+:\d+>', display)
-    if emoji_match:
-        return emoji_match.group()
-    return ""
-
-def get_team_name_only(team_name, use_smart_lookup=False):
-    """Get only the name part - komplett nach dem Emoji"""
-    display = get_display_name(team_name, use_smart_lookup=use_smart_lookup)
-    
-    # Entferne Custom Emojis (Format: <:name:ID>) und gebe den REST zurück
-    display_without_emoji = re.sub(r'<:[a-zA-Z0-9_]+:\d+>', '', display).strip()
-    
-    return display_without_emoji
-    
-def center_vs(team1, team2):
-    """Einfache Zentrierung für Alerts MIT # und KORREKTER VS ID"""
-    return f"# {team1}\n# <:VS:1428145739443208305>\n#  {team2}"
-
-def create_frame(title, content):
-    """Erstelle Rahmen OHNE Code-Blöcke"""
-    separator = "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄"
-    return f"{separator}\n{title}\n{separator}\n{content}\n{separator}"
-
 # =========================
-# NEUE EMBED FUNKTION FÜR MATCH ALERTS
+# EMBED FUNKTIONEN
 # =========================
 def create_match_alert(match, time_until):
     team1_display = get_display_name(match['team1'], use_smart_lookup=False)
@@ -261,14 +233,14 @@ def create_match_alert(match, time_until):
     
     embed = discord.Embed(
         title=f"CS2 MATCH ALERT{'\u2800' * 25}<:cs2:1298250987483697202>",
-        description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n",  # 1 Absatz nach Vitality
+        description=f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}\n",
         color=0x00ff00 if time_until > 15 else 0xff9900,
         timestamp=datetime.datetime.now()
     )
     
     # 2 ABSÄTZE über Tournament
-    embed.add_field(name="", value="", inline=False)  # ⬅️ Erster Absatz
-    embed.add_field(name="", value="", inline=False)  # ⬅️ Zweiter Absatz
+    embed.add_field(name="", value="", inline=False)
+    embed.add_field(name="", value="", inline=False)
     
     # Zeile 1: "Tournament" und "🕐 Time 16:30" in einer Zeile (rechtsbündig)
     header_line = f"🏆 Tournament{'\u2800' * 25}🕐 Time {match['time_string']}"
@@ -278,19 +250,16 @@ def create_match_alert(match, time_until):
     
     # Beide Zeilen in einem Field
     embed.add_field(name=header_line, value=content_line, inline=False)
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)
     embed.add_field(name="⏰ Starts in", value=f"**{int(time_until)} minutes**", inline=False)
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)
     embed.add_field(name="📺 Stream Tip", value="[shiseii on Twitch](https://twitch.tv/shiseii)", inline=False)
     embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
     return embed
 
-# =========================
-# TWITCH LIVE EMBED FUNKTION - MIT BANNER DESIGN
-# =========================
 def create_twitch_go_live_alert():
-    """Erstellt das Twitch Go-Live Embed für automatische Posts - GLEICH WIE /twitchtest"""
+    """Erstellt das Twitch Go-Live Embed für automatische Posts"""
     
     embed = discord.Embed(
         color=0x9146FF,
@@ -304,7 +273,7 @@ def create_twitch_go_live_alert():
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz nach Zeile 1
+    embed.add_field(name="", value="", inline=False)
     
     # Stream Info über dem Banner
     embed.add_field(
@@ -313,7 +282,7 @@ def create_twitch_go_live_alert():
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)
     
     # Titel
     embed.add_field(
@@ -330,7 +299,7 @@ def create_twitch_go_live_alert():
     )
     
     # ✅ NUR EIN ABSATZ bis zum Banner
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)
     
     # LIVE-Banner
     embed.set_image(url="https://i.ibb.co/6cQh6FjN/LIVE.png")
@@ -376,7 +345,7 @@ ALERT_TIME = data.get("ALERT_TIME", 30)
 print(f"📊 Loaded: {len(TEAMS)} servers")
 
 # =========================
-# GRID.GG API - KOMBINIERTE VERSION
+# GRID.GG API
 # =========================
 async def fetch_grid_matches():
     matches = []
@@ -495,247 +464,24 @@ async def fetch_grid_matches():
     except Exception as e:
         print(f"❌ Grid.gg API connection error: {e}")
         return []
-        
-@bot.command()
-async def testnew(ctx):
-    """Testet die neue Grid.gg Implementierung mit Debug"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            central_url = "https://api-op.grid.gg/central-data/graphql"
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            # Zeitfilter für heute
-            now = datetime.datetime.now(timezone.utc)
-            start_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-            end_time = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
-            
-            await ctx.send(f"🔍 **Zeitfilter:** {start_time} bis {end_time}")
-            
-            series_list_query = {
-                "query": """
-                query GetAllSeries {
-                  allSeries(
-                    filter: {
-                      startTimeScheduled: {
-                        gte: "%s"
-                        lte: "%s"
-                      }
-                    }
-                    orderBy: StartTimeScheduled
-                    first: 20
-                  ) {
-                    totalCount
-                    edges {
-                      node {
-                        id
-                        startTimeScheduled
-                        teams {
-                          baseInfo {
-                            name
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                """ % (start_time, end_time)
-            }
-            
-            await ctx.send("📡 **Hole Series von Central Data...**")
-            
-            async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
-                if response.status == 200:
-                    central_data = await response.json()
-                    
-                    if central_data.get('errors'):
-                        error_msg = central_data['errors'][0]['message']
-                        await ctx.send(f"❌ Central Data Error: {error_msg}")
-                        return
-                    
-                    all_series = central_data.get('data', {}).get('allSeries', {})
-                    total_count = all_series.get('totalCount', 0)
-                    edges = all_series.get('edges', [])
-                    
-                    await ctx.send(f"📊 **Central Data Response:** {total_count} Series total, {len(edges)} edges")
-                    
-                    if edges:
-                        await ctx.send("🔍 **Gefundene Series:**")
-                        for i, edge in enumerate(edges[:5]):
-                            node = edge.get('node', {})
-                            teams = node.get('teams', [])
-                            team_names = [team.get('baseInfo', {}).get('name', '?') for team in teams]
-                            
-                            await ctx.send(
-                                f"**Series {i+1}:** `{node.get('id')}`\n"
-                                f"Teams: {', '.join(team_names)}\n"
-                                f"Time: {node.get('startTimeScheduled', 'N/A')}\n"
-                            )
-                    else:
-                        await ctx.send("❌ **Keine Series im Zeitraum gefunden!**")
-                        
-                else:
-                    await ctx.send(f"❌ Central Data API Status: {response.status}")
-                    
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
-
-@bot.command()
-async def testtitles(ctx):
-    """Findet die verfügbaren Titles/Spiele in Grid.gg"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            central_url = "https://api-op.grid.gg/central-data/graphql"
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            query = {
-                "query": """
-                query {
-                    titles {
-                        name
-                        nameShortened
-                    }
-                }
-                """
-            }
-            
-            await ctx.send("🔍 **Finde verfügbare Titles/Spiele...**")
-            
-            async with session.post(central_url, headers=headers, json=query, timeout=15) as response:
-                data = await response.json()
-                
-                if 'data' in data:
-                    titles = data['data']['titles']
-                    await ctx.send("📋 **Verfügbare Titles:**")
-                    for title in titles:
-                        await ctx.send(f"• `{title['nameShortened']}` - {title['name']}")
-                else:
-                    await ctx.send("❌ Konnte Titles nicht abrufen")
-                    
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
-
-@bot.command()
-async def testmatches(ctx):
-    """Testet CS2 Matches ohne Zeitfilter"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            central_url = "https://api-op.grid.gg/central-data/graphql"
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            # Zeitfilter für heute
-            now = datetime.datetime.now(timezone.utc)
-            start_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-            end_time = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
-            
-            series_list_query = {
-                "query": """
-                query GetAllSeries {
-                  allSeries(
-                    filter: {
-                      startTimeScheduled: {
-                        gte: "%s"
-                        lte: "%s"
-                      }
-                    }
-                    orderBy: StartTimeScheduled
-                    first: 50
-                  ) {
-                    totalCount
-                    edges {
-                      node {
-                        id
-                        startTimeScheduled
-                        title {
-                          nameShortened
-                        }
-                        teams {
-                          baseInfo {
-                            name
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                """ % (start_time, end_time)
-            }
-            
-            await ctx.send(f"🔍 **Zeitfilter:** {start_time} bis {end_time}")
-            
-            async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
-                if response.status == 200:
-                    central_data = await response.json()
-                    
-                    if central_data.get('errors'):
-                        error_msg = central_data['errors'][0]['message']
-                        await ctx.send(f"❌ Central Data Error: {error_msg}")
-                        return
-                    
-                    all_series = central_data.get('data', {}).get('allSeries', {})
-                    total_count = all_series.get('totalCount', 0)
-                    edges = all_series.get('edges', [])
-                    
-                    await ctx.send(f"📊 **Alle Series gefunden:** {total_count} total, {len(edges)} edges")
-                    
-                    # FILTERE NUR CS2 MATCHES IM CODE
-                    cs2_matches = []
-                    for edge in edges:
-                        node = edge.get('node', {})
-                        title = node.get('title', {}).get('nameShortened', '')
-                        if title == 'cs2':
-                            cs2_matches.append(edge)
-                    
-                    await ctx.send(f"🎯 **CS2 Matches:** {len(cs2_matches)}")
-                    
-                    if cs2_matches:
-                        await ctx.send("🔍 **Gefundene CS2 Matches:**")
-                        for i, edge in enumerate(cs2_matches[:10]):
-                            node = edge.get('node', {})
-                            teams = node.get('teams', [])
-                            team_names = [team.get('baseInfo', {}).get('name', '?') for team in teams]
-                            
-                            start_time = node.get('startTimeScheduled', 'N/A')
-                            
-                            await ctx.send(
-                                f"**CS2 Match {i+1}:** {', '.join(team_names) if team_names else 'No teams'}\n"
-                                f"Time: {start_time}\n"
-                            )
-                    else:
-                        await ctx.send("❌ **Keine CS2 Series im Zeitraum gefunden!**")
-                        
-                else:
-                    await ctx.send(f"❌ Central Data API Status: {response.status}")
-                    
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
 
 # =========================
-# ALERT SYSTEM - ANGEPASST FÜR GRID.GG
+# ALERT SYSTEM - KORRIGIERT
 # =========================
 sent_alerts = set()
 
 @tasks.loop(minutes=2)
 async def send_alerts():
     try:
-        matches = await fetch_grid_matches()  # Jetzt Grid.gg Funktion
+        matches = await fetch_grid_matches()
         current_time = datetime.datetime.now(timezone.utc).timestamp()
         
         for guild_id, subscribed_teams in TEAMS.items():
             if not subscribed_teams:
                 continue
                 
-            channel_id = CHANNELS.get(guild_id)
-            if not channel_id:
-                continue
+            # ✅ KORRIGIERT: Immer den festen Channel verwenden
+            channel_id = MATCH_ALERT_CHANNEL_ID
 
             channel = bot.get_channel(channel_id)
             if not channel:
@@ -925,7 +671,7 @@ async def on_interaction(interaction: discord.Interaction):
                 await interaction.followup.send(f"❌ Fehler: {e}", ephemeral=True)
 
 # =========================
-# BOT COMMANDS - ANGEPASST FÜR GRID.GG
+# BOT COMMANDS
 # =========================
 @bot.command()
 async def subscribe(ctx, *, team):
@@ -955,187 +701,6 @@ async def subscribe(ctx, *, team):
             await ctx.send("⚠️ **Save failed!**")
     else:
         await ctx.send(f"⚠️ **{get_display_name(correct_name)}** is already subscribed!")
-
-@bot.command()
-async def debug(ctx):
-    """Findet heraus wie man alle Series bekommt - MIT KORREKTER URL"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            # KORREKTE URL VERWENDEN
-            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            # Teste verschiedene Möglichkeiten
-            test_queries = [
-                # Versuch 1: Vielleicht gibt es eine allSeries Query
-                {"query": "query { allSeries { id } }"},
-                # Versuch 2: Vielleicht series ohne State
-                {"query": "query { series { id } }"},
-                # Versuch 3: Vielleicht matches statt series
-                {"query": "query { matches { id } }"},
-                # Versuch 4: Vielleicht liveSeries
-                {"query": "query { liveSeries { id } }"},
-                # Versuch 5: Schema abfragen um verfügbare Queries zu sehen
-                {"query": """
-                query {
-                    __schema {
-                        queryType {
-                            fields {
-                                name
-                                description
-                            }
-                        }
-                    }
-                }
-                """}
-            ]
-            
-            for i, test_query in enumerate(test_queries, 1):
-                await ctx.send(f"🧪 **Test {i}:** `{test_query['query'][:60]}...`")
-                try:
-                    async with session.post(url, headers=headers, json=test_query, timeout=10) as response:
-                        content_type = response.headers.get('content-type', '')
-                        text = await response.text()
-                        
-                        await ctx.send(f"📡 Status: {response.status}, Content-Type: {content_type}")
-                        
-                        if 'application/json' in content_type:
-                            data = json.loads(text)
-                            if not data.get('errors'):
-                                await ctx.send(f"✅ **Test {i} FUNKTIONIERT!**")
-                                # Zeige verfügbare Felder
-                                if 'data' in data and data['data']:
-                                    await ctx.send(f"📊 Verfügbare Daten: ```{json.dumps(data, indent=2)[:800]}```")
-                                break
-                            else:
-                                error_msg = data['errors'][0]['message']
-                                await ctx.send(f"❌ GraphQL Error: {error_msg}")
-                        else:
-                            await ctx.send(f"❌ Kein JSON: ```{text[:200]}```")
-                            
-                except Exception as e:
-                    await ctx.send(f"❌ Request Error: {e}")
-            
-            # Frage mit den konkreten Fehlern
-            await ctx.send("\n📧 **Support fragen mit diesen Infos:**")
-            await ctx.send("> 'seriesState requires ID parameter, but how to get list of ALL series/matches? What query returns all available series?'")
-                    
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
-@bot.command()
-async def testseries(ctx, series_id: str = "12345"):
-    """Testet eine bestimmte Series-ID um Details zu sehen"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            # Detaillierte Query für seriesState
-            detailed_query = {
-                "query": """
-                query GetSeriesDetails($id: String!) {
-                    seriesState(id: $id) {
-                        id
-                        title
-                        description
-                        games
-                        startedAt
-                        started
-                        finished
-                        teams {
-                            id
-                            name
-                            acronym
-                            imageUrl
-                            players {
-                                id
-                                nickname
-                                firstName
-                                lastName
-                                imageUrl
-                            }
-                        }
-                        matches {
-                            id
-                            status
-                            startTime
-                            endTime
-                            games {
-                                id
-                                number
-                                status
-                                startTime
-                                endTime
-                            }
-                        }
-                        tournament {
-                            id
-                            name
-                            series
-                        }
-                        streamUrl
-                        standings {
-                            position
-                            team {
-                                id
-                                name
-                            }
-                        }
-                    }
-                }
-                """,
-                "variables": {"id": series_id}
-            }
-            
-            await ctx.send(f"🧪 **Teste Series ID:** `{series_id}`")
-            
-            async with session.post(url, headers=headers, json=detailed_query, timeout=10) as response:
-                data = await response.json()
-                
-                if 'errors' in data:
-                    error_msg = data['errors'][0]['message']
-                    await ctx.send(f"❌ Error: {error_msg}")
-                elif 'data' in data and data['data']['seriesState']:
-                    series = data['data']['seriesState']
-                    await ctx.send(f"✅ **Series gefunden!**")
-                    
-                    # Zeige Basis-Infos
-                    info = f"""
-                    **📺 Titel:** {series.get('title', 'N/A')}
-                    **🎮 Games:** {series.get('games', 'N/A')}
-                    **⏰ Gestartet:** {series.get('started', 'N/A')}
-                    **🏁 Beendet:** {series.get('finished', 'N/A')}
-                    **📅 Startzeit:** {series.get('startedAt', 'N/A')}
-                    """
-                    await ctx.send(info)
-                    
-                    # Teams anzeigen
-                    teams = series.get('teams', [])
-                    if teams:
-                        team_info = "**👥 Teams:**\n"
-                        for team in teams:
-                            team_info += f"- {team.get('name', 'N/A')} ({team.get('acronym', 'N/A')})\n"
-                        await ctx.send(team_info)
-                    
-                    # Matches anzeigen
-                    matches = series.get('matches', [])
-                    if matches:
-                        await ctx.send(f"**🎯 Matches:** {len(matches)}")
-                    
-                    # Vollständige Response zeigen
-                    await ctx.send(f"📄 **Vollständige Response:**```json\n{json.dumps(series, indent=2)[:1500]}```")
-                    
-                else:
-                    await ctx.send("❌ **Series nicht gefunden oder keine Daten**")
-                    
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
 
 @bot.command()
 async def unsubscribe(ctx, *, team):
@@ -1171,48 +736,6 @@ async def list(ctx):
         await ctx.send(embed=embed)
     else:
         await ctx.send("❌ **No teams subscribed yet!**")
-
-@bot.command()
-async def statstest(ctx):
-    """Testet die Stats Feed API mit x-api-key Header"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            # HIER AUCH URL ÄNDERN!
-            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
-            
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            query = {
-                "query": """
-                query {
-                    __schema {
-                        types {
-                            name
-                            fields {
-                                name
-                            }
-                        }
-                    }
-                }
-                """
-            }
-            
-            async with session.post(url, headers=headers, json=query) as response:
-                data = await response.json()
-                await ctx.send(f"🔍 NEUER ENDPOINT - Stats Feed API:\nStatus: {response.status}")
-                
-                if 'data' in data:
-                    types = data['data']['__schema']['types']
-                    match_types = [t for t in types if any(x in t['name'].lower() for x in ['match', 'series', 'team', 'tournament'])]
-                    await ctx.send(f"📋 Relevante Types: {[t['name'] for t in match_types[:10]]}")
-                else:
-                    await ctx.send(f"📄 Response: ```{json.dumps(data, indent=2)[:1000]}```")
-                
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
         
 @bot.command()
 async def settime(ctx, minutes: int):
@@ -1225,7 +748,6 @@ async def settime(ctx, minutes: int):
             await ctx.send("⚠️ **Save failed!**")
     else:
         await ctx.send("❌ **Please specify 1-240 minutes!**")
-
 
 @bot.command()
 async def matches(ctx):
@@ -1256,14 +778,14 @@ async def matches(ctx):
                 match_content = (
                     f"**{team1_display}**\n"
                     f"**<:VS:1428145739443208305>**\n"
-                    f"**{team2_display}**\n"  # ← team2 Ende
-                    f"\n"  # ✅ NEUER ABSATZ hier
+                    f"**{team2_display}**\n"
+                    f"\n"
                     f"**🏆 {match['event']}**\n"
                 )
                 
                 # Zeitangaben ohne Fett
                 starts_in_text = f"⏰ Starts in: {int(time_until)} minutes"
-                padding = '\u2800' * 25  # Feste Breite
+                padding = '\u2800' * 25
                 time_line = f"{starts_in_text}{padding}🕐 {match['time_string']}"
                 
                 # Alles in einem Field
@@ -1322,7 +844,7 @@ async def status(ctx):
     
     alert_time_status = f"✅ {ALERT_TIME}min" if ALERT_TIME else "❌"
     
-    # Status-Informationen mit ## • außer der ersten Zeile
+    # Status-Informationen
     status_content = (
         f" • 🟢 **STATUS:** ✅ ONLINE\n"
         f" • ⏰ **UPTIME:** {hours}h {minutes}m\n" 
@@ -1344,7 +866,7 @@ async def status(ctx):
 
 @bot.command()
 async def test(ctx):
-    """Testet das neue Embed Design - zeigt Match Alert"""
+    """Testet das Embed Design - zeigt Match Alert"""
     test_match = {
         'team1': 'Falcons',
         'team2': 'Team Vitality', 
@@ -1353,206 +875,7 @@ async def test(ctx):
     }
     
     embed = create_match_alert(test_match, 15)
-    await ctx.send("🎨 **NEUES EMBED DESIGN TEST:**", embed=embed)
-    
-@bot.command()
-async def testapi(ctx):
-    """Findet die korrekte Struktur für allSeries"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            central_url = "https://api-op.grid.gg/central-data/graphql"
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            # 1. ERST SCHEMA FÜR allSeries HERAUSFINDEN
-            schema_query = {
-                "query": """
-                query {
-                    __type(name: "SeriesConnection") {
-                        name
-                        fields {
-                            name
-                            type {
-                                name
-                                ofType {
-                                    name
-                                }
-                            }
-                        }
-                    }
-                }
-                """
-            }
-            
-            await ctx.send("🔍 **Finde allSeries Struktur...**")
-            
-            async with session.post(central_url, headers=headers, json=schema_query, timeout=15) as response:
-                data = await response.json()
-                
-                if 'data' in data and data['data']['__type']:
-                    fields = data['data']['__type']['fields']
-                    await ctx.send("📋 **Verfügbare Felder in SeriesConnection:**")
-                    for field in fields:
-                        await ctx.send(f"• `{field['name']}` → {field['type'].get('name', field['type'].get('ofType', {}).get('name', 'N/A'))}")
-                    
-                    # 2. TESTE MIT VERSCHIEDENEN FELDERN
-                    test_queries = [
-                        {"query": "query { allSeries(first: 5) { edges { node { id name } } } }"},
-                        {"query": "query { allSeries(first: 5) { pageInfo { hasNextPage } edges { cursor node { id name } } } }"},
-                        {"query": "query { allSeries(first: 5) { totalCount items { id name } } }"},
-                        {"query": "query { allSeries(first: 5) { series { id name } } }"},
-                        {"query": "query { allSeries(first: 5) { data { id name } } }"}
-                    ]
-                    
-                    await ctx.send("\n🧪 **Teste verschiedene Strukturen...**")
-                    
-                    for i, test_query in enumerate(test_queries, 1):
-                        await ctx.send(f"**Test {i}:** `{test_query['query'][:60]}...`")
-                        async with session.post(central_url, headers=headers, json=test_query, timeout=10) as resp:
-                            result = await resp.json()
-                            if 'errors' in result:
-                                error_msg = result['errors'][0]['message']
-                                await ctx.send(f"❌ {error_msg[:80]}")
-                            else:
-                                await ctx.send(f"✅ FUNKTIONIERT!")
-                                if 'data' in result and result['data']['allSeries']:
-                                    await ctx.send(f"📊 Struktur: ```{json.dumps(result['data']['allSeries'], indent=2)[:500]}```")
-                                    break
-                                    
-                else:
-                    await ctx.send("❌ Konnte Schema nicht abrufen")
-                    
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
-@bot.command()
-async def findstructure(ctx):
-    """Findet die verfügbaren Felder in Series"""
-    try:
-        async with aiohttp.ClientSession() as session:
-            central_url = "https://api-op.grid.gg/central-data/graphql"
-            headers = {
-                'x-api-key': GRID_API_KEY,
-                'Content-Type': 'application/json'
-            }
-            
-            # 1. SCHEMA FÜR "Series" TYPE HERAUSFINDEN
-            schema_query = {
-                "query": """
-                query {
-                    __type(name: "Series") {
-                        name
-                        fields {
-                            name
-                            description
-                        }
-                    }
-                }
-                """
-            }
-            
-            await ctx.send("🔍 **Finde verfügbare Felder in Series...**")
-            
-            async with session.post(central_url, headers=headers, json=schema_query, timeout=15) as response:
-                data = await response.json()
-                
-                if 'data' in data and data['data']['__type']:
-                    fields = data['data']['__type']['fields']
-                    await ctx.send("📋 **Verfügbare Felder in Series:**")
-                    
-                    # Gruppiere nach Kategorie
-                    basic_fields = []
-                    team_fields = []
-                    tournament_fields = []
-                    date_fields = []
-                    
-                    for field in fields:
-                        name = field['name']
-                        desc = field.get('description', '')
-                        
-                        if any(x in name.lower() for x in ['team', 'player']):
-                            team_fields.append(f"• `{name}` - {desc}")
-                        elif any(x in name.lower() for x in ['tournament', 'event']):
-                            tournament_fields.append(f"• `{name}` - {desc}")
-                        elif any(x in name.lower() for x in ['date', 'time', 'start', 'end']):
-                            date_fields.append(f"• `{name}` - {desc}")
-                        else:
-                            basic_fields.append(f"• `{name}` - {desc}")
-                    
-                    if basic_fields:
-                        await ctx.send("**📝 Basis-Felder:**")
-                        await ctx.send("\n".join(basic_fields[:10]))
-                    
-                    if team_fields:
-                        await ctx.send("**👥 Team-Felder:**")
-                        await ctx.send("\n".join(team_fields[:10]))
-                    
-                    if tournament_fields:
-                        await ctx.send("**🏆 Tournament-Felder:**")
-                        await ctx.send("\n".join(tournament_fields[:5]))
-                    
-                    if date_fields:
-                        await ctx.send("**⏰ Zeit-Felder:**")
-                        await ctx.send("\n".join(date_fields[:5]))
-                    
-                    # 2. TESTE DIE KOMPLETTE QUERY
-                    await ctx.send("\n🧪 **Teste komplette Query...**")
-                    
-                    complete_query = {
-                        "query": """
-                        query {
-                            allSeries(first: 5) {
-                                totalCount
-                                edges {
-                                    node {
-                                        id
-                                        name
-                                        status
-                                        startDate
-                                        endDate
-                                        tournament {
-                                            name
-                                        }
-                                        teams {
-                                            name
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        """
-                    }
-                    
-                    async with session.post(central_url, headers=headers, json=complete_query, timeout=10) as resp:
-                        result = await resp.json()
-                        if 'errors' in result:
-                            error_msg = result['errors'][0]['message']
-                            await ctx.send(f"❌ Error: {error_msg}")
-                        else:
-                            await ctx.send("🎉 **✅ VOLLSTÄNDIGE QUERY FUNKTIONIERT!**")
-                            data = result.get('data', {}).get('allSeries', {})
-                            await ctx.send(f"📊 **Gefunden: {data.get('totalCount', 0)} Series total**")
-                            
-                            edges = data.get('edges', [])
-                            for i, edge in enumerate(edges[:3]):
-                                node = edge.get('node', {})
-                                teams = node.get('teams', [])
-                                team_names = [team.get('name') for team in teams if team.get('name')]
-                                
-                                await ctx.send(
-                                    f"**Series {i+1}:** {node.get('name')}\n"
-                                    f"ID: `{node.get('id')}`\n"
-                                    f"Status: {node.get('status')}\n"
-                                    f"Teams: {', '.join(team_names) if team_names else 'No teams'}\n"
-                                    f"Tournament: {node.get('tournament', {}).get('name', 'N/A')}\n"
-                                )
-                            
-                else:
-                    await ctx.send("❌ Konnte Schema nicht abrufen")
-                    
-    except Exception as e:
-        await ctx.send(f"❌ Error: {e}")
+    await ctx.send("🎨 **EMBED DESIGN TEST:**", embed=embed)
         
 @bot.command()
 async def twitchtest(ctx):
@@ -1572,7 +895,7 @@ async def twitchtest(ctx):
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz nach Zeile 1
+    embed.add_field(name="", value="", inline=False)
     
     # Stream Info über dem Banner
     embed.add_field(
@@ -1581,7 +904,7 @@ async def twitchtest(ctx):
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)
     
     # Titel
     embed.add_field(
@@ -1598,7 +921,7 @@ async def twitchtest(ctx):
     )
     
     # ✅ NUR EIN ABSATZ bis zum Banner
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)
     
     # LIVE-Banner
     embed.set_image(url="https://i.ibb.co/6cQh6FjN/LIVE.png")
@@ -1613,12 +936,13 @@ async def twitchtest(ctx):
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def setchannel(ctx, channel: discord.TextChannel):
-    """Setzt den Channel für Match Alerts"""
+    """Setzt den Channel für Match Alerts - TEMPORÄR"""
     global MATCH_ALERT_CHANNEL_ID
     MATCH_ALERT_CHANNEL_ID = channel.id
-    await ctx.send(f"✅ **Match Alert Channel auf {channel.mention} gesetzt!**")
-    print(f"🔧 Match Alert Channel geändert zu: {channel.name} ({channel.id})")
-        
+    
+    await ctx.send(f"✅ **Match Alert Channel auf {channel.mention} gesetzt!** (Bis zum Neustart)")
+    print(f"🔧 Match Alert Channel TEMPORÄR geändert zu: {channel.name}")
+
 @bot.command()
 async def ping(ctx):
     await ctx.send('🏓 **PONG!** 🎯')
@@ -1634,11 +958,11 @@ async def setannouncechannel(ctx, channel: discord.TextChannel):
     await ctx.send(f"📢 **Twitch Announcements werden in {channel.mention} gepostet!**")
 
 # =========================
-# ROLE BUTTONS COMMAND - ÜBERARBEITETE VERSION
+# ROLE BUTTONS COMMAND
 # =========================
 @bot.command()
 async def createroles(ctx):
-    """Erstelle die Game-Role Buttons in diesem Channel - NEUES LAYOUT"""
+    """Erstelle die Game-Role Buttons in diesem Channel"""
     
     # ERSTE NACHRICHT: Hauptüberschrift + CS2 & Valorant
     embed1 = discord.Embed(
@@ -1766,7 +1090,7 @@ async def createroles(ctx):
 # =========================
 @app.route('/')
 def home():
-    return "✅ CS2 Match Bot - GRID.GG LIVE-API + TWITCH"  # Geändert
+    return "✅ CS2 Match Bot - GRID.GG LIVE-API + TWITCH"
 
 @app.route('/health')
 def health():
@@ -1787,7 +1111,7 @@ flask_thread.start()
 
 @bot.event
 async def on_ready():
-    print(f'✅ {bot.user} is online! - GRID.GG LIVE-API + TWITCH')  # Geändert
+    print(f'✅ {bot.user} is online! - GRID.GG LIVE-API + TWITCH')
     
     for guild in bot.guilds:
         guild_id = str(guild.id)
