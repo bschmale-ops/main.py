@@ -1171,12 +1171,12 @@ async def matches(ctx):
         
         if matches:
             embed = discord.Embed(
-                title=f"🎯 LIVE & UPCOMING CS2 MATCHES{'\u2800' * 25}<:cs2:1298250987483697202>",
+                title=f"CS2 MATCH ALERT{'\u2800' * 25}<:cs2:1298250987483697202>",  # NUR DIESE ZEILE GEÄNDERT
                 color=0x0099ff,
                 timestamp=datetime.datetime.now()
             )
             
-            for match in matches[:6]:
+            for match in matches[:4]:
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 
                 # Team-Namen mit Fallback auf 🌍 wenn kein Logo
@@ -1189,21 +1189,21 @@ async def matches(ctx):
                 if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
                     team2_display = f"🌍 {team2_display}"
                 
-                # Match-Line im Alert-Format
-                match_field = f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}"
+                # Alles in EINEM Field pro Match (kompakter)
+                match_content = (
+                    f"# {team1_display}\n"
+                    f"# <:VS:1428145739443208305>\n" 
+                    f"# {team2_display}\n"
+                    f"\n"  # Absatz
+                    f"🏆 **Event:** {match['event']}{'\u2800' * 20}🕐 **Time:** {match['time_string']}\n"
+                    f"⏰ **Starts in:** **{int(time_until)} minutes**"
+                )
                 
-                # Header-Line (rechtsbündig wie im Alert)
-                header_line = f"🏆 Event: {match['event']}{'\u2800' * 25}🕐 Time: {match['time_string']}"
-                
-                # Content-Line
-                content_line = f"⏰ Starts in: **{int(time_until)} minutes**"
-                
-                # Absätze und Fields wie im Alert
-                embed.add_field(name="", value=match_field, inline=False)
-                embed.add_field(name="", value="", inline=False)  # Absatz
-                embed.add_field(name=header_line, value=content_line, inline=False)
-                embed.add_field(name="", value="", inline=False)  # Absatz
-                embed.add_field(name="", value="", inline=False)  # Absatz
+                embed.add_field(
+                    name="",  # Leerer Name = Absatz
+                    value=match_content,
+                    inline=False
+                )
             
             embed.set_footer(text="🎮 CS2 Match Bot • Use /subscribe <team>")
             
