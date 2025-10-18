@@ -289,7 +289,7 @@ def create_match_alert(match, time_until):
 # TWITCH LIVE EMBED FUNKTION - MIT BANNER DESIGN
 # =========================
 def create_twitch_go_live_alert():
-    """Erstellt das Twitch Go-Live Embed - GLEICH WIE /twitchtest"""
+    """Erstellt das Twitch Go-Live Embed für automatische Posts - GLEICH WIE /twitchtest"""
     
     embed = discord.Embed(
         color=0x9146FF,
@@ -313,7 +313,6 @@ def create_twitch_go_live_alert():
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz
-    embed.add_field(name="", value="", inline=False)  # Absatz
     
     # Titel
     embed.add_field(
@@ -322,16 +321,14 @@ def create_twitch_go_live_alert():
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
-    
-    # ✅ KORREKT: "🎮 TWITCH TEST GAME" in EINER Zeile mit Padding
+    # Game ohne "🕐 LIVE"
     embed.add_field(
-        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐LIVE",  # ← "GAME" in derselben Zeile
+        name="🎮 Just Chatting",
         value="",
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    # ✅ NUR EIN ABSATZ bis zum Banner
     embed.add_field(name="", value="", inline=False)  # Absatz
     
     # LIVE-Banner
@@ -1553,7 +1550,6 @@ async def twitchtest(ctx):
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz
-    embed.add_field(name="", value="", inline=False)  # Absatz
     
     # Titel
     embed.add_field(
@@ -1562,16 +1558,14 @@ async def twitchtest(ctx):
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
-    
-    # ✅ PADDING LANGSAM STARTEN - mit wenig Abstand
+    # Game ohne "🕐 LIVE"
     embed.add_field(
-        name=f"🎮 TWITCH_TEST_GAME{'\u2800' * 15}🕐 LIVE",  # ← 15 Zeichen Padding
+        name="🎮 TWITCH_TEST_GAME",
         value="",
         inline=False
     )
     
-    embed.add_field(name="", value="", inline=False)  # Absatz
+    # ✅ NUR EIN ABSATZ bis zum Banner
     embed.add_field(name="", value="", inline=False)  # Absatz
     
     # LIVE-Banner
