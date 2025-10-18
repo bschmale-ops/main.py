@@ -1041,7 +1041,7 @@ async def test(ctx):
     
 @bot.command()
 async def testapi(ctx):
-    """Testet die allSeries Query"""
+    """Findet die korrekte Struktur für allSeries"""
     try:
         async with aiohttp.ClientSession() as session:
             central_url = "https://api-op.grid.gg/central-data/graphql"
@@ -1050,22 +1050,19 @@ async def testapi(ctx):
                 'Content-Type': 'application/json'
             }
             
-            # KORREKTE allSeries QUERY:
-            all_series_query = {
+            # 1. ERST SCHEMA FÜR allSeries HERAUSFINDEN
+            schema_query = {
                 "query": """
-                query GetAllSeries {
-                    allSeries(first: 10) {
-                        nodes {
-                            id
+                query {
+                    __type(name: "SeriesConnection") {
+                        name
+                        fields {
                             name
-                            startDate
-                            endDate
-                            status
-                            tournament {
+                            type {
                                 name
-                            }
-                            teams {
-                                name
+                                ofType {
+                                    name
+                                }
                             }
                         }
                     }
@@ -1073,35 +1070,43 @@ async def testapi(ctx):
                 """
             }
             
-            await ctx.send("🔍 **Teste allSeries Query...**")
+            await ctx.send("🔍 **Finde allSeries Struktur...**")
             
-            async with session.post(central_url, headers=headers, json=all_series_query, timeout=15) as response:
+            async with session.post(central_url, headers=headers, json=schema_query, timeout=15) as response:
                 data = await response.json()
                 
-                if 'errors' in data:
-                    error_msg = data['errors'][0]['message']
-                    await ctx.send(f"❌ Error: {error_msg}")
-                elif 'data' in data:
-                    series_data = data['data']['allSeries']['nodes']
-                    await ctx.send(f"✅ **SUCCESS! {len(series_data)} Series gefunden!**")
+                if 'data' in data and data['data']['__type']:
+                    fields = data['data']['__type']['fields']
+                    await ctx.send("📋 **Verfügbare Felder in SeriesConnection:**")
+                    for field in fields:
+                        await ctx.send(f"• `{field['name']}` → {field['type'].get('name', field['type'].get('ofType', {}).get('name', 'N/A'))}")
                     
-                    for series in series_data[:5]:
-                        teams = series.get('teams', [])
-                        team_names = [team.get('name') for team in teams if team.get('name')]
-                        
-                        await ctx.send(
-                            f"📋 **{series.get('name')}**\n"
-                            f"ID: `{series.get('id')}`\n"
-                            f"Status: {series.get('status')}\n"
-                            f"Teams: {', '.join(team_names) if team_names else 'No teams'}\n"
-                            f"Tournament: {series.get('tournament', {}).get('name', 'N/A')}\n"
-                        )
+                    # 2. TESTE MIT VERSCHIEDENEN FELDERN
+                    test_queries = [
+                        {"query": "query { allSeries(first: 5) { edges { node { id name } } } }"},
+                        {"query": "query { allSeries(first: 5) { pageInfo { hasNextPage } edges { cursor node { id name } } } }"},
+                        {"query": "query { allSeries(first: 5) { totalCount items { id name } } }"},
+                        {"query": "query { allSeries(first: 5) { series { id name } } }"},
+                        {"query": "query { allSeries(first: 5) { data { id name } } }"}
+                    ]
                     
-                    # Zeige wie viele insgesamt
-                    await ctx.send(f"📊 **Insgesamt: {len(series_data)} Series verfügbar**")
+                    await ctx.send("\n🧪 **Teste verschiedene Strukturen...**")
                     
+                    for i, test_query in enumerate(test_queries, 1):
+                        await ctx.send(f"**Test {i}:** `{test_query['query'][:60]}...`")
+                        async with session.post(central_url, headers=headers, json=test_query, timeout=10) as resp:
+                            result = await resp.json()
+                            if 'errors' in result:
+                                error_msg = result['errors'][0]['message']
+                                await ctx.send(f"❌ {error_msg[:80]}")
+                            else:
+                                await ctx.send(f"✅ FUNKTIONIERT!")
+                                if 'data' in result and result['data']['allSeries']:
+                                    await ctx.send(f"📊 Struktur: ```{json.dumps(result['data']['allSeries'], indent=2)[:500]}```")
+                                    break
+                                    
                 else:
-                    await ctx.send("❌ Keine Daten in Response")
+                    await ctx.send("❌ Konnte Schema nicht abrufen")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
