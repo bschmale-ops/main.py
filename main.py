@@ -356,6 +356,11 @@ async def fetch_grid_matches():
                         gte: "%s"
                         lte: "%s"
                       }
+                      title: {
+                        nameShortened: {
+                          eq: "Counter-Strike 2"
+                        }
+                      }
                     }
                     orderBy: StartTimeScheduled
                     first: 50
@@ -379,7 +384,7 @@ async def fetch_grid_matches():
                 """ % (start_time, end_time)
             }
             
-            print(f"🔍 Hole Series von {start_time} bis {end_time}")
+            print(f"🔍 Hole CS2 Series von {start_time} bis {end_time}")
             
             async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
                 if response.status == 200:
@@ -390,7 +395,7 @@ async def fetch_grid_matches():
                         return []
                     
                     series_edges = central_data.get('data', {}).get('allSeries', {}).get('edges', [])
-                    print(f"✅ Gefundene Series: {len(series_edges)}")
+                    print(f"✅ Gefundene CS2 Series: {len(series_edges)}")
                     
                     current_time = datetime.datetime.now(timezone.utc)
                     
@@ -433,7 +438,7 @@ async def fetch_grid_matches():
                             continue
                     
                     matches.sort(key=lambda x: x['unix_time'])
-                    print(f"✅ Verfügbare Matches: {len(matches)}")
+                    print(f"✅ Verfügbare CS2 Matches: {len(matches)}")
                     return matches
                 else:
                     print(f"❌ Central Data API error: {response.status}")
@@ -441,6 +446,7 @@ async def fetch_grid_matches():
     except Exception as e:
         print(f"❌ Grid.gg API connection error: {e}")
         return []
+        
 @bot.command()
 async def testnew(ctx):
     """Testet die neue Grid.gg Implementierung mit Debug"""
