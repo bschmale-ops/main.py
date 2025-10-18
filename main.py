@@ -1195,18 +1195,18 @@ async def matches(ctx):
                 time_until = int(time_until)
                 starts_in_text = f"⏰ **Starts in:** **{time_until} minutes**"
                 
-                # MEHR Padding für weiter rechts
+                # WENIGER Padding für Time weiter links
                 current_length = len(starts_in_text)
-                padding_needed = 60 - current_length  # ← Erhöht von 45 auf 60
+                padding_needed = 45 - current_length  # ← Reduziert von 60 auf 45
                 padding = '\u2800' * max(1, padding_needed)
                 
                 time_line = f"{starts_in_text}{padding}🕐 **{match['time_string']}**"
                 
-                # ✅ "# " ENTFERNT - nur Fett für größere Schrift
+                # ✅ "# " AM ANFANG - ohne **Fett**
                 match_content = (
-                    f"**{team1_display}**\n"
-                    f"<:VS:1428145739443208305>\n"
-                    f"**{team2_display}**\n"
+                    f"# {team1_display}\n"
+                    f"# <:VS:1428145739443208305>\n"
+                    f"# {team2_display}\n"
                     f"🏆 {match['event']}\n"
                     f"{time_line}\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
