@@ -1167,30 +1167,43 @@ async def settime(ctx, minutes: int):
 @bot.command()
 async def matches(ctx):
     try:
-        matches = await fetch_grid_matches()  # Jetzt Grid.gg Funktion
+        matches = await fetch_grid_matches()
         
         if matches:
-            match_list = ""
-            for match in matches[:6]:
+            # Erstelle ein Embed für die Match-Liste (ähnlich wie test)
+            embed = discord.Embed(
+                title=f"🎯 LIVE & UPCOMING CS2 MATCHES",
+                color=0x0099ff,
+                timestamp=datetime.datetime.now()
+            )
+            
+            for i, match in enumerate(matches[:6]):  # Max 6 Matches im Embed
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 
-                team1_emoji = get_team_emoji(match['team1'], use_smart_lookup=False)
-                team1_name = get_team_name_only(match['team1'], use_smart_lookup=False)
-                team2_emoji = get_team_emoji(match['team2'], use_smart_lookup=False)
-                team2_name = get_team_name_only(match['team2'], use_smart_lookup=False)
+                # Verwende die gleiche Formatierung wie in create_match_alert
+                team1_display = get_display_name(match['team1'], use_smart_lookup=False)
+                team2_display = get_display_name(match['team2'], use_smart_lookup=False)
                 
-                match_list += f"**{team1_emoji} {team1_name} <:VS:1428145739443208305> {team2_emoji} {team2_name}**\n"
-                match_list += f"__⏰ {int(time_until)}min | 🏆 {match['event']}__\n\n"
+                match_field = f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}"
+                
+                # Zusätzliche Infos
+                info_line = f"🕐 **Time:** {match['time_string']} | ⏰ **Starts in:** {int(time_until)}min\n🏆 **Event:** {match['event']}"
+                
+                embed.add_field(
+                    name=f"Match {i+1}",
+                    value=f"{match_field}\n{info_line}",
+                    inline=False
+                )
             
-            footer = f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min"
-            framed_message = create_frame("🎯 AVAILABLE CS2 MATCHES", f"{match_list}{footer}")
-            await ctx.send(framed_message)
+            embed.set_footer(text=f"🔔 Alert: {ALERT_TIME}min | 🔄 Check: every 2min")
+            
+            await ctx.send(embed=embed)
         else:
             await ctx.send("❌ **No matches found**")
         
     except Exception as e:
         await ctx.send(f"❌ **Error:** {e}")
-
+        
 @bot.command()
 async def setchannel(ctx, channel: discord.TextChannel):
     CHANNELS[str(ctx.guild.id)] = channel.id
