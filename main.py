@@ -897,7 +897,7 @@ async def twitchtest(ctx):
     )
     
     embed.add_field(
-        name="🎮 TWITCH GAME TEST",
+        name="🎮 TWITCH TEST GAME",
         value="",
         inline=False
     )
