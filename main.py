@@ -1503,10 +1503,10 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Zeile 1
     
-    # Stream Info über dem Banner - MIT "# " NUR bei der CLICK HERE Zeile
+    # Stream Info über dem Banner - OHNE "# " - NUR FETT
     embed.add_field(
         name="🔴 shiseii is now live on Twitch!",
-        value="# **[🌐 CLICK HERE TO WATCH LIVE](https://twitch.tv/shiseii)**",
+        value="**[🌐 CLICK HERE TO WATCH LIVE](https://twitch.tv/shiseii)**",
         inline=False
     )
     
@@ -1522,9 +1522,16 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
     
-    # Game und Live-Status in EINER Zeile - OHNE "# " und KORREKT rechtsbündig
+    # ✅ KORRIGIERT: Game und Live-Status mit PADDING für rechtsbündig
+    game_text = "🎮 TWITCH TEST GAME"
+    live_text = "🕐 LIVE"
+    
+    # Feste Breite berechnen
+    padding_needed = 50 - len(game_text)  # Experimentiere mit dem Wert
+    padding = '\u2800' * max(1, padding_needed)
+    
     embed.add_field(
-        name=f"🎮 TWITCH TEST GAME{'\u2800' * 40}🕐 LIVE",
+        name=f"{game_text}{padding}{live_text}",  # ← KORREKTE KOMBINATION
         value="",
         inline=False
     )
