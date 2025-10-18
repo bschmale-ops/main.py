@@ -873,10 +873,9 @@ async def twitchtest(ctx):
     announcement = "@everyone @here  |  https://twitch.tv/shiseii  |  shiseii is going live !  --  check out the stream here:"
     
     embed = discord.Embed(
-        title=f"TWITCH LIVE ALERT{'\u2800' * 28}",  # Emoji entfernt
+        title=f"**[TWITCH LIVE ALERT](https://twitch.tv/shiseii)**{'\u2800' * 28}",
         color=0x9146FF,
-        timestamp=datetime.datetime.now(),
-        url="https://twitch.tv/shiseii"
+        timestamp=datetime.datetime.now()
     )
     
     # Stream Info über dem Banner - mit rotem Punkt links
@@ -898,7 +897,7 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
     
-    # Game und Live-Status in EINER Zeile
+    # Game und Live-Status in EINER Zeile - FIXIERT
     embed.add_field(
         name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",
         value="",
