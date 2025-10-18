@@ -596,11 +596,6 @@ async def testmatches(ctx):
                         gte: "%s"
                         lte: "%s"
                       }
-                      title: {
-                        nameShortened: {
-                          eq: "cs2"
-                        }
-                      }
                     }
                     orderBy: StartTimeScheduled
                     first: 50
@@ -610,6 +605,9 @@ async def testmatches(ctx):
                       node {
                         id
                         startTimeScheduled
+                        title {
+                          nameShortened
+                        }
                         teams {
                           baseInfo {
                             name
@@ -637,11 +635,21 @@ async def testmatches(ctx):
                     total_count = all_series.get('totalCount', 0)
                     edges = all_series.get('edges', [])
                     
-                    await ctx.send(f"📊 **CS2 Series gefunden:** {total_count} total, {len(edges)} edges")
+                    await ctx.send(f"📊 **Alle Series gefunden:** {total_count} total, {len(edges)} edges")
                     
-                    if edges:
+                    # FILTERE NUR CS2 MATCHES IM CODE
+                    cs2_matches = []
+                    for edge in edges:
+                        node = edge.get('node', {})
+                        title = node.get('title', {}).get('nameShortened', '')
+                        if title == 'cs2':
+                            cs2_matches.append(edge)
+                    
+                    await ctx.send(f"🎯 **CS2 Matches:** {len(cs2_matches)}")
+                    
+                    if cs2_matches:
                         await ctx.send("🔍 **Gefundene CS2 Matches:**")
-                        for i, edge in enumerate(edges):
+                        for i, edge in enumerate(cs2_matches[:10]):
                             node = edge.get('node', {})
                             teams = node.get('teams', [])
                             team_names = [team.get('baseInfo', {}).get('name', '?') for team in teams]
@@ -649,7 +657,7 @@ async def testmatches(ctx):
                             start_time = node.get('startTimeScheduled', 'N/A')
                             
                             await ctx.send(
-                                f"**Match {i+1}:** {', '.join(team_names) if team_names else 'No teams'}\n"
+                                f"**CS2 Match {i+1}:** {', '.join(team_names) if team_names else 'No teams'}\n"
                                 f"Time: {start_time}\n"
                             )
                     else:
