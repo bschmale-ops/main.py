@@ -336,13 +336,14 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg"
+            # NEUE URL VERWENDEN
+            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # ✅ KORREKTE QUERY FÜR LIVE-DATEN
+            # Gleiche Query wie vorher testen
             graphql_query = {
                 "query": """
                 query GetLiveSeries {
@@ -364,7 +365,7 @@ async def fetch_grid_matches():
             async with session.post(url, headers=headers, json=graphql_query, timeout=15) as response:
                 if response.status == 200:
                     data = await response.json()
-                    print(f"✅ Grid.gg LIVE-API Response erhalten")
+                    print(f"✅ NEUER ENDPOINT - Response erhalten")
                     
                     if data.get('errors'):
                         print(f"❌ GraphQL Errors: {data['errors']}")
@@ -640,16 +641,17 @@ async def subscribe(ctx, *, team):
 
 @bot.command()
 async def debug(ctx):
-    """Findet heraus wie man alle Series bekommt"""
+    """Findet heraus wie man alle Series bekommt - MIT NEUER URL"""
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg"
+            # NEUE URL VERWENDEN
+            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # Teste verschiedene Möglichkeiten
+            # Teste verschiedene Möglichkeiten mit der NEUEN URL
             test_queries = [
                 # Versuch 1: Ohne Parameter (vielleicht gibt es eine Liste)
                 {"query": "query { seriesState { id } }"},
@@ -667,6 +669,7 @@ async def debug(ctx):
                     data = await response.json()
                     if not data.get('errors'):
                         await ctx.send(f"✅ **Test {i} FUNKTIONIERT!**")
+                        await ctx.send(f"📊 Response: ```{json.dumps(data, indent=2)[:1000]}```")
                         break
                     else:
                         error_msg = data['errors'][0]['message']
@@ -719,7 +722,8 @@ async def statstest(ctx):
     """Testet die Stats Feed API mit x-api-key Header"""
     try:
         async with aiohttp.ClientSession() as session:
-            url = "https://api-op.grid.gg/statistics-feed/graphql"
+            # HIER AUCH URL ÄNDERN!
+            url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
             
             headers = {
                 'x-api-key': GRID_API_KEY,
@@ -743,7 +747,7 @@ async def statstest(ctx):
             
             async with session.post(url, headers=headers, json=query) as response:
                 data = await response.json()
-                await ctx.send(f"🔍 Stats Feed API:\nStatus: {response.status}")
+                await ctx.send(f"🔍 NEUER ENDPOINT - Stats Feed API:\nStatus: {response.status}")
                 
                 if 'data' in data:
                     types = data['data']['__schema']['types']
