@@ -699,8 +699,8 @@ async def list(ctx):
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        # Mit ## UND •
-        team_list = "\n".join([f" • {get_display_name(team, use_smart_lookup=True)}" for team in teams])
+        # Mit ## • UND Teamnamen in Fett
+        team_list = "\n".join([f" • **{get_team_name_only(team, use_smart_lookup=True)}**" for team in teams])
         
         embed = discord.Embed(
             title=f"SUBSCRIBED TEAMS{'\u2800' * 25}📋",
