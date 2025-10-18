@@ -1041,7 +1041,7 @@ async def test(ctx):
     
 @bot.command()
 async def testapi(ctx):
-    """Erkundet die Central Data API"""
+    """Testet die allSeries Query"""
     try:
         async with aiohttp.ClientSession() as session:
             central_url = "https://api-op.grid.gg/central-data/graphql"
@@ -1050,21 +1050,22 @@ async def testapi(ctx):
                 'Content-Type': 'application/json'
             }
             
-            # 1. SCHEMA ERKUNDEN - Was ist verfügbar?
-            schema_query = {
+            # KORREKTE allSeries QUERY:
+            all_series_query = {
                 "query": """
-                query {
-                    __schema {
-                        queryType {
-                            fields {
+                query GetAllSeries {
+                    allSeries(first: 10) {
+                        nodes {
+                            id
+                            name
+                            startDate
+                            endDate
+                            status
+                            tournament {
                                 name
-                                description
-                                args {
-                                    name
-                                    type {
-                                        name
-                                    }
-                                }
+                            }
+                            teams {
+                                name
                             }
                         }
                     }
@@ -1072,48 +1073,35 @@ async def testapi(ctx):
                 """
             }
             
-            await ctx.send("🔍 **Erkunde Central Data Schema...**")
+            await ctx.send("🔍 **Teste allSeries Query...**")
             
-            async with session.post(central_url, headers=headers, json=schema_query, timeout=15) as response:
+            async with session.post(central_url, headers=headers, json=all_series_query, timeout=15) as response:
                 data = await response.json()
                 
-                if 'data' in data:
-                    fields = data['data']['__schema']['queryType']['fields']
+                if 'errors' in data:
+                    error_msg = data['errors'][0]['message']
+                    await ctx.send(f"❌ Error: {error_msg}")
+                elif 'data' in data:
+                    series_data = data['data']['allSeries']['nodes']
+                    await ctx.send(f"✅ **SUCCESS! {len(series_data)} Series gefunden!**")
                     
-                    # Zeige ALLE verfügbaren Queries
-                    await ctx.send("📋 **Verfügbare Queries in Central Data:**")
-                    for field in fields:
-                        name = field['name']
-                        args = [arg['name'] for arg in field['args']]
-                        args_str = f"({', '.join(args)})" if args else ""
-                        description = field.get('description', '')
-                        await ctx.send(f"• `{name}{args_str}` - {description}")
+                    for series in series_data[:5]:
+                        teams = series.get('teams', [])
+                        team_names = [team.get('name') for team in teams if team.get('name')]
                         
-                    # Teste Queries die "all" oder "list" im Namen haben
-                    await ctx.send("\n🧪 **Teste mögliche List-Queries...**")
+                        await ctx.send(
+                            f"📋 **{series.get('name')}**\n"
+                            f"ID: `{series.get('id')}`\n"
+                            f"Status: {series.get('status')}\n"
+                            f"Teams: {', '.join(team_names) if team_names else 'No teams'}\n"
+                            f"Tournament: {series.get('tournament', {}).get('name', 'N/A')}\n"
+                        )
                     
-                    possible_list_queries = [
-                        "allSeries", "seriesList", "matches", "allMatches", 
-                        "tournaments", "allTournaments", "events", "allEvents"
-                    ]
+                    # Zeige wie viele insgesamt
+                    await ctx.send(f"📊 **Insgesamt: {len(series_data)} Series verfügbar**")
                     
-                    for query_name in possible_list_queries:
-                        test_query = {"query": f"query {{ {query_name} {{ id name }} }}"}
-                        
-                        await ctx.send(f"**Testing `{query_name}`**")
-                        async with session.post(central_url, headers=headers, json=test_query, timeout=10) as resp:
-                            result = await resp.json()
-                            if 'errors' in result:
-                                error_msg = result['errors'][0]['message']
-                                await ctx.send(f"❌ `{query_name}`: {error_msg[:100]}")
-                            else:
-                                await ctx.send(f"✅ `{query_name}`: FUNKTIONIERT!")
-                                if 'data' in result and result['data'].get(query_name):
-                                    count = len(result['data'][query_name]) if isinstance(result['data'][query_name], list) else 1
-                                    await ctx.send(f"📊 Ergebniss: {count} Einträge")
-                                    
                 else:
-                    await ctx.send("❌ Konnte Schema nicht abrufen")
+                    await ctx.send("❌ Keine Daten in Response")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
