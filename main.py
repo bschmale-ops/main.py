@@ -207,10 +207,15 @@ def get_display_name(team_name, use_smart_lookup=True):
     """
     
     if not use_smart_lookup:
-        # FÜR MATCHES/ALERTS: Exakt anzeigen was Grid.gg liefert
-        return TEAM_DISPLAY_NAMES.get(team_name, f"{team_name.upper()}")
+        # FÜR MATCHES/ALERTS: Case-insensitive Suche
+        team_name_lower = team_name.lower()
+        for display_name, display_value in TEAM_DISPLAY_NAMES.items():
+            if display_name.lower() == team_name_lower:
+                return display_value
+        # Falls nicht gefunden, normal anzeigen
+        return f"{team_name.upper()}"
     
-    # FÜR SUBSCRIBE/LIST: Intelligente Zuordnung
+    # FÜR SUBSCRIBE/LIST: Intelligente Zuordnung (bestehender Code)
     if team_name in TEAM_DISPLAY_NAMES:
         return TEAM_DISPLAY_NAMES[team_name]
     
