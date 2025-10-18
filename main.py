@@ -1232,15 +1232,16 @@ async def matches(ctx):
                 if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
                     team2_display = f"🌍 {team2_display}"
                 
-                # Teams mit Fett
+                # Teams mit Fett + ABSATZ nach team2
                 match_content = (
                     f"**{team1_display}**\n"
                     f"**<:VS:1428145739443208305>**\n"
-                    f"**{team2_display}**\n"
-                    f"🏆 {match['event']}\n"
+                    f"**{team2_display}**\n"  # ← team2 Ende
+                    f"\n"  # ✅ NEUER ABSATZ hier
+                    f"**🏆 {match['event']}**\n"
                 )
                 
-                # ✅ OHNE FETT bei Zeitangaben
+                # Zeitangaben ohne Fett
                 starts_in_text = f"⏰ Starts in: {int(time_until)} minutes"
                 padding = '\u2800' * 25  # Feste Breite
                 time_line = f"{starts_in_text}{padding}🕐 {match['time_string']}"
