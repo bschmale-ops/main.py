@@ -868,21 +868,25 @@ async def test(ctx):
 
 @bot.command()
 async def twitchtest(ctx):
-    """Testet das Twitch Live Embed Design"""
+    """Testet das Twitch Live Embed Design mit deinem Banner"""
     
     # Text über dem Embed
     announcement = "@everyone @here  |  https://twitch.tv/shiseii  |  shiseii is going live !  --  check out the stream here:"
     
     embed = discord.Embed(
-        title=f"TWITCH LIVE ALERT{'\u2800' * 28}🔴",  # Mehr Leerzeichen für rechtsbündig
+        title=f"TWITCH LIVE ALERT{'\u2800' * 28}🔴",
         color=0x9146FF,
-        timestamp=datetime.datetime.now()
+        timestamp=datetime.datetime.now(),
+        url="https://twitch.tv/shiseii"
     )
     
-    # Thumbnail (Profilbild - nimmt etwa 1-2 Zeilen Platz ein)
-    embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/your_profile_image")
+    # Dein Banner als großes Bild
+    embed.set_image(url="https://i.ibb.co/4nTbw29G/twitch-new-just-socials.jpg")
     
-    # Absatz nach Thumbnail
+    # Thumbnail (Profilbild)
+    embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/8b4104f3-43d0-4d7e-a7ae-bd15408acad4-profile_image-70x70.png")
+    
+    # Absatz nach Bildern
     embed.add_field(name="", value="", inline=False)
     
     # Game Info
@@ -894,8 +898,18 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz
     
-    # Stream Link
-    embed.add_field(name="📺 Watch Now", value="[shiseii on Twitch](https://twitch.tv/shiseii)", inline=False)
+    # Stream Info
+    embed.add_field(
+        name="👥 Viewers", 
+        value="**Active & Friendly**",
+        inline=True
+    )
+    
+    embed.add_field(
+        name="💬 Chat",
+        value="**Live Chat**", 
+        inline=True
+    )
     
     embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
