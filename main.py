@@ -75,6 +75,7 @@ TEAM_DISPLAY_NAMES = {
     'Astralis': '<:astralis:1428075043526672394> ASTRALIS',
     'G2': '<:g2:1428075144240431154> G2',
     'Aurora': '<:aurora:1428075062287798272> AURORA',
+    'AURORA': '<:aurora:1428075062287798272> AURORA',
     'Liquid': '<:liquid:1428075155456000122> LIQUID',
     'M80': '<:m80:1428076593028530236> M80',
     'ENCE': 'ENCE',  # NEU: ENCE Main Team hinzugefügt
