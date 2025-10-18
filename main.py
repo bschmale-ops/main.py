@@ -1164,6 +1164,7 @@ async def settime(ctx, minutes: int):
     else:
         await ctx.send("❌ **Please specify 1-240 minutes!**")
 
+
 @bot.command()
 async def matches(ctx):
     try:
@@ -1171,12 +1172,12 @@ async def matches(ctx):
         
         if matches:
             embed = discord.Embed(
-                title=f"CS2 MATCH ALERT{'\u2800' * 25}<:cs2:1298250987483697202>",  # NUR DIESE ZEILE GEÄNDERT
+                title=f"🎯 LIVE & UPCOMING CS2 MATCHES{'\u2800' * 15}<:cs2:1298250987483697202>",
                 color=0x0099ff,
                 timestamp=datetime.datetime.now()
             )
             
-            for match in matches[:4]:
+            for match in matches[:6]:
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 
                 # Team-Namen mit Fallback auf 🌍 wenn kein Logo
@@ -1189,18 +1190,16 @@ async def matches(ctx):
                 if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
                     team2_display = f"🌍 {team2_display}"
                 
-                # Alles in EINEM Field pro Match (kompakter)
+                # Größere Schrift mit **Fett** für Teams
                 match_content = (
-                    f"# {team1_display}\n"
-                    f"# <:VS:1428145739443208305>\n" 
-                    f"# {team2_display}\n"
-                    f"\n"  # Absatz
-                    f"🏆 **Event:** {match['event']}{'\u2800' * 20}🕐 **Time:** {match['time_string']}\n"
-                    f"⏰ **Starts in:** **{int(time_until)} minutes**"
+                    f"**{team1_display}** <:VS:1428145739443208305> **{team2_display}**\n"
+                    f"🏆 {match['event']}\n"
+                    f"⏰ **Starts in:** **{int(time_until)} minutes**{'\u2800' * 20}🕐 **{match['time_string']}**\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 )
                 
                 embed.add_field(
-                    name="",  # Leerer Name = Absatz
+                    name="",
                     value=match_content,
                     inline=False
                 )
