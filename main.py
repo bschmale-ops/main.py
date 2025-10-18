@@ -699,8 +699,8 @@ async def list(ctx):
     teams = TEAMS.get(guild_id, [])
     
     if teams:
-        # Team-Namen MIT Logos in Fett OHNE Raute
-        team_list = "\n".join([f"• **{get_display_name(team, use_smart_lookup=True)}**" for team in teams])
+        # Mit ## UND •
+        team_list = "\n".join([f"## • {get_display_name(team, use_smart_lookup=True)}" for team in teams])
         
         embed = discord.Embed(
             title=f"SUBSCRIBED TEAMS{'\u2800' * 25}📋",
@@ -833,14 +833,14 @@ async def status(ctx):
     guild_id = str(ctx.guild.id)
     subscribed_count = len(TEAMS.get(guild_id, []))
     
-    # Status-Informationen mit Emojis am Anfang jeder Zeile
+    # Status-Informationen mit ## • außer der ersten Zeile
     status_content = (
-        f"\n🟢 **STATUS:** ✅ ONLINE\n"
-        f"⏰ **UPTIME:** {hours}h {minutes}m\n" 
-        f"🔔 **ALERTS:** ✅ ACTIVE\n"
-        f"⏱️ **ALERT TIME:** {ALERT_TIME}min\n"
-        f"👥 **SUBSCRIBED:** {subscribed_count} TEAMS\n"
-        f"🌐 **SOURCE:** GRID.GG LIVE-API"
+        f"## • 🟢 **STATUS:** ✅ ONLINE\n"
+        f"## • ⏰ **UPTIME:** {hours}h {minutes}m\n" 
+        f"## • 🔔 **ALERTS:** ✅ ACTIVE\n"
+        f"## • ⏱️ **ALERT TIME:** {ALERT_TIME}min\n"
+        f"## • 👥 **SUBSCRIBED:** {subscribed_count} TEAMS\n"
+        f"## • 🌐 **SOURCE:** GRID.GG LIVE-API"
     )
     
     embed = discord.Embed(
