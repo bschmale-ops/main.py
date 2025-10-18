@@ -1564,17 +1564,9 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
     
-    # ✅ GLEICHE PADDING-LOGIK WIE BEI /matches
-    game_text = "🎮 TWITCH_TEST_GAME"
-    live_text = "🕐 LIVE"
-    
-    # Dieselbe feste Breite wie bei /matches
-    current_length = len(game_text)
-    padding_needed = 45 - current_length  # Gleicher Wert wie bei /matches
-    padding = '\u2800' * max(1, padding_needed)
-    
+    # ✅ DIREKTE VERSION - ALLES IN EINER ZEILE
     embed.add_field(
-        name=f"{game_text}{padding}{live_text}",
+        name=f"🎮 TWITCH_TEST_GAME{'\u2800' * 35}🕐 LIVE",
         value="",
         inline=False
     )
