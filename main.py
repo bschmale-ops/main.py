@@ -899,7 +899,7 @@ async def twitchtest(ctx):
     
     # Game und Live-Status in EINER Zeile - FIXIERT
     embed.add_field(
-        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",
+        name=f"🎮 TWITCH TEST GAME {'\u2800' * 20}🕐 LIVE",
         value="",
         inline=False
     )
