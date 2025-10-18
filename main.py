@@ -1110,7 +1110,134 @@ async def testapi(ctx):
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
-
+@bot.command()
+async def findstructure(ctx):
+    """Findet die verfügbaren Felder in Series"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            central_url = "https://api-op.grid.gg/central-data/graphql"
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            # 1. SCHEMA FÜR "Series" TYPE HERAUSFINDEN
+            schema_query = {
+                "query": """
+                query {
+                    __type(name: "Series") {
+                        name
+                        fields {
+                            name
+                            description
+                        }
+                    }
+                }
+                """
+            }
+            
+            await ctx.send("🔍 **Finde verfügbare Felder in Series...**")
+            
+            async with session.post(central_url, headers=headers, json=schema_query, timeout=15) as response:
+                data = await response.json()
+                
+                if 'data' in data and data['data']['__type']:
+                    fields = data['data']['__type']['fields']
+                    await ctx.send("📋 **Verfügbare Felder in Series:**")
+                    
+                    # Gruppiere nach Kategorie
+                    basic_fields = []
+                    team_fields = []
+                    tournament_fields = []
+                    date_fields = []
+                    
+                    for field in fields:
+                        name = field['name']
+                        desc = field.get('description', '')
+                        
+                        if any(x in name.lower() for x in ['team', 'player']):
+                            team_fields.append(f"• `{name}` - {desc}")
+                        elif any(x in name.lower() for x in ['tournament', 'event']):
+                            tournament_fields.append(f"• `{name}` - {desc}")
+                        elif any(x in name.lower() for x in ['date', 'time', 'start', 'end']):
+                            date_fields.append(f"• `{name}` - {desc}")
+                        else:
+                            basic_fields.append(f"• `{name}` - {desc}")
+                    
+                    if basic_fields:
+                        await ctx.send("**📝 Basis-Felder:**")
+                        await ctx.send("\n".join(basic_fields[:10]))
+                    
+                    if team_fields:
+                        await ctx.send("**👥 Team-Felder:**")
+                        await ctx.send("\n".join(team_fields[:10]))
+                    
+                    if tournament_fields:
+                        await ctx.send("**🏆 Tournament-Felder:**")
+                        await ctx.send("\n".join(tournament_fields[:5]))
+                    
+                    if date_fields:
+                        await ctx.send("**⏰ Zeit-Felder:**")
+                        await ctx.send("\n".join(date_fields[:5]))
+                    
+                    # 2. TESTE DIE KOMPLETTE QUERY
+                    await ctx.send("\n🧪 **Teste komplette Query...**")
+                    
+                    complete_query = {
+                        "query": """
+                        query {
+                            allSeries(first: 5) {
+                                totalCount
+                                edges {
+                                    node {
+                                        id
+                                        name
+                                        status
+                                        startDate
+                                        endDate
+                                        tournament {
+                                            name
+                                        }
+                                        teams {
+                                            name
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        """
+                    }
+                    
+                    async with session.post(central_url, headers=headers, json=complete_query, timeout=10) as resp:
+                        result = await resp.json()
+                        if 'errors' in result:
+                            error_msg = result['errors'][0]['message']
+                            await ctx.send(f"❌ Error: {error_msg}")
+                        else:
+                            await ctx.send("🎉 **✅ VOLLSTÄNDIGE QUERY FUNKTIONIERT!**")
+                            data = result.get('data', {}).get('allSeries', {})
+                            await ctx.send(f"📊 **Gefunden: {data.get('totalCount', 0)} Series total**")
+                            
+                            edges = data.get('edges', [])
+                            for i, edge in enumerate(edges[:3]):
+                                node = edge.get('node', {})
+                                teams = node.get('teams', [])
+                                team_names = [team.get('name') for team in teams if team.get('name')]
+                                
+                                await ctx.send(
+                                    f"**Series {i+1}:** {node.get('name')}\n"
+                                    f"ID: `{node.get('id')}`\n"
+                                    f"Status: {node.get('status')}\n"
+                                    f"Teams: {', '.join(team_names) if team_names else 'No teams'}\n"
+                                    f"Tournament: {node.get('tournament', {}).get('name', 'N/A')}\n"
+                                )
+                            
+                else:
+                    await ctx.send("❌ Konnte Schema nicht abrufen")
+                    
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
+        
 @bot.command()
 async def twitchtest(ctx):
     """Twitch Test mit LIVE-Banner und Twitch-Daten"""
