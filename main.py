@@ -35,6 +35,7 @@ TWITCH_CLIENT_SECRET = os.getenv("TWITCH_CLIENT_SECRET")
 GRID_API_KEY = os.getenv("GRID_API_KEY")
 TWITCH_USERNAME = "shiseii"
 ANNOUNCEMENT_CHANNEL_ID = 1162297673920024667
+MATCH_ALERT_CHANNEL_ID = 1427554150824284160  # Für Match Alerts & alles andere
 
 # =========================
 # AUTO-SUBSCRIBE TEAMS
@@ -1599,6 +1600,15 @@ async def twitchtest(ctx):
     embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
     await ctx.send(announcement, embed=embed)
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def setchannel(ctx, channel: discord.TextChannel):
+    """Setzt den Channel für Match Alerts"""
+    global MATCH_ALERT_CHANNEL_ID
+    MATCH_ALERT_CHANNEL_ID = channel.id
+    await ctx.send(f"✅ **Match Alert Channel auf {channel.mention} gesetzt!**")
+    print(f"🔧 Match Alert Channel geändert zu: {channel.name} ({channel.id})")
         
 @bot.command()
 async def ping(ctx):
