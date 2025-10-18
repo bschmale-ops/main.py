@@ -868,8 +868,37 @@ async def test(ctx):
 
 @bot.command()
 async def twitchtest(ctx):
-    """Testet das Twitch Live Embed Design"""
-    embed = create_twitch_go_live_alert()
+    """Testet das Twitch Live Embed Design - gleiche Größe wie /test"""
+    
+    embed = discord.Embed(
+        title=f"TWITCH LIVE ALERT{'\u2800' * 23}🔴",
+        description=f"# **shiseii**\n# <:VS:1428145739443208305>\n# **CS2 STREAM**\n",
+        color=0x9146FF,
+        timestamp=datetime.datetime.now()
+    )
+    
+    # 2 ABSÄTZE über Content
+    embed.add_field(name="", value="", inline=False)
+    embed.add_field(name="", value="", inline=False)
+    
+    # Zeile 1: "Stream" und "🕐 Live Now" in einer Zeile
+    header_line = f"🎮 Stream{'\u2800' * 30}🕐 Live Now"
+    
+    # Zeile 2: Stream Info
+    content_line = f"Counter-Strike 2"
+    
+    # Beide Zeilen in einem Field
+    embed.add_field(name=header_line, value=content_line, inline=False)
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    
+    # Viewers & Game
+    embed.add_field(name="👥 Viewers", value=f"**Active & Friendly**", inline=False)
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    
+    # Stream Link
+    embed.add_field(name="📺 Watch Now", value="[shiseii on Twitch](https://twitch.tv/shiseii)", inline=False)
+    embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
+    
     await ctx.send("🔴 **TWITCH LIVE TEST:**", embed=embed)
         
 @bot.command()
