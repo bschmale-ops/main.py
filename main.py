@@ -286,21 +286,62 @@ def create_match_alert(match, time_until):
     return embed
 
 # =========================
-# TWITCH LIVE EMBED FUNKTION - OPTION 2
+# TWITCH LIVE EMBED FUNKTION - MIT BANNER DESIGN
 # =========================
 def create_twitch_go_live_alert():
+    """Erstellt das Twitch Go-Live Embed - GLEICH WIE /twitchtest"""
+    
     embed = discord.Embed(
-        title="🔴 JETZT LIVE AUF TWITCH!",
-        description="**shiseii streamt CS2**\nKomm vorbei und chill mit! 🎮",
-        color=0x9146FF,  # Twitch Lila
-        url="https://twitch.tv/shiseii"
+        color=0x9146FF,
+        timestamp=datetime.datetime.now()
     )
-    embed.add_field(name="🎮 Spiel", value="Counter-Strike 2", inline=True)
-    embed.add_field(name="💬 Chat", value="Aktiv & Friendly", inline=True)
-    embed.add_field(name="🎵 Musik", value="Lofi Beats", inline=True)
-    embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/your_profile_image")
-    embed.set_image(url="https://static-cdn.jtvnw.net/jtv_user_pictures/your_stream_banner")
-    embed.set_footer(text="Viel Spaß beim Zuschauen! 🎪")
+    
+    # ZEILE 1: TWITCH LIVE ALERT als klickbarer Link
+    embed.add_field(
+        name="",
+        value="**[TWITCH LIVE ALERT](https://twitch.tv/shiseii)**",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)  # Absatz nach Zeile 1
+    
+    # Stream Info über dem Banner
+    embed.add_field(
+        name="🔴 shiseii is now live on Twitch!",
+        value="**[🌐 CLICK HERE TO WATCH LIVE](https://twitch.tv/shiseii)**",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    
+    # Titel
+    embed.add_field(
+        name="📺 LIVE WITH SHISEII",
+        value="",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
+    
+    # ✅ KORREKT: "🎮 TWITCH TEST GAME" in EINER Zeile mit Padding
+    embed.add_field(
+        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",  # ← "GAME" in derselben Zeile
+        value="",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    
+    # LIVE-Banner
+    embed.set_image(url="https://i.ibb.co/6cQh6FjN/LIVE.png")
+    
+    # Profilbild oben rechts (Thumbnail)
+    embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/8b4104f3-43d0-4d7e-a7ae-bd15408acad4-profile_image-70x70.png")
+    
+    embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
+    
     return embed
 
 # =========================
@@ -1503,7 +1544,7 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Zeile 1
     
-    # Stream Info über dem Banner - OHNE "# " - NUR FETT
+    # Stream Info über dem Banner
     embed.add_field(
         name="🔴 shiseii is now live on Twitch!",
         value="**[🌐 CLICK HERE TO WATCH LIVE](https://twitch.tv/shiseii)**",
@@ -1513,25 +1554,18 @@ async def twitchtest(ctx):
     embed.add_field(name="", value="", inline=False)  # Absatz
     embed.add_field(name="", value="", inline=False)  # Absatz
     
-    # Titel OHNE "# "
+    # Titel
     embed.add_field(
-        name="📺 TWITCH TEST TITEL",
+        name="📺 LIVE WITH SHISEII",
         value="",
         inline=False
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
     
-    # ✅ KORRIGIERT: Game und Live-Status mit PADDING für rechtsbündig
-    game_text = "🎮 TWITCH TEST GAME"
-    live_text = "🕐 LIVE"
-    
-    # Feste Breite berechnen
-    padding_needed = 50 - len(game_text)  # Experimentiere mit dem Wert
-    padding = '\u2800' * max(1, padding_needed)
-    
+    # ✅ KORRIGIERT: "🎮 TWITCH TEST GAME" in EINER Zeile
     embed.add_field(
-        name=f"{game_text}{padding}{live_text}",  # ← KORREKTE KOMBINATION
+        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",  # ← "GAME" in derselben Zeile
         value="",
         inline=False
     )
