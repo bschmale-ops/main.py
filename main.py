@@ -356,11 +356,6 @@ async def fetch_grid_matches():
                         gte: "%s"
                         lte: "%s"
                       }
-                      title: {
-                        nameShortened: {
-                          eq: "cs2"
-                        }
-                      }
                     }
                     orderBy: StartTimeScheduled
                     first: 50
@@ -372,6 +367,9 @@ async def fetch_grid_matches():
                           nameShortened
                         }
                         startTimeScheduled
+                        title {
+                          nameShortened
+                        }
                         teams {
                           baseInfo {
                             name
@@ -384,7 +382,7 @@ async def fetch_grid_matches():
                 """ % (start_time, end_time)
             }
             
-            print(f"🔍 Hole CS2 Series von {start_time} bis {end_time}")
+            print(f"🔍 Hole Series von {start_time} bis {end_time}")
             
             async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
                 if response.status == 200:
@@ -395,13 +393,18 @@ async def fetch_grid_matches():
                         return []
                     
                     series_edges = central_data.get('data', {}).get('allSeries', {}).get('edges', [])
-                    print(f"✅ Gefundene CS2 Series: {len(series_edges)}")
+                    print(f"✅ Gefundene Series: {len(series_edges)}")
                     
                     current_time = datetime.datetime.now(timezone.utc)
                     
                     for edge in series_edges:
                         try:
                             series_node = edge.get('node', {})
+                            
+                            # NUR CS2 MATCHES FILTERN
+                            title = series_node.get('title', {}).get('nameShortened', '')
+                            if title != 'cs2':
+                                continue
                             
                             # Teams aus Central Data
                             teams = series_node.get('teams', [])
@@ -418,7 +421,7 @@ async def fetch_grid_matches():
                                 
                                 # Nur zukünftige Matches (oder max. 2 Stunden vergangen)
                                 time_diff = (match_dt - current_time).total_seconds() / 60
-                                if time_diff >= -120:  # Auch Matches die vor bis zu 2 Stunden started sind
+                                if time_diff >= -120:
                                     
                                     german_tz = timezone(timedelta(hours=2))
                                     local_dt = match_dt.astimezone(german_tz)
