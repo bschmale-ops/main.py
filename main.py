@@ -336,7 +336,6 @@ async def fetch_grid_matches():
     matches = []
     try:
         async with aiohttp.ClientSession() as session:
-            # 1. SERIES LISTE VON CENTRAL DATA
             central_url = "https://api-op.grid.gg/central-data/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
@@ -393,17 +392,11 @@ async def fetch_grid_matches():
                     series_edges = central_data.get('data', {}).get('allSeries', {}).get('edges', [])
                     print(f"✅ Gefundene Series: {len(series_edges)}")
                     
-                    # 2. FÜR JEDE SERIES: LIVE-DATEN HOLEN
-                    state_url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
                     current_time = datetime.datetime.now(timezone.utc)
                     
                     for edge in series_edges:
                         try:
                             series_node = edge.get('node', {})
-                            series_id = series_node.get('id')
-                            
-                            if not series_id:
-                                continue
                             
                             # Teams aus Central Data
                             teams = series_node.get('teams', [])
@@ -413,52 +406,30 @@ async def fetch_grid_matches():
                             team1_name = teams[0].get('baseInfo', {}).get('name', 'TBD')
                             team2_name = teams[1].get('baseInfo', {}).get('name', 'TBD')
                             
-                            # Live-Daten für diese Series abrufen
-                            state_query = {
-                                "query": """
-                                query GetSeriesState($id: String!) {
-                                    seriesState(id: $id) {
-                                        id
-                                        title
-                                        startedAt
-                                        started
-                                        finished
-                                    }
-                                }
-                                """,
-                                "variables": {"id": series_id}
-                            }
-                            
-                            async with session.post(state_url, headers=headers, json=state_query, timeout=10) as state_response:
-                                if state_response.status == 200:
-                                    state_data = await state_response.json()
+                            # Startzeit verwenden
+                            start_time_str = series_node.get('startTimeScheduled')
+                            if start_time_str:
+                                match_dt = datetime.datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                                
+                                # Nur zukünftige Matches (oder max. 2 Stunden vergangen)
+                                time_diff = (match_dt - current_time).total_seconds() / 60
+                                if time_diff >= -120:  # Auch Matches die vor bis zu 2 Stunden started sind
                                     
-                                    if state_data.get('errors'):
-                                        continue
-                                        
-                                    series_state = state_data.get('data', {}).get('seriesState')
-                                    if series_state and not series_state.get('finished'):
-                                        start_time = series_state.get('startedAt')
-                                        if start_time:
-                                            match_dt = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00'))
-                                            
-                                            # Nur zukünftige Matches
-                                            if match_dt > current_time:
-                                                german_tz = timezone(timedelta(hours=2))
-                                                local_dt = match_dt.astimezone(german_tz)
-                                                time_string = local_dt.strftime("%H:%M")
-                                                
-                                                event = series_state.get('title', series_node.get('tournament', {}).get('nameShortened', 'CS2 Match'))
-                                                
-                                                matches.append({
-                                                    'team1': team1_name, 
-                                                    'team2': team2_name, 
-                                                    'unix_time': int(match_dt.timestamp()),
-                                                    'event': event, 
-                                                    'time_string': time_string
-                                                })
+                                    german_tz = timezone(timedelta(hours=2))
+                                    local_dt = match_dt.astimezone(german_tz)
+                                    time_string = local_dt.strftime("%H:%M")
+                                    
+                                    event = series_node.get('tournament', {}).get('nameShortened', 'CS2 Match')
+                                    
+                                    matches.append({
+                                        'team1': team1_name, 
+                                        'team2': team2_name, 
+                                        'unix_time': int(match_dt.timestamp()),
+                                        'event': event, 
+                                        'time_string': time_string
+                                    })
                         except Exception as e:
-                            print(f"❌ Series {series_id} error: {e}")
+                            print(f"❌ Series error: {e}")
                             continue
                     
                     matches.sort(key=lambda x: x['unix_time'])
@@ -470,7 +441,6 @@ async def fetch_grid_matches():
     except Exception as e:
         print(f"❌ Grid.gg API connection error: {e}")
         return []
-
 @bot.command()
 async def testnew(ctx):
     """Testet die neue Grid.gg Implementierung mit Debug"""
