@@ -1193,7 +1193,7 @@ async def matches(ctx):
                 
                 # ✅ DIESELBE LOGIK WIE IN create_match_alert:
                 # Teams mit # im DESCRIPTION Field (nicht in add_field value!)
-                team_display = f"### {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}"
+                team_display = f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}"
                 
                 # Time-Line mit fester Breite wie in create_match_alert
                 starts_in_text = f"⏰ **Starts in:** **{int(time_until)} minutes**"
@@ -1230,14 +1230,6 @@ async def matches(ctx):
         
     except Exception as e:
         await ctx.send(f"❌ **Error:** {e}")
-        
-@bot.command()
-async def setchannel(ctx, channel: discord.TextChannel):
-    CHANNELS[str(ctx.guild.id)] = channel.id
-    if save_data():
-        await ctx.send(f"📡 **Alert channel set to {channel.mention}!** ✅")
-    else:
-        await ctx.send("⚠️ **Save failed!**")
 
 @bot.command()
 async def autosetup(ctx):
