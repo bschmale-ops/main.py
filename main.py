@@ -1170,27 +1170,34 @@ async def matches(ctx):
         matches = await fetch_grid_matches()
         
         if matches:
-            # Erstelle ein Embed für die Match-Liste (ähnlich wie test)
             embed = discord.Embed(
                 title=f"🎯 LIVE & UPCOMING CS2 MATCHES",
                 color=0x0099ff,
                 timestamp=datetime.datetime.now()
             )
             
-            for i, match in enumerate(matches[:6]):  # Max 6 Matches im Embed
+            for i, match in enumerate(matches[:6]):
                 time_until = (match['unix_time'] - datetime.datetime.now(timezone.utc).timestamp()) / 60
                 
-                # Verwende die gleiche Formatierung wie in create_match_alert
+                # Team-Namen mit Fallback auf 🌍 wenn kein Logo
                 team1_display = get_display_name(match['team1'], use_smart_lookup=False)
                 team2_display = get_display_name(match['team2'], use_smart_lookup=False)
                 
-                match_field = f"# {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}"
+                # Ersetze Team-Namen ohne Logo mit 🌍
+                if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team1_display):
+                    team1_display = f"🌍 {team1_display}"
+                if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
+                    team2_display = f"🌍 {team2_display}"
+                
+                # Match-Line mit größerer Schrift (ohne #)
+                match_field = f"**{team1_display}**\n<:VS:1428145739443208305>\n**{team2_display}**"
                 
                 # Zusätzliche Infos
                 info_line = f"🕐 **Time:** {match['time_string']} | ⏰ **Starts in:** {int(time_until)}min\n🏆 **Event:** {match['event']}"
                 
+                # Field ohne Titel (nur Absatz)
                 embed.add_field(
-                    name=f"Match {i+1}",
+                    name="",  # Leerer Titel = Absatz
                     value=f"{match_field}\n{info_line}",
                     inline=False
                 )
