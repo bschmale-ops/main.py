@@ -882,30 +882,24 @@ async def twitchtest(ctx):
     # Stream Info über dem Banner - mit rotem Punkt links
     embed.add_field(
         name="🔴 shiseii is now live on Twitch!",
-        value="**[👉 CLICK HERE TO WATCH LIVE 👈](https://twitch.tv/shiseii)**",
+        value="**[🌐 CLICK HERE TO WATCH LIVE ](https://twitch.tv/shiseii)**",
         inline=False
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz
     embed.add_field(name="", value="", inline=False)  # Absatz
     
-    # Titel und Game in separaten Fields
+    # Titel
     embed.add_field(
         name="📺 TWITCH TEST TITEL",
         value="",
         inline=False
     )
     
+    # Game und Live-Status in EINER Zeile
     embed.add_field(
-        name="🎮 TWITCH TEST GAME",
+        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",
         value="",
-        inline=False
-    )
-    
-    # Live-Status rechts
-    embed.add_field(
-        name=f"",
-        value=f"{'\u2800' * 35}🕐 LIVE",
         inline=False
     )
     
