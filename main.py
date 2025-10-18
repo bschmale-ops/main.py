@@ -357,10 +357,10 @@ async def fetch_grid_matches():
                 'Content-Type': 'application/json'
             }
             
-            # Zeitfilter für heute + 1 Tag
-            now = datetime.datetime.now(timezone.utc)
-            start_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-            end_time = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            # Zeitfilter für heute + 1 Tag IN UTC
+            now_utc = datetime.datetime.now(timezone.utc)
+            start_time = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+            end_time = (now_utc + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
             
             series_list_query = {
                 "query": """
@@ -410,7 +410,9 @@ async def fetch_grid_matches():
                     series_edges = central_data.get('data', {}).get('allSeries', {}).get('edges', [])
                     print(f"✅ Gefundene Series: {len(series_edges)}")
                     
-                    current_time = datetime.datetime.now(timezone.utc)
+                    # ✅ EXPLIZITE TIMEZONE FÜR ALLE BERECHNUNGEN
+                    german_tz = timezone(timedelta(hours=2))
+                    current_time_utc = datetime.datetime.now(timezone.utc)
                     
                     for edge in series_edges:
                         try:
@@ -429,27 +431,30 @@ async def fetch_grid_matches():
                             team1_name = teams[0].get('baseInfo', {}).get('name', 'TBD')
                             team2_name = teams[1].get('baseInfo', {}).get('name', 'TBD')
                             
-                            # Startzeit verwenden
+                            # Startzeit verwenden - ✅ ALS UTC INTERPRETIEREN
                             start_time_str = series_node.get('startTimeScheduled')
                             if start_time_str:
-                                match_dt = datetime.datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                                # Grid.gg liefert UTC Zeit - direkt verwenden
+                                match_dt_utc = datetime.datetime.fromisoformat(start_time_str.replace('Z', '+00:00'))
+                                
+                                # ✅ KORREKTE TIME_UNTIL BERECHNUNG: UTC vs UTC
+                                time_diff = (match_dt_utc - current_time_utc).total_seconds() / 60
                                 
                                 # Nur zukünftige Matches (oder max. 2 Stunden vergangen)
-                                time_diff = (match_dt - current_time).total_seconds() / 60
                                 if time_diff >= -120:
                                     
-                                    german_tz = timezone(timedelta(hours=2))
-                                    local_dt = match_dt.astimezone(german_tz)
-                                    time_string = local_dt.strftime("%H:%M")
+                                    # ✅ Local Time für Display
+                                    match_dt_local = match_dt_utc.astimezone(german_tz)
+                                    time_string = match_dt_local.strftime("%H:%M")
                                     
                                     event = series_node.get('tournament', {}).get('nameShortened', 'CS2 Match')
                                     
                                     matches.append({
                                         'team1': team1_name, 
                                         'team2': team2_name, 
-                                        'unix_time': int(match_dt.timestamp()),
+                                        'unix_time': int(match_dt_utc.timestamp()),  # ✅ UTC Timestamp
                                         'event': event, 
-                                        'time_string': time_string
+                                        'time_string': time_string  # ✅ Local Time Display
                                     })
                         except Exception as e:
                             print(f"❌ Series error: {e}")
