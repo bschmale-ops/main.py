@@ -1041,110 +1041,79 @@ async def test(ctx):
     
 @bot.command()
 async def testapi(ctx):
-    """Testet die neue kombinierte API-Struktur mit Debug-Infos"""
+    """Erkundet die Central Data API"""
     try:
         async with aiohttp.ClientSession() as session:
-            # 1. ZUERST: Series-IDs von central-data Endpoint holen
             central_url = "https://api-op.grid.gg/central-data/graphql"
             headers = {
                 'x-api-key': GRID_API_KEY,
                 'Content-Type': 'application/json'
             }
             
-            # Query für alle verfügbaren Series
-            series_list_query = {
+            # 1. SCHEMA ERKUNDEN - Was ist verfügbar?
+            schema_query = {
                 "query": """
-                query GetAllSeries {
-                    series {
-                        id
-                        name
-                        startDate
-                        endDate
-                        status
-                        tournament {
-                            name
-                        }
-                        teams {
-                            name
+                query {
+                    __schema {
+                        queryType {
+                            fields {
+                                name
+                                description
+                                args {
+                                    name
+                                    type {
+                                        name
+                                    }
+                                }
+                            }
                         }
                     }
                 }
                 """
             }
             
-            await ctx.send("🔍 **Step 1: Hole Series-Liste von Central Data...**")
+            await ctx.send("🔍 **Erkunde Central Data Schema...**")
             
-            async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
-                if response.status == 200:
-                    central_data = await response.json()
+            async with session.post(central_url, headers=headers, json=schema_query, timeout=15) as response:
+                data = await response.json()
+                
+                if 'data' in data:
+                    fields = data['data']['__schema']['queryType']['fields']
                     
-                    if central_data.get('errors'):
-                        error_msg = central_data['errors'][0]['message']
-                        await ctx.send(f"❌ Central Data Error: {error_msg}")
-                        return
+                    # Zeige ALLE verfügbaren Queries
+                    await ctx.send("📋 **Verfügbare Queries in Central Data:**")
+                    for field in fields:
+                        name = field['name']
+                        args = [arg['name'] for arg in field['args']]
+                        args_str = f"({', '.join(args)})" if args else ""
+                        description = field.get('description', '')
+                        await ctx.send(f"• `{name}{args_str}` - {description}")
+                        
+                    # Teste Queries die "all" oder "list" im Namen haben
+                    await ctx.send("\n🧪 **Teste mögliche List-Queries...**")
                     
-                    series_list = central_data.get('data', {}).get('series', [])
-                    await ctx.send(f"✅ **Step 1: {len(series_list)} Series gefunden**")
+                    possible_list_queries = [
+                        "allSeries", "seriesList", "matches", "allMatches", 
+                        "tournaments", "allTournaments", "events", "allEvents"
+                    ]
                     
-                    if not series_list:
-                        await ctx.send("❌ Keine Series in Central Data!")
-                        return
-                    
-                    # Zeige erste 3 Series als Beispiel
-                    for i, series in enumerate(series_list[:3]):
-                        await ctx.send(f"📋 Series {i+1}: `{series.get('id')}` - {series.get('name')}")
-                    
-                    # 2. TESTE EINZELNE SERIES
-                    await ctx.send("\n🔍 **Step 2: Teste erste Series mit Series State API...**")
-                    
-                    state_url = "https://api-op.grid.gg/live-data-feed/series-state/graphql"
-                    test_series = series_list[0]
-                    series_id = test_series.get('id')
-                    
-                    state_query = {
-                        "query": """
-                        query GetSeriesState($id: String!) {
-                            seriesState(id: $id) {
-                                id
-                                title
-                                teams {
-                                    name
-                                }
-                                games
-                                startedAt
-                                started
-                                finished
-                            }
-                        }
-                        """,
-                        "variables": {"id": series_id}
-                    }
-                    
-                    async with session.post(state_url, headers=headers, json=state_query, timeout=10) as state_response:
-                        if state_response.status == 200:
-                            state_data = await state_response.json()
-                            
-                            if state_data.get('errors'):
-                                error_msg = state_data['errors'][0]['message']
-                                await ctx.send(f"❌ Series State Error: {error_msg}")
-                                return
-                            
-                            series_state = state_data.get('data', {}).get('seriesState')
-                            await ctx.send(f"📊 **Series State Response:**```json\n{json.dumps(series_state, indent=2)[:1000]}```")
-                            
-                            if series_state:
-                                teams = series_state.get('teams', [])
-                                await ctx.send(f"👥 Teams: {len(teams)}")
-                                for team in teams:
-                                    await ctx.send(f"  - {team.get('name')}")
+                    for query_name in possible_list_queries:
+                        test_query = {"query": f"query {{ {query_name} {{ id name }} }}"}
+                        
+                        await ctx.send(f"**Testing `{query_name}`**")
+                        async with session.post(central_url, headers=headers, json=test_query, timeout=10) as resp:
+                            result = await resp.json()
+                            if 'errors' in result:
+                                error_msg = result['errors'][0]['message']
+                                await ctx.send(f"❌ `{query_name}`: {error_msg[:100]}")
                             else:
-                                await ctx.send("❌ Series State ist leer!")
-                                
-                        else:
-                            await ctx.send(f"❌ Series State API Status: {state_response.status}")
-                            
+                                await ctx.send(f"✅ `{query_name}`: FUNKTIONIERT!")
+                                if 'data' in result and result['data'].get(query_name):
+                                    count = len(result['data'][query_name]) if isinstance(result['data'][query_name], list) else 1
+                                    await ctx.send(f"📊 Ergebniss: {count} Einträge")
+                                    
                 else:
-                    await ctx.send(f"❌ Central Data API Status: {response.status}")
+                    await ctx.send("❌ Konnte Schema nicht abrufen")
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
