@@ -570,7 +570,97 @@ async def testtitles(ctx):
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
-        
+
+@bot.command()
+async def testmatches(ctx):
+    """Testet CS2 Matches ohne Zeitfilter"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            central_url = "https://api-op.grid.gg/central-data/graphql"
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            # Zeitfilter für heute
+            now = datetime.datetime.now(timezone.utc)
+            start_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+            end_time = (now + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            
+            series_list_query = {
+                "query": """
+                query GetAllSeries {
+                  allSeries(
+                    filter: {
+                      startTimeScheduled: {
+                        gte: "%s"
+                        lte: "%s"
+                      }
+                      title: {
+                        nameShortened: {
+                          eq: "cs2"
+                        }
+                      }
+                    }
+                    orderBy: StartTimeScheduled
+                    first: 50
+                  ) {
+                    totalCount
+                    edges {
+                      node {
+                        id
+                        startTimeScheduled
+                        teams {
+                          baseInfo {
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                """ % (start_time, end_time)
+            }
+            
+            await ctx.send(f"🔍 **Zeitfilter:** {start_time} bis {end_time}")
+            
+            async with session.post(central_url, headers=headers, json=series_list_query, timeout=15) as response:
+                if response.status == 200:
+                    central_data = await response.json()
+                    
+                    if central_data.get('errors'):
+                        error_msg = central_data['errors'][0]['message']
+                        await ctx.send(f"❌ Central Data Error: {error_msg}")
+                        return
+                    
+                    all_series = central_data.get('data', {}).get('allSeries', {})
+                    total_count = all_series.get('totalCount', 0)
+                    edges = all_series.get('edges', [])
+                    
+                    await ctx.send(f"📊 **CS2 Series gefunden:** {total_count} total, {len(edges)} edges")
+                    
+                    if edges:
+                        await ctx.send("🔍 **Gefundene CS2 Matches:**")
+                        for i, edge in enumerate(edges):
+                            node = edge.get('node', {})
+                            teams = node.get('teams', [])
+                            team_names = [team.get('baseInfo', {}).get('name', '?') for team in teams]
+                            
+                            start_time = node.get('startTimeScheduled', 'N/A')
+                            
+                            await ctx.send(
+                                f"**Match {i+1}:** {', '.join(team_names) if team_names else 'No teams'}\n"
+                                f"Time: {start_time}\n"
+                            )
+                    else:
+                        await ctx.send("❌ **Keine CS2 Series im Zeitraum gefunden!**")
+                        
+                else:
+                    await ctx.send(f"❌ Central Data API Status: {response.status}")
+                    
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
+
 # =========================
 # ALERT SYSTEM - ANGEPASST FÜR GRID.GG
 # =========================
