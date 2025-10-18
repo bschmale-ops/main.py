@@ -1190,11 +1190,17 @@ async def matches(ctx):
                 if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
                     team2_display = f"🌍 {team2_display}"
                 
-                # Größere Schrift mit **Fett** für Teams
+                # Berechne feste Breite für "Starts in" - immer gleich lang
+                starts_in_text = f"⏰ **Starts in:** **{int(time_until)} minutes**"
+                fixed_width_starts_in = starts_in_text.ljust(40)  # Feste Breite von 40 Zeichen
+                
+                # Größere Schrift mit **# ** am Anfang jeder Zeile
                 match_content = (
-                    f"**{team1_display}** <:VS:1428145739443208305> **{team2_display}**\n"
+                    f"# **{team1_display}**\n"
+                    f"# <:VS:1428145739443208305>\n"
+                    f"# **{team2_display}**\n"
                     f"🏆 {match['event']}\n"
-                    f"⏰ **Starts in:** **{int(time_until)} minutes**{'\u2800' * 20}🕐 **{match['time_string']}**\n"
+                    f"{fixed_width_starts_in}🕐 **{match['time_string']}**\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 )
                 
