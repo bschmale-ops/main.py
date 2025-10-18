@@ -1564,9 +1564,9 @@ async def twitchtest(ctx):
     
     embed.add_field(name="", value="", inline=False)  # Absatz nach Titel
     
-    # ✅ KORRIGIERT: "🎮 TWITCH TEST GAME" in EINER Zeile
+    # ✅ PADDING ANGEPASST: Experimentiere mit verschiedenen Werten
     embed.add_field(
-        name=f"🎮 TWITCH TEST GAME{'\u2800' * 25}🕐 LIVE",  # ← "GAME" in derselben Zeile
+        name=f"🎮 TWITCH TEST GAME{'\u2800' * 45}🕐 LIVE",  # ← 45, 50, 55 etc. testen
         value="",
         inline=False
     )
