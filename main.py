@@ -532,6 +532,44 @@ async def testnew(ctx):
                     
     except Exception as e:
         await ctx.send(f"❌ Error: {e}")
+
+@bot.command()
+async def testtitles(ctx):
+    """Findet die verfügbaren Titles/Spiele in Grid.gg"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            central_url = "https://api-op.grid.gg/central-data/graphql"
+            headers = {
+                'x-api-key': GRID_API_KEY,
+                'Content-Type': 'application/json'
+            }
+            
+            query = {
+                "query": """
+                query {
+                    titles {
+                        name
+                        nameShortened
+                    }
+                }
+                """
+            }
+            
+            await ctx.send("🔍 **Finde verfügbare Titles/Spiele...**")
+            
+            async with session.post(central_url, headers=headers, json=query, timeout=15) as response:
+                data = await response.json()
+                
+                if 'data' in data:
+                    titles = data['data']['titles']
+                    await ctx.send("📋 **Verfügbare Titles:**")
+                    for title in titles:
+                        await ctx.send(f"• `{title['nameShortened']}` - {title['name']}")
+                else:
+                    await ctx.send("❌ Konnte Titles nicht abrufen")
+                    
+    except Exception as e:
+        await ctx.send(f"❌ Error: {e}")
         
 # =========================
 # ALERT SYSTEM - ANGEPASST FÜR GRID.GG
