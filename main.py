@@ -868,7 +868,7 @@ async def test(ctx):
 
 @bot.command()
 async def twitchtest(ctx):
-    """Twitch Test mit LIVE-Banner oben"""
+    """Twitch Test mit LIVE-Banner und Twitch-Daten"""
     
     announcement = "@everyone @here  |  https://twitch.tv/shiseii  |  shiseii is going live !  --  check out the stream here:"
     
@@ -879,17 +879,34 @@ async def twitchtest(ctx):
         url="https://twitch.tv/shiseii"
     )
     
-    # LIVE-Banner oben groß
+    # NEU: Stream Info über dem Banner
+    embed.add_field(
+        name="🔴 shiseii is now live on Twitch!",
+        value="**[👉 CLICK HERE TO WATCH LIVE 👈](https://twitch.tv/shiseii)**",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    
+    # Stream Titel und Game (Platzhalter - später mit Twitch API füllen)
+    embed.add_field(
+        name=f"📺 Stream Title{'\u2800' * 25}🎮 Game",
+        value=f"**CS2 Stream mit shiseii**\n**Counter-Strike 2**",
+        inline=False
+    )
+    
+    embed.add_field(name="", value="", inline=False)  # Absatz
+    
+    # LIVE-Banner
     embed.set_image(url="https://i.ibb.co/6cQh6FjN/LIVE.png")
     
-    # SHISEII-Banner als Thumbnail
-    embed.set_thumbnail(url="https://i.ibb.co/4nTbw29G/twitch-new-just-socials.jpg")
+    # Profilbild oben rechts (Thumbnail)
+    embed.set_thumbnail(url="https://static-cdn.jtvnw.net/jtv_user_pictures/8b4104f3-43d0-4d7e-a7ae-bd15408acad4-profile_image-70x70.png")
     
-    embed.add_field(name="", value="", inline=False)
-    embed.add_field(name=f"🎮 Game{'\u2800' * 32}🕐 Status", value=f"Counter-Strike 2\n**Live Now**", inline=False)
-    embed.add_field(name="", value="", inline=False)
+    # Viewers & Chat (bleibt wie vorher)
     embed.add_field(name="👥 Viewers", value="**Active & Friendly**", inline=True)
     embed.add_field(name="💬 Chat", value="**Live Chat**", inline=True)
+    
     embed.set_footer(text="🎮 CS2 Match Bot • Have fun!")
     
     await ctx.send(announcement, embed=embed)
