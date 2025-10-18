@@ -879,18 +879,18 @@ async def twitchtest(ctx):
         url="https://twitch.tv/shiseii"
     )
     
-    # Stream Info über dem Banner
+    # Stream Info über dem Banner - mit rotem Punkt links
     embed.add_field(
-        name="shiseii is now live on Twitch!",
-        value="**[ 👉 CLICK HERE TO WATCH LIVE](https://twitch.tv/shiseii)**",
+        name="🔴 shiseii is now live on Twitch!",
+        value="**[👉 CLICK HERE TO WATCH LIVE 👈](https://twitch.tv/shiseii)**",
         inline=False
     )
     
     embed.add_field(name="", value="", inline=False)  # Absatz
     
-    # Stream Titel und Game - mit klaren Test-Daten
+    # Stream Titel und Game - NEU mit Emojis und Live-Status links
     embed.add_field(
-        name=f"📺 TWITCH TITLE{'\u2800' * 25}🎮 GAME TEST",
+        name=f"🕐 LIVE{'\u2800' * 30}🎮 GAME TEST",
         value=f"**TWITCH TEST TITEL**\n**TWITCH GAME TEST**",
         inline=False
     )
