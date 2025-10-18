@@ -1191,32 +1191,36 @@ async def matches(ctx):
                 if not re.search(r'<:[a-zA-Z0-9_]+:\d+>', team2_display):
                     team2_display = f"🌍 {team2_display}"
                 
-                # ✅ KORRIGIERTE PADDING-LOGIK:
-                time_until = int(time_until)
-                starts_in_text = f"⏰ **Starts in:** **{time_until} minutes**"
+                # ✅ DIESELBE LOGIK WIE IN create_match_alert:
+                # Teams mit # im DESCRIPTION Field (nicht in add_field value!)
+                team_display = f"### {team1_display}\n# <:VS:1428145739443208305>\n# {team2_display}"
                 
-                # WENIGER Padding für Time weiter links
-                current_length = len(starts_in_text)
-                padding_needed = 55 - current_length  # ← Reduziert von 60 auf 55
-                padding = '\u2800' * max(1, padding_needed)
-                
+                # Time-Line mit fester Breite wie in create_match_alert
+                starts_in_text = f"⏰ **Starts in:** **{int(time_until)} minutes**"
+                padding = '\u2800' * 25  # Gleiches Padding wie in create_match_alert
                 time_line = f"{starts_in_text}{padding}🕐 **{match['time_string']}**"
                 
-                # ✅ "# " AM ANFANG - ohne **Fett**
-                match_content = (
-                    f"# {team1_display}\n"
-                    f"# <:VS:1428145739443208305>\n"
-                    f"# {team2_display}\n"
-                    f"🏆 {match['event']}\n"
-                    f"{time_line}\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                )
+                # Zuerst Teams im Description-Format hinzufügen
+                match_embed = discord.Embed(description=team_display, color=0x0099ff)
                 
-                embed.add_field(
-                    name="",
-                    value=match_content,
+                # Dann Tournament und Time in einem Field (wie in create_match_alert)
+                match_embed.add_field(
+                    name=f"🏆 {match['event']}",
+                    value=time_line,
                     inline=False
                 )
+                
+                # Trennlinie
+                match_embed.add_field(name="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", value="", inline=False)
+                
+                # Zum Haupt-Embed hinzufügen
+                embed.add_field(
+                    name="",
+                    value=match_embed.description,
+                    inline=False
+                )
+                for field in match_embed.fields:
+                    embed.add_field(name=field.name, value=field.value, inline=field.inline)
             
             embed.set_footer(text="🎮 CS2 Match Bot • Use /subscribe <team>")
             
