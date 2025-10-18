@@ -678,6 +678,26 @@ async def on_interaction(interaction: discord.Interaction):
 # =========================
 # BOT COMMANDS
 # =========================
+@bot.check
+async def global_command_check(ctx):
+    # ✅ NUR DIESE 2 BEFEHLE FÜR ALLE USER:
+    allowed_commands = ['matches', 'list']
+    
+    if ctx.command.name in allowed_commands:
+        return True  # ✅ Erlaubt
+    
+    # ✅ ADMINS DÜRFEN ALLES:
+    if ctx.author.guild_permissions.administrator:
+        return True
+    
+    # ❌ BLOCKIERE ALLE ANDEREN BEFEHLE:
+    await ctx.send(
+        "❌ **Zugriff verweigert!** \n"
+        "**Erlaubte Befehle:** `/matches`, `/list`", 
+        delete_after=10
+    )
+    return False
+    
 @bot.command()
 async def subscribe(ctx, *, team):
     guild_id = str(ctx.guild.id)
